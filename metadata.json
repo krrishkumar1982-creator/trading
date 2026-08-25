@@ -1,0 +1,6 @@
+{
+  "name": "DuskFlow - Ultimate Trading Journal & Analytics Platform",
+  "description": "All-in-one trading journal, backtesting replay engine, strategy playbooks, automated analytics, AI trading coach, and risk management system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
