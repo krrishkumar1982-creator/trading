@@ -1,4 +1,9 @@
-import { Trade, RiskGoalSettings } from '../../types';
+import { Trade } from '../../types';
+import {
+  calculateComprehensiveMetrics,
+  ComprehensiveMetrics,
+  roundMoney
+} from '../../lib/calcEngine';
 
 export interface PerformanceMetrics {
   totalTrades: number;
@@ -7,7 +12,8 @@ export interface PerformanceMetrics {
   winningTrades: number;
   losingTrades: number;
   breakevenTrades: number;
-  winRate: number; // percentage
+  winRate: number; // percentage (decisive or all-trades)
+  allTradesWinRate: number;
   lossRate: number; // percentage
   totalNetPnl: number;
   grossProfit: number;
@@ -36,204 +42,66 @@ export interface PerformanceMetrics {
 }
 
 export function calculatePerformanceMetrics(trades: Trade[], initialBalance = 50000): PerformanceMetrics {
+  const m = calculateComprehensiveMetrics(trades, { initialBalance });
   const closed = trades.filter(t => t.status === 'CLOSED');
-  const open = trades.filter(t => t.status === 'OPEN');
-  
-  if (closed.length === 0) {
-    return {
-      totalTrades: trades.length,
-      closedTrades: 0,
-      openTrades: open.length,
-      winningTrades: 0,
-      losingTrades: 0,
-      breakevenTrades: 0,
-      winRate: 0,
-      lossRate: 0,
-      totalNetPnl: 0,
-      grossProfit: 0,
-      grossLoss: 0,
-      profitFactor: 0,
-      avgTradePnl: 0,
-      avgWin: 0,
-      avgLoss: 0,
-      winLossRatio: 0,
-      largestWin: 0,
-      largestLoss: 0,
-      avgRMultiple: 0,
-      expectancy: 0,
-      totalCommissions: 0,
-      maxDrawdownDollar: 0,
-      maxDrawdownPercent: 0,
-      currentDrawdownDollar: 0,
-      currentDrawdownPercent: 0,
-      avgDurationMinutes: 0,
-      bestTradingDay: { date: 'N/A', pnl: 0 },
-      worstTradingDay: { date: 'N/A', pnl: 0 },
-      currentStreak: { type: 'NONE', count: 0 },
-      longestWinStreak: 0,
-      longestLossStreak: 0,
-      rulesFollowedRate: 0,
-    };
-  }
-
-  const winners = closed.filter(t => t.netPnl > 0);
-  const losers = closed.filter(t => t.netPnl < 0);
-  const breakevens = closed.filter(t => t.netPnl === 0);
-
-  const winningTrades = winners.length;
-  const losingTrades = losers.length;
-  const breakevenTrades = breakevens.length;
-
-  const winRate = (winningTrades / closed.length) * 100;
-  const lossRate = (losingTrades / closed.length) * 100;
-
-  const totalNetPnl = closed.reduce((acc, t) => acc + t.netPnl, 0);
-  const grossProfit = winners.reduce((acc, t) => acc + t.netPnl, 0);
-  const grossLoss = Math.abs(losers.reduce((acc, t) => acc + t.netPnl, 0));
-
-  const profitFactor = grossLoss > 0 ? parseFloat((grossProfit / grossLoss).toFixed(2)) : grossProfit > 0 ? 99.9 : 0;
-
-  const avgTradePnl = totalNetPnl / closed.length;
-  const avgWin = winningTrades > 0 ? grossProfit / winningTrades : 0;
-  const avgLoss = losingTrades > 0 ? grossLoss / losingTrades : 0;
-  const winLossRatio = avgLoss > 0 ? avgWin / avgLoss : avgWin > 0 ? avgWin : 0;
-
-  const pnls = closed.map(t => t.netPnl);
-  const largestWin = winners.length > 0 ? Math.max(...pnls) : 0;
-  const largestLoss = losers.length > 0 ? Math.min(...pnls) : 0;
-
-  const avgRMultiple = closed.reduce((acc, t) => acc + (t.rMultiple || 0), 0) / closed.length;
-  const expectancy = ((winRate / 100) * avgWin) - ((lossRate / 100) * avgLoss);
-  const totalCommissions = closed.reduce((acc, t) => acc + (t.commission || 0) + (t.fees || 0), 0);
-
-  // Chronological sort for equity, streaks, drawdown
-  const chronoTrades = [...closed].sort(
-    (a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime()
-  );
-
-  // Drawdown calculation
-  let runningEquity = initialBalance;
-  let peakEquity = initialBalance;
-  let maxDrawdownDollar = 0;
-  let maxDdPercent = 0;
-
-  chronoTrades.forEach(t => {
-    runningEquity += t.netPnl;
-    if (runningEquity > peakEquity) {
-      peakEquity = runningEquity;
-    }
-    const currentDd = peakEquity - runningEquity;
-    const currentDdPct = peakEquity > 0 ? (currentDd / peakEquity) * 100 : 0;
-    if (currentDd > maxDrawdownDollar) {
-      maxDrawdownDollar = currentDd;
-    }
-    if (currentDdPct > maxDdPercent) {
-      maxDdPercent = currentDdPct;
-    }
-  });
-
-  const currentDrawdownDollar = Math.max(0, peakEquity - runningEquity);
-  const currentDrawdownPercent = peakEquity > 0 ? (currentDrawdownDollar / peakEquity) * 100 : 0;
 
   // Duration
   const totalDuration = closed.reduce((acc, t) => acc + (t.durationMinutes || 0), 0);
-  const avgDurationMinutes = Math.round(totalDuration / closed.length);
+  const avgDurationMinutes = closed.length > 0 ? Math.round(totalDuration / closed.length) : 0;
 
-  // Group by day for best/worst trading day
+  // Best / Worst Day
   const dayPnlMap: { [date: string]: number } = {};
-  chronoTrades.forEach(t => {
+  closed.forEach(t => {
     const d = t.entryDate ? t.entryDate.split('T')[0] : 'N/A';
     dayPnlMap[d] = (dayPnlMap[d] || 0) + t.netPnl;
   });
 
-  let bestDay = { date: 'N/A', pnl: -Infinity };
-  let worstDay = { date: 'N/A', pnl: Infinity };
+  let bestDay = { date: 'N/A', pnl: 0 };
+  let worstDay = { date: 'N/A', pnl: 0 };
 
-  Object.entries(dayPnlMap).forEach(([date, pnl]) => {
-    if (pnl > bestDay.pnl) bestDay = { date, pnl };
-    if (pnl < worstDay.pnl) worstDay = { date, pnl };
-  });
-
-  if (bestDay.pnl === -Infinity) bestDay = { date: 'N/A', pnl: 0 };
-  if (worstDay.pnl === Infinity) worstDay = { date: 'N/A', pnl: 0 };
-
-  // Streaks
-  let currentStreakCount = 0;
-  let currentStreakType: 'WIN' | 'LOSS' | 'NONE' = 'NONE';
-  let longestWinStreak = 0;
-  let longestLossStreak = 0;
-  let tempWinStreak = 0;
-  let tempLossStreak = 0;
-
-  chronoTrades.forEach(t => {
-    if (t.netPnl > 0) {
-      tempWinStreak += 1;
-      tempLossStreak = 0;
-      if (tempWinStreak > longestWinStreak) longestWinStreak = tempWinStreak;
-    } else if (t.netPnl < 0) {
-      tempLossStreak += 1;
-      tempWinStreak = 0;
-      if (tempLossStreak > longestLossStreak) longestLossStreak = tempLossStreak;
-    } else {
-      tempWinStreak = 0;
-      tempLossStreak = 0;
-    }
-  });
-
-  // Current streak from latest trades backwards
-  const reversedTrades = [...chronoTrades].reverse();
-  if (reversedTrades.length > 0) {
-    const firstPnl = reversedTrades[0].netPnl;
-    if (firstPnl > 0) {
-      currentStreakType = 'WIN';
-      for (const t of reversedTrades) {
-        if (t.netPnl > 0) currentStreakCount++;
-        else break;
-      }
-    } else if (firstPnl < 0) {
-      currentStreakType = 'LOSS';
-      for (const t of reversedTrades) {
-        if (t.netPnl < 0) currentStreakCount++;
-        else break;
-      }
-    }
+  const dayEntries = Object.entries(dayPnlMap);
+  if (dayEntries.length > 0) {
+    const sortedDays = [...dayEntries].sort((a, b) => b[1] - a[1]);
+    bestDay = { date: sortedDays[0][0], pnl: roundMoney(sortedDays[0][1], 2) };
+    worstDay = { date: sortedDays[sortedDays.length - 1][0], pnl: roundMoney(sortedDays[sortedDays.length - 1][1], 2) };
   }
 
   const rulesFollowedCount = closed.filter(t => t.rulesFollowed).length;
-  const rulesFollowedRate = Math.round((rulesFollowedCount / closed.length) * 100);
+  const rulesFollowedRate = closed.length > 0 ? Math.round((rulesFollowedCount / closed.length) * 100) : 0;
 
   return {
-    totalTrades: trades.length,
-    closedTrades: closed.length,
-    openTrades: open.length,
-    winningTrades,
-    losingTrades,
-    breakevenTrades,
-    winRate: parseFloat(winRate.toFixed(1)),
-    lossRate: parseFloat(lossRate.toFixed(1)),
-    totalNetPnl,
-    grossProfit,
-    grossLoss,
-    profitFactor,
-    avgTradePnl,
-    avgWin,
-    avgLoss,
-    winLossRatio: parseFloat(winLossRatio.toFixed(2)),
-    largestWin,
-    largestLoss,
-    avgRMultiple: parseFloat(avgRMultiple.toFixed(2)),
-    expectancy: parseFloat(expectancy.toFixed(2)),
-    totalCommissions,
-    maxDrawdownDollar,
-    maxDrawdownPercent: parseFloat(maxDdPercent.toFixed(1)),
-    currentDrawdownDollar,
-    currentDrawdownPercent: parseFloat(currentDrawdownPercent.toFixed(1)),
+    totalTrades: m.totalTrades,
+    closedTrades: m.closedTrades,
+    openTrades: m.openTrades,
+    winningTrades: m.winningTrades,
+    losingTrades: m.losingTrades,
+    breakevenTrades: m.breakevenTrades,
+    winRate: m.winRate !== null ? m.winRate : m.allTradesWinRate,
+    allTradesWinRate: m.allTradesWinRate,
+    lossRate: m.lossRate !== null ? m.lossRate : 0,
+    totalNetPnl: m.netPnl,
+    grossProfit: m.grossProfit,
+    grossLoss: m.grossLoss,
+    profitFactor: m.profitFactor !== null && isFinite(m.profitFactor) ? m.profitFactor : (m.grossProfit > 0 ? 99.9 : 0),
+    avgTradePnl: m.avgTradePnl,
+    avgWin: m.avgWinningTrade,
+    avgLoss: m.avgLosingTrade,
+    winLossRatio: m.payoffRatio !== null && isFinite(m.payoffRatio) ? m.payoffRatio : (m.avgWinningTrade > 0 ? m.avgWinningTrade : 0),
+    largestWin: m.largestWin,
+    largestLoss: m.largestLoss,
+    avgRMultiple: m.avgRMultiple !== null ? m.avgRMultiple : 0,
+    expectancy: m.monetaryExpectancy,
+    totalCommissions: m.totalCosts,
+    maxDrawdownDollar: m.maxDrawdownDollars,
+    maxDrawdownPercent: m.maxDrawdownPercent,
+    currentDrawdownDollar: m.currentDrawdownDollars,
+    currentDrawdownPercent: m.currentDrawdownPercent,
     avgDurationMinutes,
     bestTradingDay: bestDay,
     worstTradingDay: worstDay,
-    currentStreak: { type: currentStreakType, count: currentStreakCount },
-    longestWinStreak,
-    longestLossStreak,
+    currentStreak: m.currentStreak,
+    longestWinStreak: m.maxConsecutiveWins,
+    longestLossStreak: m.maxConsecutiveLosses,
     rulesFollowedRate,
   };
 }
@@ -287,7 +155,7 @@ export function generateSmartInsights(trades: Trade[]): SmartInsight[] {
         category: 'SESSION',
         type: 'POSITIVE',
         title: `Prime Alpha in ${bestSession.session} Session`,
-        description: `Your highest profitability occurs during the ${bestSession.session} session with a ${bestSession.wr.toFixed(0)}% win rate and $${bestSession.pnl.toLocaleString()} total net P&L across ${bestSession.count} trades.`,
+        description: `Your highest profitability occurs during the ${bestSession.session} session with a ${bestSession.wr.toFixed(0)}% win rate and $${roundMoney(bestSession.pnl).toLocaleString()} total net P&L across ${bestSession.count} trades.`,
         metricBadge: `+$${Math.round(bestSession.pnl).toLocaleString()}`,
       });
     }

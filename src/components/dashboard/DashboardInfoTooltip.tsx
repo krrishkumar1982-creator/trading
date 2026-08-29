@@ -51,8 +51,15 @@ export const METRIC_INFOS: Record<string, MetricInfo> = {
     interpretation: 'A ratio > 2.0x means your winners are more than twice the size of your losers.',
     tips: 'Avoid averaging down into losing positions.'
   },
+  tradeForgeScore: {
+    title: 'TradeForge Performance Score',
+    description: 'A 0–100 radar metric evaluating overall competency across 6 performance pillars.',
+    formula: 'Composite weighted index of Win %, Profit Factor, Avg Win/Loss, Max DD, Consistency, and Recovery.',
+    interpretation: '80+ is exceptional edge; 65+ is solid profitability.',
+    tips: 'Inspect the radar card to locate and eliminate your largest trading leak.'
+  },
   duskFlowScore: {
-    title: 'DuskFlow Performance Score',
+    title: 'TradeForge Performance Score',
     description: 'A 0–100 radar metric evaluating overall competency across 6 performance pillars.',
     formula: 'Composite weighted index of Win %, Profit Factor, Avg Win/Loss, Max DD, Consistency, and Recovery.',
     interpretation: '80+ is exceptional edge; 65+ is solid profitability.',

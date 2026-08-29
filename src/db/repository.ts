@@ -18,7 +18,9 @@ import {
   brokerIntegrations,
   integrationEvents,
   dailyChecklistStates,
-  adminAuditLogs
+  adminAuditLogs,
+  backtestDrawings,
+  chartTemplates
 } from './schema.ts';
 import { eq, and, inArray, desc, sql, not, lte } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
@@ -1327,9 +1329,64 @@ export async function deleteMentorStudent(userId: string, id: string) {
   }
 }
 
-// Mentor Directives
-export async function getMentorDirectivesForMentor(mentorId: string) {
+// Mentor Directives & Feedback
+export async function getMentorDirectivesForMentor(mentorId: string, studentIdentifier?: string) {
   try {
+    if (studentIdentifier) {
+      // Validate mentor-student relationship first
+      const studentMatches = await db
+        .select()
+        .from(mentorStudents)
+        .where(
+          and(
+            eq(mentorStudents.userId, mentorId),
+            sql`(${mentorStudents.code} = ${studentIdentifier} OR ${mentorStudents.id} = ${studentIdentifier})`
+          )
+        )
+        .limit(1);
+
+      if (studentMatches.length === 0) {
+        // Also check if studentIdentifier matches student UID
+        const studentUser = await db
+          .select({ accountCode: users.accountCode, uid: users.uid })
+          .from(users)
+          .where(eq(users.uid, studentIdentifier))
+          .limit(1);
+
+        if (studentUser.length > 0) {
+          const linkedWithUser = await db
+            .select()
+            .from(mentorStudents)
+            .where(
+              and(
+                eq(mentorStudents.userId, mentorId),
+                eq(mentorStudents.code, studentUser[0].accountCode)
+              )
+            )
+            .limit(1);
+          if (linkedWithUser.length === 0) {
+            throw new Error('Forbidden: You do not have permission to view feedback for this student');
+          }
+        } else {
+          throw new Error('Forbidden: You do not have permission to view feedback for this student');
+        }
+      }
+
+      const matchCode = studentMatches[0]?.code;
+      const matchId = studentMatches[0]?.id;
+
+      return await db
+        .select()
+        .from(mentorDirectives)
+        .where(
+          and(
+            eq(mentorDirectives.mentorId, mentorId),
+            sql`(${mentorDirectives.studentId} = ${studentIdentifier} OR ${mentorDirectives.studentId} = ${matchCode || ''} OR ${mentorDirectives.studentId} = ${matchId || ''})`
+          )
+        )
+        .orderBy(desc(mentorDirectives.createdAt));
+    }
+
     return await db
       .select()
       .from(mentorDirectives)
@@ -1337,7 +1394,7 @@ export async function getMentorDirectivesForMentor(mentorId: string) {
       .orderBy(desc(mentorDirectives.createdAt));
   } catch (error) {
     console.error('getMentorDirectivesForMentor error:', error);
-    return [];
+    throw error;
   }
 }
 
@@ -1369,45 +1426,158 @@ export async function getMentorDirectivesForStudent(studentId: string) {
 
 export async function createMentorDirective(
   mentorId: string,
-  studentCode: string,
+  studentIdentifier: string,
   content: string,
   type = 'DIRECTIVE'
 ) {
   try {
-    // 1. Check if student is linked to this mentor
+    const cleanContent = content ? content.trim() : '';
+    if (!cleanContent) {
+      throw new Error('Validation Error: Directive content cannot be empty');
+    }
+    if (cleanContent.length > 5000) {
+      throw new Error('Validation Error: Directive content exceeds maximum length of 5,000 characters');
+    }
+
+    // 1. Check if student is linked to this mentor by code or ID
     const linked = await db
       .select()
       .from(mentorStudents)
-      .where(and(eq(mentorStudents.userId, mentorId), eq(mentorStudents.code, studentCode)))
+      .where(
+        and(
+          eq(mentorStudents.userId, mentorId),
+          sql`(${mentorStudents.code} = ${studentIdentifier} OR ${mentorStudents.id} = ${studentIdentifier})`
+        )
+      )
       .limit(1);
 
     if (linked.length === 0) {
-      throw new Error('Forbidden: Student is not linked to this mentor');
+      // Also check if studentIdentifier matches student UID
+      const studentUser = await db
+        .select({ accountCode: users.accountCode, uid: users.uid })
+        .from(users)
+        .where(eq(users.uid, studentIdentifier))
+        .limit(1);
+
+      if (studentUser.length === 0) {
+        throw new Error('Forbidden: Student is not linked to this mentor');
+      }
+
+      const linkedByUser = await db
+        .select()
+        .from(mentorStudents)
+        .where(
+          and(
+            eq(mentorStudents.userId, mentorId),
+            eq(mentorStudents.code, studentUser[0].accountCode)
+          )
+        )
+        .limit(1);
+
+      if (linkedByUser.length === 0) {
+        throw new Error('Forbidden: Student is not linked to this mentor');
+      }
     }
 
-    // 2. Resolve student's real user uid by their accountCode
+    // 2. Resolve student's real user uid by their accountCode or studentIdentifier
+    const targetCode = linked[0]?.code || studentIdentifier;
     const studentUser = await db
       .select({ uid: users.uid })
       .from(users)
-      .where(eq(users.accountCode, studentCode))
+      .where(eq(users.accountCode, targetCode))
       .limit(1);
 
-    // If the student has not signed in/migrated yet, we can fall back to using their code or a linked student id
-    const studentId = studentUser.length > 0 ? studentUser[0].uid : studentCode;
+    // If the student has signed in, store their UID; otherwise targetCode
+    const resolvedStudentId = studentUser.length > 0 ? studentUser[0].uid : targetCode;
 
     const newDirective = {
       id: `dir_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       mentorId,
-      studentId,
-      type,
-      content,
+      studentId: resolvedStudentId,
+      type: type || 'DIRECTIVE',
+      content: cleanContent,
       status: 'PENDING',
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     await db.insert(mentorDirectives).values(newDirective);
     return newDirective;
   } catch (error) {
     console.error('createMentorDirective error:', error);
+    throw error;
+  }
+}
+
+export async function updateMentorDirective(
+  mentorId: string,
+  directiveId: string,
+  updates: { content?: string; status?: string; type?: string }
+) {
+  try {
+    const existing = await db
+      .select()
+      .from(mentorDirectives)
+      .where(eq(mentorDirectives.id, directiveId))
+      .limit(1);
+
+    if (existing.length === 0) {
+      throw new Error('Directive not found');
+    }
+
+    if (existing[0].mentorId !== mentorId) {
+      throw new Error('Forbidden: You cannot modify directives created by another mentor');
+    }
+
+    const payload: any = { updatedAt: new Date() };
+    if (updates.content !== undefined) {
+      const clean = updates.content.trim();
+      if (!clean) throw new Error('Validation Error: Content cannot be empty');
+      payload.content = clean;
+    }
+    if (updates.status !== undefined) {
+      payload.status = updates.status;
+    }
+    if (updates.type !== undefined) {
+      payload.type = updates.type;
+    }
+
+    const updated = await db
+      .update(mentorDirectives)
+      .set(payload)
+      .where(and(eq(mentorDirectives.id, directiveId), eq(mentorDirectives.mentorId, mentorId)))
+      .returning();
+
+    return updated[0] || null;
+  } catch (error) {
+    console.error('updateMentorDirective error:', error);
+    throw error;
+  }
+}
+
+export async function deleteMentorDirective(mentorId: string, directiveId: string) {
+  try {
+    const existing = await db
+      .select()
+      .from(mentorDirectives)
+      .where(eq(mentorDirectives.id, directiveId))
+      .limit(1);
+
+    if (existing.length === 0) {
+      throw new Error('Directive not found');
+    }
+
+    if (existing[0].mentorId !== mentorId) {
+      throw new Error('Forbidden: You cannot delete directives created by another mentor');
+    }
+
+    await db
+      .delete(mentorDirectives)
+      .where(and(eq(mentorDirectives.id, directiveId), eq(mentorDirectives.mentorId, mentorId)));
+
+    return true;
+  } catch (error) {
+    console.error('deleteMentorDirective error:', error);
     throw error;
   }
 }
@@ -1430,7 +1600,7 @@ export async function acknowledgeMentorDirective(studentId: string, id: string) 
 
     const updated = await db
       .update(mentorDirectives)
-      .set({ status: 'ACKNOWLEDGED' })
+      .set({ status: 'ACKNOWLEDGED', updatedAt: new Date() })
       .where(and(eq(mentorDirectives.id, id), condition))
       .returning();
 
@@ -2471,5 +2641,177 @@ export async function updateUserRoleAdmin(adminUserId: string, targetUserId: str
     throw error;
   }
 }
+
+// ==========================================
+// STEP 8 - BACKTESTING DRAWINGS & TEMPLATES CLOUD PERSISTENCE
+// ==========================================
+
+export async function getBacktestDrawings(userId: string, symbol?: string, sessionId: string = 'default') {
+  try {
+    let conditions = eq(backtestDrawings.userId, userId);
+    if (symbol) {
+      conditions = and(eq(backtestDrawings.userId, userId), eq(backtestDrawings.symbol, symbol)) as any;
+    }
+
+    const rows = await db
+      .select()
+      .from(backtestDrawings)
+      .where(conditions);
+
+    return rows.map(r => ({
+      id: r.id,
+      userId: r.userId,
+      sessionId: r.sessionId,
+      symbol: r.symbol,
+      timeframe: r.timeframe,
+      drawings: r.drawings as any[],
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    }));
+  } catch (error) {
+    console.error('getBacktestDrawings error:', error);
+    return [];
+  }
+}
+
+export async function saveBacktestDrawings(
+  userId: string,
+  symbol: string,
+  drawingsList: any[],
+  sessionId: string = 'default',
+  timeframe: string = '15m'
+) {
+  try {
+    const existing = await db
+      .select()
+      .from(backtestDrawings)
+      .where(
+        and(
+          eq(backtestDrawings.userId, userId),
+          eq(backtestDrawings.symbol, symbol),
+          eq(backtestDrawings.sessionId, sessionId)
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db
+        .update(backtestDrawings)
+        .set({
+          drawings: drawingsList,
+          timeframe,
+          updatedAt: new Date(),
+        })
+        .where(eq(backtestDrawings.id, existing[0].id));
+
+      return { id: existing[0].id, success: true };
+    } else {
+      const id = `draw_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      await db.insert(backtestDrawings).values({
+        id,
+        userId,
+        sessionId,
+        symbol,
+        timeframe,
+        drawings: drawingsList,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      return { id, success: true };
+    }
+  } catch (error) {
+    console.error('saveBacktestDrawings error:', error);
+    throw error;
+  }
+}
+
+export async function getChartTemplates(userId: string) {
+  try {
+    const templates = await db
+      .select()
+      .from(chartTemplates)
+      .where(eq(chartTemplates.userId, userId))
+      .orderBy(desc(chartTemplates.createdAt));
+
+    return templates.map(t => ({
+      id: t.id,
+      name: t.name,
+      description: t.description || '',
+      chartType: t.chartType,
+      indicators: t.indicators as any[],
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
+    }));
+  } catch (error) {
+    console.error('getChartTemplates error:', error);
+    return [];
+  }
+}
+
+export async function saveChartTemplate(
+  userId: string,
+  template: {
+    id?: string;
+    name: string;
+    description?: string;
+    chartType: string;
+    indicators: any[];
+  }
+) {
+  try {
+    const id = template.id || `custom-${Date.now()}`;
+    const existing = await db
+      .select()
+      .from(chartTemplates)
+      .where(and(eq(chartTemplates.id, id), eq(chartTemplates.userId, userId)))
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db
+        .update(chartTemplates)
+        .set({
+          name: template.name,
+          description: template.description || '',
+          chartType: template.chartType,
+          indicators: template.indicators,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(chartTemplates.id, id), eq(chartTemplates.userId, userId)));
+
+      return { id, success: true };
+    } else {
+      await db.insert(chartTemplates).values({
+        id,
+        userId,
+        name: template.name,
+        description: template.description || '',
+        chartType: template.chartType,
+        indicators: template.indicators,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      return { id, success: true };
+    }
+  } catch (error) {
+    console.error('saveChartTemplate error:', error);
+    throw error;
+  }
+}
+
+export async function deleteChartTemplate(userId: string, templateId: string) {
+  try {
+    await db
+      .delete(chartTemplates)
+      .where(and(eq(chartTemplates.id, templateId), eq(chartTemplates.userId, userId)));
+
+    return { success: true };
+  } catch (error) {
+    console.error('deleteChartTemplate error:', error);
+    throw error;
+  }
+}
+
 
 

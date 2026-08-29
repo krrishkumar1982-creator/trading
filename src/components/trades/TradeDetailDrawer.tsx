@@ -292,6 +292,18 @@ export const TradeDetailDrawer: React.FC<TradeDetailDrawerProps> = ({ trade, onC
             )}
           </div>
 
+          {/* Trade Chart Attachment */}
+          {trade.screenshotUrl && (
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                Execution Chart Screenshot
+              </label>
+              <div className="rounded-xl overflow-hidden border border-slate-800 bg-slate-950">
+                <img src={trade.screenshotUrl} alt="Execution Chart" className="w-full h-auto max-h-72 object-contain" />
+              </div>
+            </div>
+          )}
+
           {/* Trader Notes */}
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">

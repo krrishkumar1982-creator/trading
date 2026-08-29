@@ -1,8 +1,17 @@
 import { Trade } from '../types';
+import {
+  calculateComprehensiveMetrics,
+  roundMoney,
+  ComprehensiveMetrics,
+  formatPercentage,
+  formatProfitFactor,
+  formatRValue
+} from './calcEngine';
 
 export interface PlaybookMetrics {
   totalTrades: number;
-  winRate: number;
+  winRate: number; // Decisive win rate (Wins / (Wins + Losses) * 100) or all trades win rate if no losses
+  allTradesWinRate: number;
   netPnl: number;
   profitFactor: number;
   avgWinner: number;
@@ -11,71 +20,37 @@ export interface PlaybookMetrics {
 }
 
 /**
- * Calculates standardized playbook metrics from a set of trades.
- * This is the SINGLE AUTHORITATIVE SOURCE OF TRUTH for both frontend and backend.
+ * Calculates standardized playbook metrics using the unified calculation engine.
  * 
  * Rules:
  * - Only CLOSED status trades are included.
- * - Realized P&L is determined by the `netPnl` field.
+ * - Realized P&L is determined by `netPnl`.
  * - Winning Trades: netPnl > 0
  * - Losing Trades: netPnl < 0
- * - Breakeven Trades: netPnl === 0. They are counted in totalTrades (and thus dilute the winRate), 
- *   but are excluded from both winningTrades and losingTrades lists, preventing them from being
- *   misclassified as wins or losses.
- * - Win Rate = (winningTrades.length / totalTrades) * 100
- * - Gross Profit = Sum of netPnl of winning trades
- * - Gross Loss = Sum of netPnl of losing trades (always negative or 0)
- * - Profit Factor = Gross Profit / Absolute Gross Loss.
- *   - If Gross Loss is 0: if Gross Profit > 0, returns 99.99 (standard cap for infinite PF); else returns 0.
- * - Average Win = Gross Profit / winningTrades.length (always positive or 0)
- * - Average Loss = Absolute Gross Loss / losingTrades.length (always positive or 0, adhering to positive sign convention)
- * - Expectancy = Net P&L / Total Trades (representing the expected average net PnL per closed trade)
+ * - Breakeven Trades: netPnl === 0. Excluded from decisive win rate denominator to avoid distorting strategy accuracy.
+ * - Profit Factor = Gross Profit / Absolute Gross Loss. Returns Infinity (or clean cap) when 0 losses.
+ * - Monetary Expectancy: (WinRate * AvgWin) - (LossRate * AvgLoss) or Net PnL / Total Closed Trades.
  */
 export function calculatePlaybookMetrics(pbTrades: Trade[]): PlaybookMetrics {
-  const closedTrades = pbTrades.filter(t => t.status === 'CLOSED');
-  const totalTrades = closedTrades.length;
-
-  if (totalTrades === 0) {
-    return {
-      totalTrades: 0,
-      winRate: 0,
-      netPnl: 0,
-      profitFactor: 0,
-      avgWinner: 0,
-      avgLoser: 0,
-      expectancy: 0,
-    };
-  }
-
-  const winningTrades = closedTrades.filter(t => (t.netPnl || 0) > 0);
-  const losingTrades = closedTrades.filter(t => (t.netPnl || 0) < 0);
-
-  const winRate = (winningTrades.length / totalTrades) * 100;
-  const netPnl = closedTrades.reduce((sum, t) => sum + (t.netPnl || 0), 0);
-
-  const grossProfit = winningTrades.reduce((sum, t) => sum + (t.netPnl || 0), 0);
-  const grossLoss = losingTrades.reduce((sum, t) => sum + (t.netPnl || 0), 0);
-  const absGrossLoss = Math.abs(grossLoss);
-
-  let profitFactor = 0;
-  if (absGrossLoss > 0) {
-    profitFactor = grossProfit / absGrossLoss;
-  } else if (grossProfit > 0) {
-    profitFactor = 99.99;
-  }
-
-  const avgWinner = winningTrades.length > 0 ? (grossProfit / winningTrades.length) : 0;
-  const avgLoser = losingTrades.length > 0 ? (absGrossLoss / losingTrades.length) : 0;
-
-  const expectancy = netPnl / totalTrades;
+  const m = calculateComprehensiveMetrics(pbTrades);
 
   return {
-    totalTrades,
-    winRate,
-    netPnl,
-    profitFactor,
-    avgWinner,
-    avgLoser,
-    expectancy,
+    totalTrades: m.closedTrades,
+    winRate: m.winRate !== null ? m.winRate : 0,
+    allTradesWinRate: m.allTradesWinRate,
+    netPnl: m.netPnl,
+    profitFactor: m.profitFactor !== null && isFinite(m.profitFactor) ? m.profitFactor : (m.grossProfit > 0 ? 99.99 : 0),
+    avgWinner: m.avgWinningTrade,
+    avgLoser: m.avgLosingTrade,
+    expectancy: m.monetaryExpectancy,
   };
 }
+
+export {
+  calculateComprehensiveMetrics,
+  formatPercentage,
+  formatProfitFactor,
+  formatRValue,
+  roundMoney
+};
+export type { ComprehensiveMetrics };

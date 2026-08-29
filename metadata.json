@@ -1,6 +1,6 @@
 {
-  "name": "DuskFlow - Ultimate Trading Journal & Analytics Platform",
-  "description": "All-in-one trading journal, backtesting replay engine, strategy playbooks, automated analytics, AI trading coach, and risk management system.",
+  "name": "TradeForge - Institutional Trading Analytics & Prop Firm Hub",
+  "description": "Professional trading journal, institutional performance analytics, multi-account prop firm management & rule compliance engine.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

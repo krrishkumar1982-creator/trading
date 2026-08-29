@@ -13,7 +13,7 @@ import { PlaybookView } from './components/playbook/PlaybookView';
 import { PerformanceAnalyticsView } from './components/analytics/PerformanceAnalyticsView';
 import { PerformanceReportsView } from './components/reports/PerformanceReportsView';
 import { AdvancedAnalyticsView } from './components/analytics/AdvancedAnalyticsView';
-import { BacktestingReplayView } from './components/backtesting/BacktestingReplayView';
+import { PropFirmView } from './components/propfirm/PropFirmView';
 import { MentorModeView } from './components/mentor/MentorModeView';
 import { GoalsRiskView } from './components/goals/GoalsRiskView';
 import { EconomicCalendarView } from './components/calendar/EconomicCalendarView';
@@ -55,8 +55,8 @@ const MainLayout: React.FC = () => {
     <div
       className={`relative flex h-screen w-screen overflow-hidden font-sans ${
         theme === 'light'
-          ? 'bg-[#F8FAFC] text-[#111827]'
-          : 'bg-[#09090B] text-[#F5F5F5]'
+          ? 'bg-[#F4F6F9] text-zinc-900'
+          : 'bg-[#0A0D14] text-slate-100'
       }`}
     >
       {/* Sidebar */}
@@ -74,7 +74,7 @@ const MainLayout: React.FC = () => {
         {/* Scrollable View Area */}
         <main
           className={`flex-1 overflow-y-auto custom-scrollbar ${
-            theme === 'light' ? 'bg-[#F8FAFC]' : 'bg-[#09090B]'
+            theme === 'light' ? 'bg-[#F4F6F9]' : 'bg-[#0A0D14]'
           }`}
         >
           {activeView === 'dashboard' && (
@@ -82,6 +82,10 @@ const MainLayout: React.FC = () => {
               onSelectTrade={t => setSelectedTrade(t)}
               onOpenImport={() => setIsImportOpen(true)}
             />
+          )}
+
+          {activeView === 'prop-firm' && (
+            <PropFirmView />
           )}
 
           {activeView === 'trades' && (
@@ -104,8 +108,6 @@ const MainLayout: React.FC = () => {
 
           {activeView === 'advanced-analytics' && <AdvancedAnalyticsView />}
 
-          {activeView === 'backtesting' && <BacktestingReplayView />}
-
           {activeView === 'mentor-mode' && <MentorModeView />}
 
           {activeView === 'goals' && <GoalsRiskView />}
@@ -125,55 +127,55 @@ const MainLayout: React.FC = () => {
           {activeView === 'help' && (
             <div className="p-6 max-w-4xl mx-auto space-y-6">
               <div className={`flex items-center gap-3 pb-3 border-b ${
-                theme === 'light' ? 'border-zinc-200' : 'border-slate-800'
+                theme === 'light' ? 'border-zinc-200' : 'border-zinc-800'
               }`}>
-                <BookOpen className={`w-6 h-6 ${theme === 'light' ? 'text-blue-600' : 'text-indigo-400'}`} />
+                <BookOpen className={`w-6 h-6 ${theme === 'light' ? 'text-blue-600' : 'text-blue-400'}`} />
                 <h1 className={`text-xl font-bold ${theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>
-                  DuskFlow Platform Guide & Master Trader Manual
+                  TradeForge Institutional Platform Guide
                 </h1>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className={`p-5 rounded-2xl border space-y-2 ${
-                  theme === 'light' ? 'bg-white border-zinc-200 shadow-xs' : 'bg-slate-900 border-slate-800'
+                  theme === 'light' ? 'bg-white border-zinc-200 shadow-xs' : 'bg-[#0E1118] border-zinc-800'
                 }`}>
-                  <h3 className={`text-sm font-bold ${theme === 'light' ? 'text-blue-600' : 'text-indigo-400'}`}>
-                    1. Daily Journaling Workflow
+                  <h3 className={`text-sm font-bold ${theme === 'light' ? 'text-blue-600' : 'text-blue-400'}`}>
+                    1. Daily Journaling & Execution Protocol
                   </h3>
-                  <p className={`text-xs leading-relaxed ${theme === 'light' ? 'text-zinc-600' : 'text-slate-300'}`}>
+                  <p className={`text-xs leading-relaxed ${theme === 'light' ? 'text-zinc-600' : 'text-zinc-400'}`}>
                     Start each session in the Daily Journal with the pre-market checklist. Mark HTF levels and define max risk before clicking order submission.
                   </p>
                 </div>
 
                 <div className={`p-5 rounded-2xl border space-y-2 ${
-                  theme === 'light' ? 'bg-white border-zinc-200 shadow-xs' : 'bg-slate-900 border-slate-800'
+                  theme === 'light' ? 'bg-white border-zinc-200 shadow-xs' : 'bg-[#0E1118] border-zinc-800'
                 }`}>
                   <h3 className={`text-sm font-bold ${theme === 'light' ? 'text-emerald-600' : 'text-emerald-400'}`}>
-                    2. Playbook Compliance & Edge
+                    2. Prop Firm Rule Compliance & Edge
                   </h3>
-                  <p className={`text-xs leading-relaxed ${theme === 'light' ? 'text-zinc-600' : 'text-slate-300'}`}>
-                    Categorize each execution into an A+ setup. DuskFlow computes your win rate and expectancy per setup so you double down on what works.
+                  <p className={`text-xs leading-relaxed ${theme === 'light' ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                    Track multi-account evaluation limits, trailing drawdowns (EOD & Intraday HWM), daily loss buffers, and profit targets with real-time pre-trade simulations.
                   </p>
                 </div>
 
                 <div className={`p-5 rounded-2xl border space-y-2 ${
-                  theme === 'light' ? 'bg-white border-zinc-200 shadow-xs' : 'bg-slate-900 border-slate-800'
+                  theme === 'light' ? 'bg-white border-zinc-200 shadow-xs' : 'bg-[#0E1118] border-zinc-800'
                 }`}>
                   <h3 className={`text-sm font-bold ${theme === 'light' ? 'text-rose-600' : 'text-rose-400'}`}>
-                    3. Circuit Breaker & Safety
+                    3. Circuit Breaker & Safety Locks
                   </h3>
-                  <p className={`text-xs leading-relaxed ${theme === 'light' ? 'text-zinc-600' : 'text-slate-300'}`}>
-                    Hard daily loss caps automatically trigger emergency locks to prevent revenge trading spirals.
+                  <p className={`text-xs leading-relaxed ${theme === 'light' ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                    Hard daily loss caps automatically trigger emergency locks to prevent revenge trading spirals and account breaches.
                   </p>
                 </div>
 
                 <div className={`p-5 rounded-2xl border space-y-2 ${
-                  theme === 'light' ? 'bg-white border-zinc-200 shadow-xs' : 'bg-slate-900 border-slate-800'
+                  theme === 'light' ? 'bg-white border-zinc-200 shadow-xs' : 'bg-[#0E1118] border-zinc-800'
                 }`}>
                   <h3 className={`text-sm font-bold ${theme === 'light' ? 'text-purple-600' : 'text-violet-400'}`}>
-                    4. Gemini AI Coaching Engine
+                    4. TradeForge AI Intelligence
                   </h3>
-                  <p className={`text-xs leading-relaxed ${theme === 'light' ? 'text-zinc-600' : 'text-slate-300'}`}>
+                  <p className={`text-xs leading-relaxed ${theme === 'light' ? 'text-zinc-600' : 'text-zinc-400'}`}>
                     Get institutional-grade trade critique, psychological leak diagnosis, and actionable tactical next steps.
                   </p>
                 </div>

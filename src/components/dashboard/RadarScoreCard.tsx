@@ -649,7 +649,7 @@ export const RadarScoreCard: React.FC<RadarScoreCardProps> = ({ trades }) => {
       }`}>
         <div className="flex items-end justify-between">
           <div>
-            <div className={`text-[11px] font-medium ${isLight ? 'text-zinc-600' : 'text-slate-400'}`}>Your DuskFlow Score</div>
+            <div className={`text-[11px] font-medium ${isLight ? 'text-zinc-600' : 'text-slate-400'}`}>Your TradeForge Score</div>
             <div className={`text-2xl font-black font-mono tracking-tight flex items-center gap-2 ${
               isLight ? 'text-zinc-900' : 'text-slate-100'
             }`}>

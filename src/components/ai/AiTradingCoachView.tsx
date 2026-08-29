@@ -21,7 +21,7 @@ export const AiTradingCoachView: React.FC = () => {
   const [messages, setMessages] = useState<Array<{ sender: 'ai' | 'user'; text: string }>>([
     {
       sender: 'ai',
-      text: `Hello Alex! I am your DuskFlow Master AI Trading Coach. I have analyzed your ${filteredTrades.length} recorded executions. You have a solid edge in morning liquidity sweeps, but your late afternoon revenge trades are currently eroding 28% of your gross profits. Ask me anything about your setups, risk rules, or psychological leaks!`,
+      text: `Hello Alex! I am your TradeForge Institutional AI Trading Coach. I have analyzed your ${filteredTrades.length} recorded executions. You have a solid edge in morning liquidity sweeps, but your late afternoon revenge trades are currently eroding 28% of your gross profits. Ask me anything about your setups, prop firm risk compliance, or psychological leaks!`,
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);

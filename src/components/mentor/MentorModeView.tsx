@@ -374,9 +374,17 @@ export const MentorModeView: React.FC = () => {
                     <div className="flex justify-end">
                       <button
                         onClick={handleSendFeedback}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl shadow-md shadow-blue-600/20 transition"
+                        disabled={isSubmittingFeedback || !feedbackNote.trim()}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-xl shadow-md shadow-blue-600/20 transition flex items-center gap-1.5"
                       >
-                        Dispatch Directive
+                        {isSubmittingFeedback ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Dispatching...</span>
+                          </>
+                        ) : (
+                          <span>Dispatch Directive</span>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -389,12 +397,20 @@ export const MentorModeView: React.FC = () => {
                       <Clock className="w-4 h-4" />
                       Directive Dispatch Log
                     </h3>
-                    {mentorDirectivesSent.filter(d => d.studentId === selectedStudent.id || d.studentId === selectedStudent.code).length === 0 ? (
+                    {mentorDirectivesSent.filter(d => 
+                      d.studentId === selectedStudent.id || 
+                      d.studentId === selectedStudent.code || 
+                      (selectedStudent.code && d.studentId?.toLowerCase() === selectedStudent.code.toLowerCase())
+                    ).length === 0 ? (
                       <p className="text-xs text-slate-500">No directives sent to this student yet.</p>
                     ) : (
                       <div className="space-y-2 max-h-48 overflow-y-auto">
                         {mentorDirectivesSent
-                          .filter(d => d.studentId === selectedStudent.id || d.studentId === selectedStudent.code)
+                          .filter(d => 
+                            d.studentId === selectedStudent.id || 
+                            d.studentId === selectedStudent.code || 
+                            (selectedStudent.code && d.studentId?.toLowerCase() === selectedStudent.code.toLowerCase())
+                          )
                           .map((directive: any) => (
                             <div
                               key={directive.id}

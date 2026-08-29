@@ -88,7 +88,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <ShieldCheck className="w-5 h-5" />
             </div>
             <h2 className="text-lg font-bold text-slate-100">
-              {mode === 'signin' ? 'Sign In to DuskFlow' : 'Create DuskFlow Account'}
+              {mode === 'signin' ? 'Sign In to TradeForge' : 'Create TradeForge Account'}
             </h2>
           </div>
           <p className="text-xs text-slate-400">

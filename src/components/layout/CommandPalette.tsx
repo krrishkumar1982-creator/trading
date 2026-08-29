@@ -3,7 +3,7 @@ import {
   Search,
   Plus,
   BookOpen,
-  History,
+  Shield,
   TrendingUp,
   Calculator,
   Calendar,
@@ -95,13 +95,13 @@ export const CommandPalette: React.FC = () => {
       },
     },
     {
-      id: 'nav-backtest',
-      label: 'Launch Backtesting Replay',
-      desc: 'Simulate historical candles and test orders',
-      icon: History,
+      id: 'nav-prop-firm',
+      label: 'Prop Firm Compliance Hub',
+      desc: 'Monitor drawdown, profit targets, daily loss limits & pre-trade risk',
+      icon: Shield,
       action: () => {
         setIsCommandPaletteOpen(false);
-        setActiveView('backtesting');
+        setActiveView('prop-firm');
       },
     },
     {

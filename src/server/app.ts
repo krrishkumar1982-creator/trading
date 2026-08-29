@@ -42,6 +42,8 @@ import {
   getMentorDirectivesForMentor,
   getMentorDirectivesForStudent,
   createMentorDirective,
+  updateMentorDirective,
+  deleteMentorDirective,
   acknowledgeMentorDirective,
   getBacktestSessions,
   saveBacktestSession,
@@ -66,6 +68,11 @@ import {
   getLeaderboardData,
   updateUserPointsAdmin,
   updateUserRoleAdmin,
+  getBacktestDrawings,
+  saveBacktestDrawings,
+  getChartTemplates,
+  saveChartTemplate,
+  deleteChartTemplate,
 } from '../db/repository.ts';
 import { db } from '../db/index.ts';
 import { integrationEvents, brokerIntegrations, mentorDirectives } from '../db/schema.ts';
@@ -81,6 +88,55 @@ app.get('/health/live', (_req, res) => {
     status: 'UP',
     timestamp: new Date().toISOString(),
   });
+});
+
+// Supabase Storage Upload proxy endpoint
+app.post('/api/storage/upload', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const { fileData, fileName, bucket, contentType } = req.body;
+    if (!fileData) {
+      return res.status(400).json({ success: false, error: 'Missing fileData (base64 string or data URL)' });
+    }
+
+    const targetBucket = bucket || 'screenshots';
+    const targetPath = fileName || `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.png`;
+
+    // Extract base64 payload
+    const base64Data = fileData.replace(/^data:([A-Za-z-+/]+);base64,/, '');
+    const buffer = Buffer.from(base64Data, 'base64');
+    const mimeType = contentType || 'image/png';
+
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+    if (supabaseUrl && supabaseServiceKey) {
+      const uploadEndpoint = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/${targetBucket}/${targetPath}`;
+      const response = await fetch(uploadEndpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Content-Type': mimeType,
+          'x-upsert': 'true',
+        },
+        body: buffer,
+      });
+
+      if (response.ok) {
+        const publicUrl = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${targetBucket}/${targetPath}`;
+        return res.json({ success: true, url: publicUrl, path: targetPath });
+      } else {
+        const errText = await response.text();
+        console.warn('[Server Supabase Storage] Remote upload returned non-200:', errText);
+      }
+    }
+
+    // Return the data URL directly as fallback if remote Supabase credentials are not supplied
+    res.json({ success: true, url: fileData, path: targetPath });
+  } catch (err: any) {
+    console.error('Storage upload proxy error:', err);
+    res.status(500).json({ success: false, error: err.message || 'Storage upload failed' });
+  }
 });
 
 app.get('/health/ready', async (_req, res) => {
@@ -676,6 +732,71 @@ app.patch('/api/mentor/directives/:id/acknowledge', requireAuth, async (req: Aut
   }
 });
 
+// Student Feedback specific REST endpoints
+app.get('/api/mentor/students/:studentId/feedback', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const mentorId = req.devUserId || 'default_user_1';
+    const studentId = req.params.studentId;
+
+    const feedback = await getMentorDirectivesForMentor(mentorId, studentId);
+    res.json({ success: true, feedback });
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
+app.post('/api/mentor/students/:studentId/feedback', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const mentorId = req.devUserId || 'default_user_1';
+    const studentId = req.params.studentId;
+    const { content, type } = req.body;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ success: false, error: 'Feedback content is required' });
+    }
+
+    const directive = await createMentorDirective(mentorId, studentId, content.trim(), type || 'FEEDBACK');
+
+    // Real-time broadcast
+    broadcastUserEvent(directive.studentId, 'mentor_directive_created', directive);
+    broadcastUserEvent(directive.mentorId, 'mentor_directive_created', directive);
+
+    res.json({ success: true, directive, feedback: directive });
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
+app.put('/api/mentor/feedback/:id', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const mentorId = req.devUserId || 'default_user_1';
+    const directiveId = req.params.id;
+    const { content, status, type } = req.body;
+
+    const updated = await updateMentorDirective(mentorId, directiveId, { content, status, type });
+    if (updated) {
+      broadcastUserEvent(updated.studentId, 'mentor_directive_updated', updated);
+      broadcastUserEvent(updated.mentorId, 'mentor_directive_updated', updated);
+    }
+
+    res.json({ success: true, directive: updated, feedback: updated });
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
+app.delete('/api/mentor/feedback/:id', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const mentorId = req.devUserId || 'default_user_1';
+    const directiveId = req.params.id;
+
+    await deleteMentorDirective(mentorId, directiveId);
+    res.json({ success: true });
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
 // Leaderboard & Admin REST endpoints
 app.get('/api/leaderboard', requireAuth, async (req: AuthRequest, res) => {
   try {
@@ -750,6 +871,75 @@ app.delete('/api/backtesting/sessions/:id', requireAuth, async (req: AuthRequest
     handleApiError(res, error);
   }
 });
+
+// Backtesting Drawings REST endpoints
+app.get('/api/backtest/drawings', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const symbol = req.query.symbol as string;
+    const sessionId = (req.query.sessionId as string) || 'default';
+    const drawings = await getBacktestDrawings(userId, symbol, sessionId);
+    res.json({ success: true, drawings });
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
+app.put('/api/backtest/drawings', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const { symbol, drawings, sessionId, timeframe } = req.body;
+    if (!symbol || !Array.isArray(drawings)) {
+      return res.status(400).json({ success: false, error: 'Symbol and drawings array are required' });
+    }
+    const result = await saveBacktestDrawings(userId, symbol, drawings, sessionId || 'default', timeframe || '15m');
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
+// Chart Templates REST endpoints
+app.get('/api/backtest/templates', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const templates = await getChartTemplates(userId);
+    res.json({ success: true, templates });
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
+app.post('/api/backtest/templates', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const { name, description, chartType, indicators, id } = req.body;
+    if (!name) {
+      return res.status(400).json({ success: false, error: 'Template name is required' });
+    }
+    const result = await saveChartTemplate(userId, {
+      id,
+      name,
+      description,
+      chartType: chartType || 'CANDLESTICK',
+      indicators: indicators || [],
+    });
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
+app.delete('/api/backtest/templates/:id', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    await deleteChartTemplate(userId, req.params.id);
+    res.json({ success: true });
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
 
 // Explicit PATCH & PUT edit handlers for Trade, Account, Playbook, Strategy, Note
 app.patch(['/api/trades/:id', '/api/accounts/:id', '/api/playbooks/:id', '/api/strategies/:id', '/api/journal/notes/:id'], requireAuth, async (req: AuthRequest, res) => {

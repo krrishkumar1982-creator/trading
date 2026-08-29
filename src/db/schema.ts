@@ -260,7 +260,10 @@ export const mentorDirectives = pgTable('mentor_directives', {
   content: text('content').notNull(),
   status: text('status').notNull().default('PENDING'),
   createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
+
+export const mentorFeedback = mentorDirectives;
 
 // Notifications table
 export const notifications = pgTable('notifications', {
@@ -340,5 +343,29 @@ export const adminAuditLogs = pgTable('admin_audit_logs', {
   newValue: text('new_value'),
   reason: text('reason'),
   createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Backtest Drawings table
+export const backtestDrawings = pgTable('backtest_drawings', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  sessionId: text('session_id').default('default'),
+  symbol: text('symbol').notNull(),
+  timeframe: text('timeframe').default('15m'),
+  drawings: jsonb('drawings').notNull().default([]),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Chart Templates table
+export const chartTemplates = pgTable('chart_templates', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  name: text('name').notNull(),
+  description: text('description').default(''),
+  chartType: text('chart_type').notNull().default('CANDLESTICK'),
+  indicators: jsonb('indicators').notNull().default([]),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 

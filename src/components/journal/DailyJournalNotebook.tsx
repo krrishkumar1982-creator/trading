@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { useTrading } from '../../context/TradingContext';
 import { JournalNote, JournalFolder } from '../../types';
+import { SupabaseStorageService } from '../../services/supabaseStorage';
 
 const DEFAULT_FOLDER_NAMES: Record<string, string> = {
   'f-all': 'All notes',
@@ -87,6 +88,29 @@ export const DailyJournalNotebook: React.FC = () => {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [folderToDelete, setFolderToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedNote) return;
+
+    setIsUploadingImage(true);
+    try {
+      const publicUrl = await SupabaseStorageService.uploadJournalScreenshot(file, selectedNote.id);
+      updateNote({
+        ...selectedNote,
+        screenshots: [...(selectedNote.screenshots || []), publicUrl],
+      });
+      addToast('Chart Uploaded', 'Screenshot saved to Supabase Storage and added to note', 'success');
+    } catch (err: any) {
+      console.error('Failed to upload journal image to Supabase Storage:', err);
+      addToast('Upload Error', 'Failed to upload screenshot', 'error');
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   // Folder note count calculator
   const getFolderCount = (folderId: string) => {
@@ -697,22 +721,23 @@ export const DailyJournalNotebook: React.FC = () => {
             <button className={`p-1.5 rounded transition ${isLight ? 'hover:bg-zinc-200/70 text-zinc-700' : 'hover:bg-slate-800/60'}`} title="Align Center"><AlignCenter className="w-3.5 h-3.5" /></button>
             <button className={`p-1.5 rounded transition ${isLight ? 'hover:bg-zinc-200/70 text-zinc-700' : 'hover:bg-slate-800/60'}`} title="List"><List className="w-3.5 h-3.5" /></button>
             <span className={`w-[1px] h-4 mx-1 ${isLight ? 'bg-zinc-300' : 'bg-slate-800'}`} />
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageFileUpload}
+              accept="image/*"
+              className="hidden"
+            />
             <button
-              onClick={() => {
-                const sampleImg = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&auto=format&fit=crop&q=80';
-                updateNote({
-                  ...selectedNote,
-                  screenshots: [...selectedNote.screenshots, sampleImg],
-                });
-                addToast('Image Attached', 'Chart screenshot added to gallery', 'success');
-              }}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploadingImage}
               className={`p-1.5 rounded flex items-center gap-1 text-xs transition ${
                 isLight ? 'hover:bg-zinc-200/70 text-blue-600 font-semibold' : 'hover:bg-slate-800/60 text-indigo-400'
-              }`}
+              } ${isUploadingImage ? 'opacity-50 cursor-not-allowed' : ''}`}
               title="Attach Chart Screenshot"
             >
               <ImageIcon className="w-3.5 h-3.5" />
-              <span>Attach Chart</span>
+              <span>{isUploadingImage ? 'Uploading...' : 'Attach Chart'}</span>
             </button>
           </div>
 

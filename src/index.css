@@ -12,40 +12,78 @@
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   1. DARK THEME (Neutral Charcoal Dark UI - Clean & Zero Blue-Tint)
+   1. DARK THEME (TradeForge Institutional Financial Terminal Theme)
    -------------------------------------------------------------------------- */
 :root,
 .theme-dark,
 html.dark {
-  --page-bg: #09090b;
-  --sidebar-bg: #111113;
-  --header-bg: #111113;
-  --surface: #18181b;
-  --surface-elevated: #202024;
-  --surface-subtle: #27272a;
-  --surface-hover: #27272a;
+  --page-bg: #07080B;
+  --sidebar-bg: #0B0E14;
+  --header-bg: #0B0E14;
+  --surface: #0F131D;
+  --surface-elevated: #161B26;
+  --surface-subtle: #1C2333;
+  --surface-hover: #1A2130;
   --surface-active: rgba(59, 130, 246, 0.15);
 
-  --text-primary: #fafafa;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
 
-  --border: #27272a;
-  --border-subtle: #27272a;
-  --border-medium: #3f3f46;
-  --border-focus: #3b82f6;
+  --border: #1E2536;
+  --border-subtle: #151B29;
+  --border-medium: #2A344B;
+  --border-focus: #3B82F6;
 
-  --accent-primary: #3b82f6;
-  --accent-primary-hover: #2563eb;
+  --accent-primary: #3B82F6;
+  --accent-primary-hover: #2563EB;
+  --accent-cyan: #06B6D4;
 
-  --trading-green: #10b981;
-  --trading-red: #ef4444;
-  --trading-yellow: #f59e0b;
+  --trading-green: #10B981;
+  --trading-green-glow: rgba(16, 185, 129, 0.2);
+  --trading-red: #F43F5E;
+  --trading-red-glow: rgba(244, 63, 94, 0.2);
+  --trading-yellow: #F59E0B;
 
-  --overlay: rgba(0, 0, 0, 0.70);
+  --overlay: rgba(3, 4, 7, 0.85);
 
-  background-color: #09090b;
-  color: #fafafa;
+  background-color: #07080B;
+  color: #F8FAFC;
+}
+
+/* Glassmorphism & Surface Utilities */
+.glass-panel {
+  background: rgba(15, 19, 29, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+}
+
+.glass-card {
+  background: rgba(22, 27, 38, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.45), 0 0 15px -3px rgba(59, 130, 246, 0.15);
+}
+
+.glow-blue {
+  box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.35);
+}
+
+.glow-green {
+  box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.35);
+}
+
+.glow-red {
+  box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.35);
 }
 
 /* Global Dark Theme Element Overrides */
@@ -55,22 +93,24 @@ html.dark:not(.theme-light) .bg-slate-950,
 html.dark:not(.theme-light) main.bg-slate-950,
 .theme-dark .bg-zinc-950,
 html.dark:not(.theme-light) .bg-zinc-950 {
-  background-color: #09090b !important;
+  background-color: #07080B !important;
 }
 
 .theme-dark aside.bg-slate-950,
 html.dark:not(.theme-light) aside.bg-slate-950,
 .theme-dark aside {
-  background-color: #111113 !important;
-  border-color: #27272a !important;
+  background-color: #0B0E14 !important;
+  border-color: #1E2536 !important;
 }
 
 .theme-dark header.bg-slate-950\/80,
 html.dark:not(.theme-light) header.bg-slate-950\/80,
 .theme-dark header,
 html.dark:not(.theme-light) header {
-  background-color: rgba(17, 17, 19, 0.92) !important;
-  border-color: #27272a !important;
+  background-color: rgba(11, 14, 20, 0.85) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-color: #1E2536 !important;
 }
 
 /* Primary Card Panels in Dark Mode */
@@ -88,7 +128,7 @@ html.dark:not(.theme-light) .bg-slate-900\/50,
 html.dark:not(.theme-light) .bg-slate-900\/40,
 .theme-dark .bg-zinc-900,
 html.dark:not(.theme-light) .bg-zinc-900 {
-  background-color: #18181b !important;
+  background-color: #0F131D !important;
 }
 
 /* Elevated / Sub-card Panels in Dark Mode */
@@ -104,7 +144,7 @@ html.dark:not(.theme-light) .bg-slate-800\/40,
 html.dark:not(.theme-light) .bg-slate-800\/30,
 .theme-dark .bg-zinc-800,
 html.dark:not(.theme-light) .bg-zinc-800 {
-  background-color: #202024 !important;
+  background-color: #161B26 !important;
 }
 
 /* Subtle Borders in Dark Mode */
@@ -122,14 +162,14 @@ html.dark:not(.theme-light) .border-slate-800\/40,
 html.dark:not(.theme-light) .border-slate-900,
 .theme-dark .border-zinc-800,
 html.dark:not(.theme-light) .border-zinc-800 {
-  border-color: #27272a !important;
+  border-color: #1E2536 !important;
 }
 
 .theme-dark .border-slate-700,
 html.dark:not(.theme-light) .border-slate-700,
 .theme-dark .border-zinc-700,
 html.dark:not(.theme-light) .border-zinc-700 {
-  border-color: #3f3f46 !important;
+  border-color: #2A344B !important;
 }
 
 /* Hover States in Dark Mode */
@@ -144,7 +184,7 @@ html.dark:not(.theme-light) .hover\:bg-slate-800\/80:hover,
 html.dark:not(.theme-light) .hover\:bg-slate-800\/50:hover,
 html.dark:not(.theme-light) .hover\:bg-slate-800\/40:hover,
 .theme-dark .hover\:bg-zinc-800:hover {
-  background-color: #27272a !important;
+  background-color: #1A2130 !important;
 }
 
 /* Inputs, Selects, and Textareas in Dark Mode */
@@ -154,9 +194,9 @@ html.dark:not(.theme-light) .hover\:bg-slate-800\/40:hover,
 html.dark:not(.theme-light) input,
 html.dark:not(.theme-light) select,
 html.dark:not(.theme-light) textarea {
-  background-color: #18181b;
-  border-color: #27272a;
-  color: #fafafa;
+  background-color: #121622;
+  border-color: #222B3D;
+  color: #F8FAFC;
 }
 
 .theme-dark input:focus,
@@ -165,8 +205,8 @@ html.dark:not(.theme-light) textarea {
 html.dark:not(.theme-light) input:focus,
 html.dark:not(.theme-light) select:focus,
 html.dark:not(.theme-light) textarea:focus {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 1px #3b82f6, 0 0 8px rgba(59, 130, 246, 0.2) !important;
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 1px #3B82F6, 0 0 12px rgba(59, 130, 246, 0.25) !important;
 }
 
 /* Tables in Dark Mode */
@@ -174,20 +214,20 @@ html.dark:not(.theme-light) textarea:focus {
 .theme-dark th,
 html.dark:not(.theme-light) thead,
 html.dark:not(.theme-light) th {
-  background-color: #111113;
-  color: #a1a1aa;
-  border-color: #27272a;
+  background-color: #0B0E14;
+  color: #94A3B8;
+  border-color: #1E2536;
 }
 
 .theme-dark tbody tr,
 html.dark:not(.theme-light) tbody tr {
-  border-color: #27272a;
+  border-color: #1E2536;
   transition: background-color 150ms ease;
 }
 
 .theme-dark tbody tr:hover,
 html.dark:not(.theme-light) tbody tr:hover {
-  background-color: #202024;
+  background-color: #161B26;
 }
 
 /* Modals & Dropdown Popovers in Dark Mode */
@@ -195,9 +235,9 @@ html.dark:not(.theme-light) tbody tr:hover {
 .theme-dark .shadow-xl:not([class*="fixed"]),
 html.dark:not(.theme-light) .shadow-2xl:not([class*="fixed"]),
 html.dark:not(.theme-light) .shadow-xl:not([class*="fixed"]) {
-  background-color: #18181b;
-  border: 1px solid #27272a;
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+  background-color: #0F131D;
+  border: 1px solid #1E2536;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
 }
 
 /* --------------------------------------------------------------------------

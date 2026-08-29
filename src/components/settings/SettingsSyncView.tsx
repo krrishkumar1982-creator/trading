@@ -250,7 +250,7 @@ export const SettingsSyncView: React.FC<SettingsSyncViewProps> = ({ onOpenImport
         setEaScriptModal({
           isOpen: true,
           code: integration.eaCode,
-          filename: integration.provider === 'MT5' ? 'DuskFlow_MT5_AutoSync_Bridge.mq5' : 'DuskFlow_MT4_AutoSync_Bridge.mq4',
+          filename: integration.provider === 'MT5' ? 'TradeForge_MT5_AutoSync_Bridge.mq5' : 'TradeForge_MT4_AutoSync_Bridge.mq4',
           provider: integration.provider,
         });
         return;
@@ -1383,13 +1383,13 @@ export const SettingsSyncView: React.FC<SettingsSyncViewProps> = ({ onOpenImport
               </h2>
               <div className="p-4 rounded-xl bg-gradient-to-br from-blue-900/30 to-indigo-900/20 border border-blue-500/30 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-white">DuskFlow PRO Lifetime</span>
+                  <span className="text-sm font-bold text-white">TradeForge Institutional Lifetime</span>
                   <span className="px-2.5 py-0.5 rounded-full bg-blue-500 text-white font-bold text-[10px]">
                     ACTIVE
                   </span>
                 </div>
                 <p className="text-slate-300 text-xs">
-                  Full access to unlimited automated syncs, deep analytics, AI coach, trade replay, and mentor mode.
+                  Full access to unlimited automated syncs, deep analytics, AI coach, prop firm compliance hub, and mentor mode.
                 </p>
                 <div className="text-[11px] text-slate-400">Next billing date: <strong>August 2027</strong></div>
               </div>

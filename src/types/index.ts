@@ -283,12 +283,135 @@ export interface UserProfile {
   avatar?: string;
 }
 
+export interface MentorDirective {
+  id: string;
+  mentorId: string;
+  studentId: string;
+  type: string;
+  content: string;
+  status: 'PENDING' | 'ACKNOWLEDGED' | 'ACTIVE' | 'ARCHIVED';
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type MentorFeedback = MentorDirective;
+
 export interface AppNotification {
   id: string;
   title: string;
   message: string;
-  type: 'TRADE_SYNC' | 'RISK_ALERT' | 'GOAL_ACHIEVED' | 'ECONOMIC_REMINDER' | 'JOURNAL_REMINDER' | 'MENTOR_UPDATE';
+  type: 'TRADE_SYNC' | 'RISK_ALERT' | 'GOAL_ACHIEVED' | 'ECONOMIC_REMINDER' | 'JOURNAL_REMINDER' | 'MENTOR_UPDATE' | 'PROP_FIRM_ALERT';
   timestamp: string;
   read: boolean;
   actionUrl?: string;
 }
+
+export type PropFirmRiskState = 'SAFE' | 'WARNING' | 'CRITICAL' | 'BREACHED';
+export type PropFirmPhase = 'PHASE_1' | 'PHASE_2' | 'FUNDED' | 'CUSTOM';
+export type DrawdownModelType = 'STATIC' | 'EOD_TRAILING' | 'INTRADAY_HWM_TRAILING';
+export type DailyDrawdownModelType = 'START_OF_DAY_BALANCE' | 'START_OF_DAY_EQUITY' | 'BALANCE_BASED' | 'EQUITY_BASED';
+
+export type PropFirmRuleType =
+  | 'DAILY_DRAWDOWN'
+  | 'MAX_DRAWDOWN'
+  | 'PROFIT_TARGET'
+  | 'MIN_TRADING_DAYS'
+  | 'MAX_TRADING_DAYS'
+  | 'CONSISTENCY'
+  | 'NEWS_RESTRICTION'
+  | 'WEEKEND_RESTRICTION'
+  | 'MAX_POSITION_SIZE'
+  | 'MAX_OPEN_RISK'
+  | 'CUSTOM';
+
+export interface PropFirmRule {
+  id: string;
+  name: string;
+  type: PropFirmRuleType;
+  description: string;
+  enabled: boolean;
+  threshold: number;
+  unit: 'USD' | 'PERCENT' | 'DAYS' | 'LOTS' | 'CONTRACTS' | 'MINUTES';
+  calculationMethodology: string;
+  warningThreshold?: number;
+  criticalThreshold?: number;
+  currentValue?: number;
+  status?: 'SAFE' | 'WARNING' | 'CRITICAL' | 'BREACHED' | 'INCOMPLETE' | 'COMPLETED';
+  details?: string;
+  config?: Record<string, any>;
+}
+
+export interface PropFirmViolation {
+  id: string;
+  accountId: string;
+  ruleId: string;
+  ruleName: string;
+  ruleType: PropFirmRuleType | string;
+  timestamp: string;
+  relatedTradeId?: string;
+  actualValue: number | string;
+  allowedValue: number | string;
+  severity: 'WARNING' | 'CRITICAL' | 'BREACH';
+  explanation: string;
+  status: 'ACTIVE' | 'RESOLVED' | 'WAIVED';
+}
+
+export interface PropFirmPayoutRecord {
+  id: string;
+  date: string;
+  amount: number;
+  status: 'PAID' | 'PENDING' | 'REQUESTED';
+  transactionRef?: string;
+  profitSplit: number;
+}
+
+export interface PropFirmPayoutInfo {
+  eligibilityDate?: string;
+  nextPayoutDate?: string;
+  minTradingDaysRequired: number;
+  tradingDaysCompleted: number;
+  profitSplitPercent: number;
+  eligibleProfit: number;
+  payoutAmount: number;
+  payoutHistory: PropFirmPayoutRecord[];
+}
+
+export interface PropFirmAccount {
+  id: string;
+  name: string;
+  firmName: string;
+  accountNumber?: string;
+  startingBalance: number;
+  currentBalance: number;
+  equity: number;
+  highWaterMark?: number;
+  phase: PropFirmPhase;
+  phaseName?: string;
+  status: 'ACTIVE' | 'PASSED' | 'FAILED' | 'PAUSED' | 'ARCHIVED';
+  riskState: PropFirmRiskState;
+  drawdownModel: DrawdownModelType;
+  dailyDrawdownModel: DailyDrawdownModelType;
+  sessionTimezone: string; // e.g. 'America/New_York', 'UTC'
+  currency: string;
+  rules: PropFirmRule[];
+  violations: PropFirmViolation[];
+  payoutInfo?: PropFirmPayoutInfo;
+  tradingAccountLink?: string; // links to TradingAccount id for automatic trade ingestion
+  createdAt: string;
+  updatedAt?: string;
+  notes?: string;
+}
+
+export interface PreTradeValidationCheck {
+  ruleName: string;
+  status: 'PASS' | 'WARN' | 'FAIL';
+  message: string;
+  metric?: string;
+}
+
+export interface PreTradeValidationResult {
+  status: 'APPROVED' | 'WARNING' | 'BLOCKED';
+  summary: string;
+  checks: PreTradeValidationCheck[];
+}
+

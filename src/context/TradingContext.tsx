@@ -14,7 +14,10 @@ import {
   UserProfile,
   AppNotification,
   RiskGoalSettings,
-  CurrencyDisplayMode
+  CurrencyDisplayMode,
+  PropFirmAccount,
+  PropFirmViolation,
+  PropFirmPayoutRecord,
 } from '../types';
 import { calculatePlaybookMetrics } from '../lib/metrics';
 import {
@@ -28,7 +31,8 @@ import {
   INITIAL_RISK_GOALS,
   INITIAL_NOTIFICATIONS,
   INITIAL_MENTOR_STUDENTS,
-  INITIAL_COMMUNITY_POSTS
+  INITIAL_COMMUNITY_POSTS,
+  INITIAL_PROP_FIRM_ACCOUNTS,
 } from '../data/mockData';
 import {
   fetchInitialState,
@@ -76,7 +80,7 @@ export type ActiveView =
   | 'playbook'
   | 'reports'
   | 'advanced-analytics'
-  | 'backtesting'
+  | 'prop-firm'
   | 'mentor-mode'
   | 'goals'
   | 'calendar'
@@ -110,6 +114,16 @@ interface TradingContextType {
   addAccount: (account: Omit<TradingAccount, 'id'>) => void;
   updateAccount: (account: TradingAccount) => void;
   deleteAccount: (id: string) => void;
+
+  // Prop Firm Accounts & Rule Engine
+  propFirmAccounts: PropFirmAccount[];
+  selectedPropFirmAccountId: string;
+  setSelectedPropFirmAccountId: (id: string) => void;
+  addPropFirmAccount: (account: Omit<PropFirmAccount, 'id' | 'createdAt'>) => void;
+  updatePropFirmAccount: (account: PropFirmAccount) => void;
+  deletePropFirmAccount: (id: string) => void;
+  addPropFirmViolation: (accountId: string, violation: Omit<PropFirmViolation, 'id' | 'timestamp'>) => void;
+  recordPropFirmPayout: (accountId: string, payout: Omit<PropFirmPayoutRecord, 'id'>) => void;
   
   // Trades
   trades: Trade[];
@@ -238,7 +252,7 @@ const getViewFromUrl = (): ActiveView => {
     if (path.includes('/trades') || hash.includes('trades')) return 'trades';
     if (path.includes('/journal') || hash.includes('journal') || hash.includes('notebook')) return 'notebook';
     if (path.includes('/playbook') || hash.includes('playbook')) return 'playbook';
-    if (path.includes('/backtesting') || hash.includes('backtesting')) return 'backtesting';
+    if (path.includes('/prop-firm') || hash.includes('prop-firm') || path.includes('/propfirm') || hash.includes('propfirm') || path.includes('/backtesting') || hash.includes('backtesting')) return 'prop-firm';
     if (path.includes('/goals') || hash.includes('goals')) return 'goals';
     if (path.includes('/calendar') || hash.includes('calendar')) return 'calendar';
     if (path.includes('/coach') || hash.includes('coach')) return 'ai-coach';
@@ -266,6 +280,105 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const [accounts, setAccounts] = useState<TradingAccount[]>(INITIAL_ACCOUNTS);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('all');
+  
+  // Prop Firm Accounts state with LocalStorage persistence
+  const [propFirmAccounts, setPropFirmAccounts] = useState<PropFirmAccount[]>(() => {
+    try {
+      const saved = localStorage.getItem('tf_prop_firm_accounts');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return INITIAL_PROP_FIRM_ACCOUNTS;
+  });
+  const [selectedPropFirmAccountId, setSelectedPropFirmAccountId] = useState<string>(
+    INITIAL_PROP_FIRM_ACCOUNTS[0]?.id || 'pf-ftmo-100k'
+  );
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('tf_prop_firm_accounts', JSON.stringify(propFirmAccounts));
+    } catch {
+      // ignore
+    }
+  }, [propFirmAccounts]);
+
+  const addPropFirmAccount = (newAcc: Omit<PropFirmAccount, 'id' | 'createdAt'>) => {
+    const created: PropFirmAccount = {
+      ...newAcc,
+      id: `pf-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      createdAt: new Date().toISOString(),
+    };
+    setPropFirmAccounts((prev) => [created, ...prev]);
+    setSelectedPropFirmAccountId(created.id);
+  };
+
+  const updatePropFirmAccount = (updated: PropFirmAccount) => {
+    setPropFirmAccounts((prev) =>
+      prev.map((acc) => (acc.id === updated.id ? { ...updated, updatedAt: new Date().toISOString() } : acc))
+    );
+  };
+
+  const deletePropFirmAccount = (id: string) => {
+    setPropFirmAccounts((prev) => {
+      const next = prev.filter((acc) => acc.id !== id);
+      if (selectedPropFirmAccountId === id && next.length > 0) {
+        setSelectedPropFirmAccountId(next[0].id);
+      }
+      return next;
+    });
+  };
+
+  const addPropFirmViolation = (
+    accountId: string,
+    violation: Omit<PropFirmViolation, 'id' | 'timestamp'>
+  ) => {
+    const newViol: PropFirmViolation = {
+      ...violation,
+      id: `viol-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: new Date().toISOString(),
+    };
+    setPropFirmAccounts((prev) =>
+      prev.map((acc) =>
+        acc.id === accountId
+          ? { ...acc, violations: [newViol, ...acc.violations], riskState: newViol.severity === 'BREACH' ? 'BREACHED' : 'CRITICAL' }
+          : acc
+      )
+    );
+  };
+
+  const recordPropFirmPayout = (
+    accountId: string,
+    payout: Omit<PropFirmPayoutRecord, 'id'>
+  ) => {
+    const record: PropFirmPayoutRecord = {
+      ...payout,
+      id: `pay-${Date.now()}`,
+    };
+    setPropFirmAccounts((prev) =>
+      prev.map((acc) => {
+        if (acc.id !== accountId) return acc;
+        const currentPayoutInfo = acc.payoutInfo || {
+          minTradingDaysRequired: 10,
+          tradingDaysCompleted: 10,
+          profitSplitPercent: 80,
+          eligibleProfit: 0,
+          payoutAmount: 0,
+          payoutHistory: [],
+        };
+        return {
+          ...acc,
+          payoutInfo: {
+            ...currentPayoutInfo,
+            payoutHistory: [record, ...currentPayoutInfo.payoutHistory],
+          },
+        };
+      })
+    );
+  };
   const [trades, setTrades] = useState<Trade[]>(INITIAL_TRADES);
   const [deletedTradesStack, setDeletedTradesStack] = useState<Trade[]>([]);
   const [playbooks, setPlaybooks] = useState<Playbook[]>(INITIAL_PLAYBOOKS);
@@ -320,10 +433,12 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const currentUserId = authUser?.uid || 'default_user_1';
   const currentUserIdRef = useRef(currentUserId);
+  const userAccountCodeRef = useRef(userProfile.accountCode);
 
   useEffect(() => {
     currentUserIdRef.current = currentUserId;
-  }, [currentUserId]);
+    userAccountCodeRef.current = userProfile.accountCode;
+  }, [currentUserId, userProfile.accountCode]);
 
   // Real-time Socket.IO listener for Community Lounge
   useEffect(() => {
@@ -438,7 +553,7 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
           return [directive, ...prev];
         });
       }
-      if (directive.studentId === currentUserIdRef.current) {
+      if (directive.studentId === currentUserIdRef.current || (userAccountCodeRef.current && directive.studentId === userAccountCodeRef.current)) {
         setMentorDirectivesReceived((prev) => {
           if (prev.some((d) => d.id === directive.id)) return prev;
           return [directive, ...prev];
@@ -457,7 +572,7 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
           prev.map((d) => (d.id === directive.id ? directive : d))
         );
       }
-      if (directive.studentId === currentUserIdRef.current) {
+      if (directive.studentId === currentUserIdRef.current || (userAccountCodeRef.current && directive.studentId === userAccountCodeRef.current)) {
         setMentorDirectivesReceived((prev) =>
           prev.map((d) => (d.id === directive.id ? directive : d))
         );
@@ -584,7 +699,7 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
       else if (activeView === 'trades') targetPath = '/trades';
       else if (activeView === 'notebook' || activeView === 'journal') targetPath = '/journal';
       else if (activeView === 'playbook') targetPath = '/playbook';
-      else if (activeView === 'backtesting') targetPath = '/backtesting';
+      else if (activeView === 'prop-firm') targetPath = '/prop-firm';
       else if (activeView === 'mentor-mode') targetPath = '/mentor';
       else if (activeView === 'goals') targetPath = '/goals';
       else if (activeView === 'calendar') targetPath = '/calendar';
@@ -1222,6 +1337,14 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
         addAccount,
         updateAccount,
         deleteAccount,
+        propFirmAccounts,
+        selectedPropFirmAccountId,
+        setSelectedPropFirmAccountId,
+        addPropFirmAccount,
+        updatePropFirmAccount,
+        deletePropFirmAccount,
+        addPropFirmViolation,
+        recordPropFirmPayout,
         trades,
         filteredTrades,
         addTrade,

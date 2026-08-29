@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   Plus,
@@ -10,10 +10,13 @@ import {
   Smile,
   AlertTriangle,
   Calculator,
-  Sparkles
+  Sparkles,
+  Image as ImageIcon,
+  Upload
 } from 'lucide-react';
 import { useTrading } from '../../context/TradingContext';
 import { Trade } from '../../types';
+import { SupabaseStorageService } from '../../services/supabaseStorage';
 
 interface AddEditTradeModalProps {
   isOpen: boolean;
@@ -52,6 +55,26 @@ export const AddEditTradeModal: React.FC<AddEditTradeModalProps> = ({
   const [notes, setNotes] = useState('Strong morning liquidity sweep. Held until liquidity target reached.');
   const [mistakes, setMistakes] = useState<string[]>([]);
   const [newMistake, setNewMistake] = useState('');
+  const [screenshotUrl, setScreenshotUrl] = useState<string>('');
+  const [afterScreenshotUrl, setAfterScreenshotUrl] = useState<string>('');
+  const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
+  const screenshotInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleScreenshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingImage(true);
+    try {
+      const uploadedUrl = await SupabaseStorageService.uploadTradeScreenshot(file, tradeToEdit?.id);
+      setScreenshotUrl(uploadedUrl);
+    } catch (err) {
+      console.error('Failed to upload trade screenshot:', err);
+    } finally {
+      setIsUploadingImage(false);
+      if (screenshotInputRef.current) screenshotInputRef.current.value = '';
+    }
+  };
 
   useEffect(() => {
     if (tradeToEdit) {
@@ -70,6 +93,8 @@ export const AddEditTradeModal: React.FC<AddEditTradeModalProps> = ({
       setSetupType(tradeToEdit.setupType);
       setRulesFollowed(tradeToEdit.rulesFollowed);
       setEmotionalState((tradeToEdit.emotionalState as any) || 'Disciplined');
+      setScreenshotUrl(tradeToEdit.screenshotUrl || '');
+      setAfterScreenshotUrl(tradeToEdit.afterScreenshotUrl || '');
       if (tradeToEdit.entryDate) {
         const d = new Date(tradeToEdit.entryDate);
         if (!isNaN(d.getTime())) {
@@ -84,6 +109,8 @@ export const AddEditTradeModal: React.FC<AddEditTradeModalProps> = ({
       const now = new Date();
       const pad = (n: number) => n.toString().padStart(2, '0');
       setEntryDate(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`);
+      setScreenshotUrl('');
+      setAfterScreenshotUrl('');
     }
   }, [tradeToEdit, isOpen, selectedAccountId, accounts]);
 
@@ -139,6 +166,8 @@ export const AddEditTradeModal: React.FC<AddEditTradeModalProps> = ({
       notes,
       durationMinutes: 35,
       tags: [market, setupType],
+      screenshotUrl: screenshotUrl || undefined,
+      afterScreenshotUrl: afterScreenshotUrl || undefined,
     };
 
     if (tradeToEdit) {
@@ -395,6 +424,44 @@ export const AddEditTradeModal: React.FC<AddEditTradeModalProps> = ({
               placeholder="What triggered this entry? How was the exit managed?"
               className="w-full rounded-xl bg-slate-950 border border-slate-800 p-3 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500"
             />
+          </div>
+
+          {/* Screenshot Upload (Supabase Storage) */}
+          <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-blue-400" />
+                <span>Trade Chart Attachment</span>
+              </label>
+              <input
+                type="file"
+                ref={screenshotInputRef}
+                onChange={handleScreenshotUpload}
+                accept="image/*"
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => screenshotInputRef.current?.click()}
+                disabled={isUploadingImage}
+                className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 bg-blue-950/60 border border-blue-800/60 px-2.5 py-1 rounded-lg transition disabled:opacity-50"
+              >
+                <Upload className="w-3 h-3" />
+                <span>{isUploadingImage ? 'Uploading...' : screenshotUrl ? 'Change Screenshot' : 'Upload Chart'}</span>
+              </button>
+            </div>
+            {screenshotUrl && (
+              <div className="relative rounded-lg overflow-hidden border border-slate-800 max-h-36 bg-slate-900 flex items-center justify-center">
+                <img src={screenshotUrl} alt="Trade chart" className="max-h-36 object-contain" />
+                <button
+                  type="button"
+                  onClick={() => setScreenshotUrl('')}
+                  className="absolute top-1.5 right-1.5 p-1 rounded-md bg-slate-950/80 text-rose-400 hover:text-rose-300 border border-rose-500/20 text-[10px]"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Footer Submit */}

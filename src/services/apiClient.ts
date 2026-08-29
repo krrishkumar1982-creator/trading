@@ -765,6 +765,73 @@ export async function acknowledgeDirectiveApi(id: string) {
   }
 }
 
+export async function fetchMentorStudentFeedback(studentId: string) {
+  try {
+    const res = await authenticatedFetch(`/api/mentor/students/${encodeURIComponent(studentId)}/feedback`);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to fetch student feedback');
+    }
+    const data = await res.json();
+    return data.feedback || [];
+  } catch (error) {
+    console.error('fetchMentorStudentFeedback error:', error);
+    throw error;
+  }
+}
+
+export async function createMentorFeedback(studentId: string, payload: { content: string; type?: string }) {
+  try {
+    const res = await authenticatedFetch(`/api/mentor/students/${encodeURIComponent(studentId)}/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to create student feedback');
+    }
+    return await res.json();
+  } catch (error) {
+    console.error('createMentorFeedback error:', error);
+    throw error;
+  }
+}
+
+export async function updateMentorFeedback(id: string, payload: { content?: string; status?: string; type?: string }) {
+  try {
+    const res = await authenticatedFetch(`/api/mentor/feedback/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to update feedback');
+    }
+    return await res.json();
+  } catch (error) {
+    console.error('updateMentorFeedback error:', error);
+    throw error;
+  }
+}
+
+export async function deleteMentorFeedback(id: string) {
+  try {
+    const res = await authenticatedFetch(`/api/mentor/feedback/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to delete feedback');
+    }
+    return true;
+  } catch (error) {
+    console.error('deleteMentorFeedback error:', error);
+    throw error;
+  }
+}
+
 // Leaderboard & Admin API calls
 export async function fetchLeaderboardApi() {
   try {
@@ -815,5 +882,103 @@ export async function updateUserRoleAdminApi(userId: string, role: string, reaso
     throw error;
   }
 }
+
+// Backtesting Drawings & Templates API calls
+export async function fetchBacktestDrawingsApi(symbol?: string, sessionId: string = 'default') {
+  try {
+    const url = symbol
+      ? `/api/backtest/drawings?symbol=${encodeURIComponent(symbol)}&sessionId=${encodeURIComponent(sessionId)}`
+      : `/api/backtest/drawings?sessionId=${encodeURIComponent(sessionId)}`;
+    const res = await authenticatedFetch(url);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to fetch drawings');
+    }
+    const data = await res.json();
+    return data.drawings || [];
+  } catch (error) {
+    console.error('fetchBacktestDrawingsApi error:', error);
+    return [];
+  }
+}
+
+export async function saveBacktestDrawingsApi(
+  symbol: string,
+  drawings: any[],
+  sessionId: string = 'default',
+  timeframe: string = '15m'
+) {
+  try {
+    const res = await authenticatedFetch('/api/backtest/drawings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symbol, drawings, sessionId, timeframe }),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to save drawings');
+    }
+    return await res.json();
+  } catch (error) {
+    console.error('saveBacktestDrawingsApi error:', error);
+    throw error;
+  }
+}
+
+export async function fetchChartTemplatesApi() {
+  try {
+    const res = await authenticatedFetch('/api/backtest/templates');
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to fetch templates');
+    }
+    const data = await res.json();
+    return data.templates || [];
+  } catch (error) {
+    console.error('fetchChartTemplatesApi error:', error);
+    return [];
+  }
+}
+
+export async function saveChartTemplateApi(template: {
+  id?: string;
+  name: string;
+  description?: string;
+  chartType: string;
+  indicators: any[];
+}) {
+  try {
+    const res = await authenticatedFetch('/api/backtest/templates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(template),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to save template');
+    }
+    return await res.json();
+  } catch (error) {
+    console.error('saveChartTemplateApi error:', error);
+    throw error;
+  }
+}
+
+export async function deleteChartTemplateApi(templateId: string) {
+  try {
+    const res = await authenticatedFetch(`/api/backtest/templates/${encodeURIComponent(templateId)}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to delete template');
+    }
+    return await res.json();
+  } catch (error) {
+    console.error('deleteChartTemplateApi error:', error);
+    throw error;
+  }
+}
+
 
 
