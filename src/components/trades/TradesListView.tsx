@@ -127,20 +127,20 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
     <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
       {/* Top Header */}
       <div className={`flex flex-wrap items-center justify-between gap-4 pb-3 border-b ${
-        isLight ? 'border-zinc-200' : 'border-slate-800'
+        isLight ? 'border-zinc-200' : 'border-[#26262B]'
       }`}>
         <div>
           <h1 className={`text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2 ${
-            isLight ? 'text-zinc-900' : 'text-white'
+            isLight ? 'text-zinc-900' : 'text-[#F4F4F5]'
           }`}>
             Trade Log & History
             <span className={`text-xs font-mono font-normal px-2 py-0.5 rounded-full border ${
-              isLight ? 'bg-zinc-100 text-zinc-600 border-zinc-200' : 'bg-slate-800 text-slate-400 border-slate-700'
+              isLight ? 'bg-zinc-100 text-zinc-600 border-zinc-200' : 'bg-[#18181C] text-[#A1A1AA] border-[#26262B]'
             }`}>
               {processedTrades.length} trades
             </span>
           </h1>
-          <p className={`text-xs mt-0.5 ${isLight ? 'text-zinc-500' : 'text-slate-400'}`}>
+          <p className={`text-xs mt-0.5 ${isLight ? 'text-zinc-500' : 'text-[#71717A]'}`}>
             Audit executions, verify rule discipline, and run automated AI reviews
           </p>
         </div>
@@ -166,7 +166,7 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
             className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
               isLight
                 ? 'border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-700 shadow-xs'
-                : 'border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300'
+                : 'border-[#26262B] bg-[#121215] hover:bg-[#18181C] text-[#A1A1AA]'
             }`}
           >
             <Download className="w-3.5 h-3.5" />
@@ -178,7 +178,7 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
             className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
               isLight
                 ? 'border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-700 shadow-xs'
-                : 'border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300'
+                : 'border-[#26262B] bg-[#121215] hover:bg-[#18181C] text-[#A1A1AA]'
             }`}
           >
             <Upload className="w-3.5 h-3.5" />
@@ -187,7 +187,7 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
 
           <button
             onClick={onOpenAddTrade}
-            className="flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 text-xs font-semibold shadow-md shadow-blue-600/20 transition active:scale-95"
+            className="flex items-center gap-1.5 rounded-xl bg-[#2563FF] hover:bg-[#2F6BFF] text-white px-3.5 py-2 text-xs font-semibold shadow-md shadow-blue-600/20 transition active:scale-95"
           >
             <Plus className="w-4 h-4" />
             <span>Add Trade</span>
@@ -199,11 +199,11 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
       <div className={`flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl border ${
         isLight
           ? 'bg-white border-zinc-200 shadow-xs'
-          : 'bg-slate-900/90 border-slate-800'
+          : 'bg-[#121215] border-[#26262B]'
       }`}>
         {/* Search */}
         <div className="relative flex-1 min-w-[220px]">
-          <Search className={`w-4 h-4 absolute left-3 top-2.5 ${isLight ? 'text-zinc-400' : 'text-slate-400'}`} />
+          <Search className={`w-4 h-4 absolute left-3 top-2.5 ${isLight ? 'text-zinc-400' : 'text-[#71717A]'}`} />
           <input
             type="text"
             placeholder="Search by symbol, setup, notes..."
@@ -212,7 +212,7 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
             className={`w-full rounded-xl py-1.5 pl-9 pr-4 text-xs focus:outline-none border ${
               isLight
                 ? 'bg-zinc-50 border-zinc-300 text-zinc-900 placeholder-zinc-400 focus:border-blue-500'
-                : 'bg-slate-950 border-slate-800 text-slate-100 placeholder-slate-500 focus:border-blue-500'
+                : 'bg-[#0E0E11] border-[#26262B] text-[#F4F4F5] placeholder-[#71717A] focus:border-[#2563FF]'
             }`}
           />
         </div>
@@ -221,7 +221,7 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
         <div className="flex flex-wrap items-center gap-2 text-xs">
           {/* Direction Filter */}
           <div className={`flex items-center rounded-xl p-0.5 border ${
-            isLight ? 'bg-zinc-100 border-zinc-200' : 'bg-slate-950 border-slate-800'
+            isLight ? 'bg-zinc-100 border-zinc-200' : 'bg-[#0E0E11] border-[#26262B]'
           }`}>
             {(['ALL', 'BUY', 'SELL'] as const).map(dir => (
               <button
@@ -229,10 +229,10 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
                 onClick={() => setDirectionFilter(dir)}
                 className={`px-2.5 py-1 rounded-lg font-medium transition ${
                   directionFilter === dir
-                    ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                    ? 'bg-[#2563FF] text-white shadow-xs font-semibold'
                     : isLight
                       ? 'text-zinc-600 hover:text-zinc-900'
-                      : 'text-slate-400 hover:text-slate-200'
+                      : 'text-[#A1A1AA] hover:text-[#F4F4F5]'
                 }`}
               >
                 {dir}
@@ -242,7 +242,7 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
 
           {/* Status Filter */}
           <div className={`flex items-center rounded-xl p-0.5 border ${
-            isLight ? 'bg-zinc-100 border-zinc-200' : 'bg-slate-950 border-slate-800'
+            isLight ? 'bg-zinc-100 border-zinc-200' : 'bg-[#0E0E11] border-[#26262B]'
           }`}>
             {(['ALL', 'OPEN', 'CLOSED'] as const).map(st => (
               <button
@@ -250,10 +250,10 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
                 onClick={() => setStatusFilter(st)}
                 className={`px-2.5 py-1 rounded-lg font-medium transition ${
                   statusFilter === st
-                    ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                    ? 'bg-[#2563FF] text-white shadow-xs font-semibold'
                     : isLight
                       ? 'text-zinc-600 hover:text-zinc-900'
-                      : 'text-slate-400 hover:text-slate-200'
+                      : 'text-[#A1A1AA] hover:text-[#F4F4F5]'
                 }`}
               >
                 {st}
@@ -268,7 +268,7 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
             className={`rounded-xl px-3 py-1.5 text-xs focus:outline-none cursor-pointer border ${
               isLight
                 ? 'bg-white border-zinc-300 text-zinc-800 focus:border-blue-500 shadow-xs'
-                : 'bg-slate-950 border-slate-800 text-slate-300 focus:border-blue-500'
+                : 'bg-[#0E0E11] border-[#26262B] text-[#A1A1AA] focus:border-[#2563FF]'
             }`}
           >
             <option value="ALL">All Setups</option>
@@ -324,25 +324,31 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
       )}
 
       {/* Trades Table */}
-      <div className={`rounded-2xl border shadow-xl overflow-hidden ${
+      <div className={`rounded-2xl md:rounded-3xl border shadow-xl overflow-hidden ${
         isLight
           ? 'border-zinc-200 bg-white text-zinc-900'
-          : 'border-slate-800/90 bg-slate-900/90 shadow-2xl text-slate-300'
+          : 'border-[#26262B] bg-[#121215] text-[#F4F4F5]'
       }`}>
         <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left text-xs">
-            <thead className={`border-b text-[11px] font-bold uppercase tracking-wider select-none ${
+          <table className="w-full text-left text-sm border-collapse">
+            <thead className={`border-b text-xs font-semibold uppercase tracking-wider select-none ${
               isLight
-                ? 'bg-zinc-50 border-zinc-200 text-zinc-600'
-                : 'bg-slate-950/80 border-slate-800 text-slate-400'
+                ? 'bg-zinc-50/90 border-zinc-200 text-zinc-600'
+                : 'bg-[#0C0C0E] border-[#26262B] text-[#A1A1AA]'
             }`}>
               <tr>
-                <th className="p-3 w-10 text-center">
-                  <button onClick={handleSelectAll} className="flex items-center justify-center">
+                <th className="w-10 min-w-[40px] max-w-[40px] pl-3.5 pr-1 py-3 text-center align-middle">
+                  <button
+                    onClick={handleSelectAll}
+                    aria-label="Select all trades"
+                    className={`inline-flex items-center justify-center p-1 rounded transition ${
+                      isLight ? 'hover:bg-zinc-200/60' : 'hover:bg-white/10'
+                    }`}
+                  >
                     {selectedTradeIds.length === processedTrades.length && processedTrades.length > 0 ? (
-                      <CheckSquare className="w-4 h-4 text-blue-600" />
+                      <CheckSquare className="w-4.5 h-4.5 text-[#2563FF]" />
                     ) : (
-                      <Square className={`w-4 h-4 ${isLight ? 'text-zinc-400' : 'text-slate-600'}`} />
+                      <Square className={`w-4.5 h-4.5 ${isLight ? 'text-zinc-400' : 'text-[#71717A]'}`} />
                     )}
                   </button>
                 </th>
@@ -351,35 +357,35 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
                     setSortField('symbol');
                     setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
                   }}
-                  className={`p-3 cursor-pointer ${isLight ? 'hover:text-zinc-900' : 'hover:text-white'}`}
+                  className={`pl-1 pr-4 py-3 cursor-pointer transition ${isLight ? 'hover:text-zinc-900' : 'hover:text-white'}`}
                 >
-                  <div className="flex items-center gap-1">
-                    Symbol <ArrowUpDown className={`w-3 h-3 ${isLight ? 'text-zinc-400' : 'text-slate-600'}`} />
+                  <div className="flex items-center gap-1.5">
+                    Symbol <ArrowUpDown className={`w-3.5 h-3.5 ${isLight ? 'text-zinc-400' : 'text-[#71717A]'}`} />
                   </div>
                 </th>
-                <th className="p-3">Direction</th>
-                <th className="p-3">Status</th>
+                <th className="px-4 py-3">Direction</th>
+                <th className="px-4 py-3">Status</th>
                 <th
                   onClick={() => {
                     setSortField('date');
                     setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
                   }}
-                  className={`p-3 cursor-pointer ${isLight ? 'hover:text-zinc-900' : 'hover:text-white'}`}
+                  className={`px-4 py-3 cursor-pointer transition ${isLight ? 'hover:text-zinc-900' : 'hover:text-white'}`}
                 >
-                  <div className="flex items-center gap-1">
-                    Entry Time <ArrowUpDown className={`w-3 h-3 ${isLight ? 'text-zinc-400' : 'text-slate-600'}`} />
+                  <div className="flex items-center gap-1.5">
+                    Entry Time <ArrowUpDown className={`w-3.5 h-3.5 ${isLight ? 'text-zinc-400' : 'text-[#71717A]'}`} />
                   </div>
                 </th>
-                <th className="p-3">Entry / Exit</th>
+                <th className="px-4 py-3">Entry / Exit</th>
                 <th
                   onClick={() => {
                     setSortField('pnl');
                     setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
                   }}
-                  className={`p-3 cursor-pointer ${isLight ? 'hover:text-zinc-900' : 'hover:text-white'}`}
+                  className={`px-4 py-3 cursor-pointer transition ${isLight ? 'hover:text-zinc-900' : 'hover:text-white'}`}
                 >
-                  <div className="flex items-center gap-1">
-                    Net P&L <ArrowUpDown className={`w-3 h-3 ${isLight ? 'text-zinc-400' : 'text-slate-600'}`} />
+                  <div className="flex items-center gap-1.5">
+                    Net P&L <ArrowUpDown className={`w-3.5 h-3.5 ${isLight ? 'text-zinc-400' : 'text-[#71717A]'}`} />
                   </div>
                 </th>
                 <th
@@ -387,18 +393,18 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
                     setSortField('rMultiple');
                     setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
                   }}
-                  className={`p-3 cursor-pointer ${isLight ? 'hover:text-zinc-900' : 'hover:text-white'}`}
+                  className={`px-4 py-3 cursor-pointer transition ${isLight ? 'hover:text-zinc-900' : 'hover:text-white'}`}
                 >
-                  <div className="flex items-center gap-1">
-                    R-Multiple <ArrowUpDown className={`w-3 h-3 ${isLight ? 'text-zinc-400' : 'text-slate-600'}`} />
+                  <div className="flex items-center gap-1.5">
+                    R-Multiple <ArrowUpDown className={`w-3.5 h-3.5 ${isLight ? 'text-zinc-400' : 'text-[#71717A]'}`} />
                   </div>
                 </th>
-                <th className="p-3">Setup / Playbook</th>
-                <th className="p-3">Rules</th>
-                <th className="p-3 text-right">Actions</th>
+                <th className="px-4 py-3">Setup / Playbook</th>
+                <th className="px-4 py-3">Rules</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className={`divide-y ${isLight ? 'divide-zinc-100' : 'divide-slate-800/60'}`}>
+            <tbody className={`divide-y ${isLight ? 'divide-zinc-100' : 'divide-[#1C1C20]'}`}>
               {processedTrades.map(trade => {
                 const isSelected = selectedTradeIds.includes(trade.id);
                 const isWin = trade.netPnl > 0;
@@ -410,40 +416,43 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
                     className={`transition cursor-pointer ${
                       isLight
                         ? isSelected
-                          ? 'bg-blue-50/80'
-                          : 'hover:bg-zinc-50'
+                          ? 'bg-blue-50/90'
+                          : 'hover:bg-zinc-50/80'
                         : isSelected
-                        ? 'bg-blue-950/20'
-                        : 'hover:bg-slate-800/50'
+                        ? 'bg-[#2563FF]/15'
+                        : 'hover:bg-[#16161A]'
                     }`}
                     onClick={() => setSelectedTrade(trade)}
                   >
-                    <td className="p-3 text-center" onClick={e => e.stopPropagation()}>
+                    <td className="w-10 min-w-[40px] max-w-[40px] pl-3.5 pr-1 py-3 text-center align-middle" onClick={e => e.stopPropagation()}>
                       <button
                         onClick={() => handleToggleSelectTrade(trade.id)}
-                        className="flex items-center justify-center mx-auto"
+                        aria-label={`Select trade ${trade.symbol}`}
+                        className={`inline-flex items-center justify-center p-1 rounded transition ${
+                          isLight ? 'hover:bg-zinc-200/60' : 'hover:bg-white/10'
+                        }`}
                       >
                         {isSelected ? (
-                          <CheckSquare className="w-4 h-4 text-blue-600" />
+                          <CheckSquare className="w-4.5 h-4.5 text-[#2563FF]" />
                         ) : (
-                          <Square className={`w-4 h-4 ${isLight ? 'text-zinc-400' : 'text-slate-600'}`} />
+                          <Square className={`w-4.5 h-4.5 ${isLight ? 'text-zinc-400' : 'text-[#71717A]'}`} />
                         )}
                       </button>
                     </td>
 
                     {/* Symbol */}
-                    <td className={`p-3 font-bold flex items-center gap-2 ${isLight ? 'text-zinc-900' : 'text-slate-100'}`}>
-                      <span>{trade.symbol}</span>
-                      <span className={`text-[10px] font-normal ${isLight ? 'text-zinc-500' : 'text-slate-500'}`}>{trade.market}</span>
+                    <td className={`pl-1 pr-4 py-3 font-bold flex items-center gap-2 ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+                      <span className="text-sm sm:text-base font-extrabold font-mono">{trade.symbol}</span>
+                      <span className={`text-[11px] font-mono px-1.5 py-0.5 rounded ${isLight ? 'bg-zinc-100 text-zinc-500' : 'bg-white/[0.06] text-[#A1A1AA]'}`}>{trade.market}</span>
                     </td>
 
                     {/* Direction */}
-                    <td className="p-3">
+                    <td className="px-4 py-3">
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        className={`px-2.5 py-1 rounded-lg text-xs font-black tracking-wider ${
                           trade.direction === 'BUY'
-                            ? isLight ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                            : isLight ? 'bg-rose-100 text-rose-700 border border-rose-200' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                            ? isLight ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-[#00D6A3]/15 text-[#00D6A3] border border-[#00D6A3]/30'
+                            : isLight ? 'bg-rose-100 text-rose-700 border border-rose-200' : 'bg-[#FF3D6E]/15 text-[#FF3D6E] border border-[#FF3D6E]/30'
                         }`}
                       >
                         {trade.direction}
@@ -451,12 +460,12 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
                     </td>
 
                     {/* Status */}
-                    <td className="p-3">
+                    <td className="px-4 py-3">
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-medium ${
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
                           trade.status === 'OPEN'
-                            ? isLight ? 'bg-blue-100 text-blue-700 border border-blue-200 font-bold' : 'bg-blue-500/20 text-blue-300 animate-pulse'
-                            : isLight ? 'bg-zinc-100 text-zinc-600 border border-zinc-200' : 'bg-slate-800 text-slate-400'
+                            ? isLight ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-[#2563FF]/20 text-[#4C7DFF] border border-[#2563FF]/30 animate-pulse'
+                            : isLight ? 'bg-zinc-100 text-zinc-600 border border-zinc-200' : 'bg-white/[0.05] text-[#A1A1AA] border border-[#26262B]'
                         }`}
                       >
                         {trade.status}
@@ -464,7 +473,7 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
                     </td>
 
                     {/* Date */}
-                    <td className={`p-3 font-mono text-[11px] ${isLight ? 'text-zinc-500' : 'text-slate-400'}`}>
+                    <td className={`px-4 py-3 font-mono text-xs sm:text-sm ${isLight ? 'text-zinc-600' : 'text-[#A1A1AA]'}`}>
                       {trade?.entryDate ? new Date(trade.entryDate).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
@@ -474,58 +483,58 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
                     </td>
 
                     {/* Entry / Exit */}
-                    <td className={`p-3 font-mono text-[11px] ${isLight ? 'text-zinc-700' : 'text-slate-300'}`}>
-                      <span>${trade.entryPrice}</span>
-                      <span className={`mx-1 ${isLight ? 'text-zinc-400' : 'text-slate-500'}`}>→</span>
-                      <span>{trade.exitPrice ? `$${trade.exitPrice}` : '—'}</span>
+                    <td className={`px-4 py-3 font-mono text-xs sm:text-sm ${isLight ? 'text-zinc-700' : 'text-[#F4F4F5]'}`}>
+                      <span className="font-semibold">${trade.entryPrice}</span>
+                      <span className={`mx-1.5 ${isLight ? 'text-zinc-400' : 'text-[#71717A]'}`}>→</span>
+                      <span className="font-semibold">{trade.exitPrice ? `$${trade.exitPrice}` : '—'}</span>
                     </td>
 
                     {/* Net P&L */}
-                    <td className="p-3 font-mono font-extrabold text-xs">
+                    <td className="px-4 py-3 font-mono font-black text-sm sm:text-base">
                       <span className={
                         isWin
-                          ? isLight ? 'text-emerald-600' : 'text-emerald-400'
+                          ? isLight ? 'text-emerald-600' : 'text-[#00D6A3]'
                           : isLoss
-                          ? isLight ? 'text-rose-600' : 'text-rose-400'
-                          : isLight ? 'text-zinc-600' : 'text-slate-400'
+                          ? isLight ? 'text-rose-600' : 'text-[#FF3D6E]'
+                          : isLight ? 'text-zinc-600' : 'text-[#A1A1AA]'
                       }>
                         {formatCurrency(trade.netPnl)}
                       </span>
                     </td>
 
                     {/* R Multiple */}
-                    <td className="p-3 font-mono font-bold text-xs">
+                    <td className="px-4 py-3 font-mono font-bold text-xs sm:text-sm">
                       <span className={
                         trade.rMultiple >= 0
-                          ? isLight ? 'text-emerald-600' : 'text-emerald-400'
-                          : isLight ? 'text-rose-600' : 'text-rose-400'
+                          ? isLight ? 'text-emerald-600' : 'text-[#00D6A3]'
+                          : isLight ? 'text-rose-600' : 'text-[#FF3D6E]'
                       }>
                         {formatRMultiple(trade.rMultiple)}
                       </span>
                     </td>
 
                     {/* Setup Type */}
-                    <td className={`p-3 ${isLight ? 'text-zinc-800' : 'text-slate-200'}`}>
-                      <span className="font-medium truncate max-w-[140px] block">
+                    <td className={`px-4 py-3 ${isLight ? 'text-zinc-800' : 'text-[#F4F4F5]'}`}>
+                      <span className="font-semibold text-xs sm:text-sm truncate max-w-[160px] block">
                         {trade.setupType}
                       </span>
                     </td>
 
                     {/* Rules Followed */}
-                    <td className="p-3">
+                    <td className="px-4 py-3">
                       {trade.rulesFollowed ? (
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1 ${
                           isLight
                             ? 'text-emerald-700 bg-emerald-50 border border-emerald-200'
-                            : 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
+                            : 'text-[#00D6A3] bg-[#00D6A3]/15 border border-[#00D6A3]/30'
                         }`}>
                           Followed ✓
                         </span>
                       ) : (
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1 ${
                           isLight
                             ? 'text-rose-700 bg-rose-50 border border-rose-200'
-                            : 'text-rose-400 bg-rose-500/10 border border-rose-500/20'
+                            : 'text-[#FF3D6E] bg-[#FF3D6E]/15 border border-[#FF3D6E]/30'
                         }`}>
                           Broken ✗
                         </span>
@@ -533,29 +542,29 @@ export const TradesListView: React.FC<TradesListViewProps> = ({ onOpenAddTrade, 
                     </td>
 
                     {/* Actions */}
-                    <td className="p-3 text-right" onClick={e => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-1">
+                    <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => duplicateTrade(trade.id)}
-                          className={`p-1 rounded transition ${
+                          className={`p-2 rounded-xl transition ${
                             isLight
-                              ? 'text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100'
-                              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                              ? 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
+                              : 'text-[#A1A1AA] hover:text-white hover:bg-white/[0.08]'
                           }`}
                           title="Duplicate Trade"
                         >
-                          <Copy className="w-3.5 h-3.5" />
+                          <Copy className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => deleteTrade(trade.id)}
-                          className={`p-1 rounded transition ${
+                          className={`p-2 rounded-xl transition ${
                             isLight
-                              ? 'text-zinc-400 hover:text-rose-600 hover:bg-zinc-100'
-                              : 'text-slate-400 hover:text-rose-400 hover:bg-slate-800'
+                              ? 'text-zinc-500 hover:text-rose-600 hover:bg-rose-50'
+                              : 'text-[#A1A1AA] hover:text-[#FF3D6E] hover:bg-[#FF3D6E]/15'
                           }`}
                           title="Delete Trade"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>

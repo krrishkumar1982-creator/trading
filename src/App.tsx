@@ -55,15 +55,15 @@ const MainLayout: React.FC = () => {
     <div
       className={`relative flex h-screen w-screen overflow-hidden font-sans ${
         theme === 'light'
-          ? 'bg-[#F4F6F9] text-zinc-900'
-          : 'bg-[#0A0D14] text-slate-100'
+          ? 'bg-[#F8FAFC] text-[#111827]'
+          : 'bg-[#09090B] text-[#F4F4F5]'
       }`}
     >
       {/* Sidebar */}
       <Sidebar isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} />
 
-      {/* Main Content Workspace */}
-      <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+      {/* Main Content Workspace Container */}
+      <div className="relative z-10 flex flex-1 flex-col overflow-hidden min-w-0">
         {/* Top Header */}
         <Navbar
           onOpenNotifications={() => setIsNotificationsOpen(true)}
@@ -73,8 +73,8 @@ const MainLayout: React.FC = () => {
 
         {/* Scrollable View Area */}
         <main
-          className={`flex-1 overflow-y-auto custom-scrollbar ${
-            theme === 'light' ? 'bg-[#F4F6F9]' : 'bg-[#0A0D14]'
+          className={`flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-7 ${
+            theme === 'light' ? 'bg-[#F8FAFC]' : 'bg-[#09090B]'
           }`}
         >
           {activeView === 'dashboard' && (
@@ -127,55 +127,55 @@ const MainLayout: React.FC = () => {
           {activeView === 'help' && (
             <div className="p-6 max-w-4xl mx-auto space-y-6">
               <div className={`flex items-center gap-3 pb-3 border-b ${
-                theme === 'light' ? 'border-zinc-200' : 'border-zinc-800'
+                theme === 'light' ? 'border-[#E5E7EB]' : 'border-[#26262B]'
               }`}>
-                <BookOpen className={`w-6 h-6 ${theme === 'light' ? 'text-blue-600' : 'text-blue-400'}`} />
-                <h1 className={`text-xl font-bold ${theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>
+                <BookOpen className="w-6 h-6 text-[#2563FF]" />
+                <h1 className={`text-xl font-bold ${theme === 'light' ? 'text-[#111827]' : 'text-[#F4F4F5]'}`}>
                   TradeForge Institutional Platform Guide
                 </h1>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className={`p-5 rounded-2xl border space-y-2 ${
-                  theme === 'light' ? 'bg-white border-zinc-200 shadow-xs' : 'bg-[#0E1118] border-zinc-800'
+                <div className={`p-5 rounded-xl border space-y-2 ${
+                  theme === 'light' ? 'bg-white border-[#E5E7EB]' : 'bg-[#121215] border-[#26262B]'
                 }`}>
-                  <h3 className={`text-sm font-bold ${theme === 'light' ? 'text-blue-600' : 'text-blue-400'}`}>
+                  <h3 className="text-sm font-bold text-[#2563FF]">
                     1. Daily Journaling & Execution Protocol
                   </h3>
-                  <p className={`text-xs leading-relaxed ${theme === 'light' ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                  <p className={`text-xs leading-relaxed ${theme === 'light' ? 'text-[#4B5563]' : 'text-[#A1A1AA]'}`}>
                     Start each session in the Daily Journal with the pre-market checklist. Mark HTF levels and define max risk before clicking order submission.
                   </p>
                 </div>
 
-                <div className={`p-5 rounded-2xl border space-y-2 ${
-                  theme === 'light' ? 'bg-white border-zinc-200 shadow-xs' : 'bg-[#0E1118] border-zinc-800'
+                <div className={`p-5 rounded-xl border space-y-2 ${
+                  theme === 'light' ? 'bg-white border-[#E5E7EB]' : 'bg-[#121215] border-[#26262B]'
                 }`}>
-                  <h3 className={`text-sm font-bold ${theme === 'light' ? 'text-emerald-600' : 'text-emerald-400'}`}>
+                  <h3 className="text-sm font-bold text-[#00D6A3]">
                     2. Prop Firm Rule Compliance & Edge
                   </h3>
-                  <p className={`text-xs leading-relaxed ${theme === 'light' ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                  <p className={`text-xs leading-relaxed ${theme === 'light' ? 'text-[#4B5563]' : 'text-[#A1A1AA]'}`}>
                     Track multi-account evaluation limits, trailing drawdowns (EOD & Intraday HWM), daily loss buffers, and profit targets with real-time pre-trade simulations.
                   </p>
                 </div>
 
-                <div className={`p-5 rounded-2xl border space-y-2 ${
-                  theme === 'light' ? 'bg-white border-zinc-200 shadow-xs' : 'bg-[#0E1118] border-zinc-800'
+                <div className={`p-5 rounded-xl border space-y-2 ${
+                  theme === 'light' ? 'bg-white border-[#E5E7EB]' : 'bg-[#121215] border-[#26262B]'
                 }`}>
-                  <h3 className={`text-sm font-bold ${theme === 'light' ? 'text-rose-600' : 'text-rose-400'}`}>
+                  <h3 className="text-sm font-bold text-[#FF3D6E]">
                     3. Circuit Breaker & Safety Locks
                   </h3>
-                  <p className={`text-xs leading-relaxed ${theme === 'light' ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                  <p className={`text-xs leading-relaxed ${theme === 'light' ? 'text-[#4B5563]' : 'text-[#A1A1AA]'}`}>
                     Hard daily loss caps automatically trigger emergency locks to prevent revenge trading spirals and account breaches.
                   </p>
                 </div>
 
-                <div className={`p-5 rounded-2xl border space-y-2 ${
-                  theme === 'light' ? 'bg-white border-zinc-200 shadow-xs' : 'bg-[#0E1118] border-zinc-800'
+                <div className={`p-5 rounded-xl border space-y-2 ${
+                  theme === 'light' ? 'bg-white border-[#E5E7EB]' : 'bg-[#121215] border-[#26262B]'
                 }`}>
-                  <h3 className={`text-sm font-bold ${theme === 'light' ? 'text-purple-600' : 'text-violet-400'}`}>
+                  <h3 className="text-sm font-bold text-[#2563FF]">
                     4. TradeForge AI Intelligence
                   </h3>
-                  <p className={`text-xs leading-relaxed ${theme === 'light' ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                  <p className={`text-xs leading-relaxed ${theme === 'light' ? 'text-[#4B5563]' : 'text-[#A1A1AA]'}`}>
                     Get institutional-grade trade critique, psychological leak diagnosis, and actionable tactical next steps.
                   </p>
                 </div>

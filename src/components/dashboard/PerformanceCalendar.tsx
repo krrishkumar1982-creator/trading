@@ -163,15 +163,15 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
 
   return (
     <div
-      className={`rounded-2xl border p-4 sm:p-5 shadow-sm transition flex flex-col justify-between select-none ${
+      className={`rounded-xl border p-4 sm:p-5 shadow-sm transition flex flex-col justify-between select-none ${
         isLight
-          ? 'bg-white border-zinc-200 text-zinc-900'
-          : 'bg-zinc-900 border-zinc-800 text-zinc-100'
+          ? 'bg-white border-[#E5E7EB] text-[#111827]'
+          : 'bg-[#0D111B] border-[#20283A] text-[#F3F6FB]'
       }`}
     >
       {/* Calendar Top Navigation Bar */}
       <div className={`flex flex-wrap items-center justify-between gap-3 pb-3 border-b mb-3 ${
-        isLight ? 'border-zinc-200' : 'border-zinc-800'
+        isLight ? 'border-[#E5E7EB]' : 'border-[#20283A]'
       }`}>
         {/* Month Selector Controls */}
         <div className="flex items-center gap-2">
@@ -179,16 +179,16 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
             onClick={handlePrevMonth}
             className={`p-1 rounded-lg transition ${
               isLight
-                ? 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900'
-                : 'hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100'
+                ? 'hover:bg-[#F1F5F9] text-[#6B7280] hover:text-[#111827]'
+                : 'hover:bg-[#111722] text-[#8C97AB] hover:text-[#F3F6FB]'
             }`}
             title="Previous Month"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
 
-          <span className={`text-sm sm:text-base font-bold min-w-[130px] text-center tracking-tight ${
-            isLight ? 'text-zinc-900' : 'text-zinc-100'
+          <span className={`text-sm sm:text-base font-semibold min-w-[130px] text-center tracking-tight ${
+            isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'
           }`}>
             {monthNames[month]} {year}
           </span>
@@ -197,8 +197,8 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
             onClick={handleNextMonth}
             className={`p-1 rounded-lg transition ${
               isLight
-                ? 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900'
-                : 'hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100'
+                ? 'hover:bg-[#F1F5F9] text-[#6B7280] hover:text-[#111827]'
+                : 'hover:bg-[#111722] text-[#8C97AB] hover:text-[#F3F6FB]'
             }`}
             title="Next Month"
           >
@@ -207,10 +207,10 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
 
           <button
             onClick={handleThisMonth}
-            className={`ml-2 text-xs font-semibold px-3 py-1 rounded-lg border transition shadow-xs ${
+            className={`ml-2 text-xs font-semibold px-3 py-1 rounded-lg border transition ${
               isLight
-                ? 'border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-zinc-700'
-                : 'border-zinc-700 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200'
+                ? 'border-[#E5E7EB] bg-[#F8FAFC] hover:bg-[#F1F5F9] text-[#4B5563]'
+                : 'border-[#20283A] bg-[#111722] hover:bg-[#172030] text-[#8C97AB] hover:text-[#F3F6FB]'
             }`}
           >
             This month
@@ -220,32 +220,32 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
         {/* Right Header Stats & Tools */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-xs">
-            <span className={isLight ? 'text-zinc-500 font-medium' : 'text-zinc-400 font-medium'}>
+            <span className={isLight ? 'text-[#6B7280] font-medium' : 'text-[#8C97AB] font-medium'}>
               Monthly stats:
             </span>
             <span
-              className={`font-mono font-bold px-2 py-0.5 rounded-md ${
+              className={`font-mono font-bold px-2 py-0.5 rounded ${
                 monthNetPnl >= 0
                   ? isLight
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
+                    ? 'bg-[rgba(0,214,163,0.08)] text-[#059669] border border-[rgba(0,214,163,0.20)]'
+                    : 'bg-[rgba(0,214,163,0.12)] text-[#00D6A3] border border-[rgba(0,214,163,0.25)]'
                   : isLight
-                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                    : 'bg-rose-500/15 text-rose-400 border border-rose-500/20'
+                    ? 'bg-[rgba(255,61,110,0.08)] text-[#DC2626] border border-[rgba(255,61,110,0.20)]'
+                    : 'bg-[rgba(255,61,110,0.12)] text-[#FF3D6E] border border-[rgba(255,61,110,0.25)]'
               }`}
             >
               {formatCompactCurrency(monthNetPnl)}
             </span>
-            <span className={`font-mono ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+            <span className={`font-mono ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>
               {tradingDaysCount} {tradingDaysCount === 1 ? 'day' : 'days'}
             </span>
           </div>
 
-          <div className={`flex items-center gap-1 ${isLight ? 'text-zinc-400' : 'text-zinc-400'}`}>
+          <div className={`flex items-center gap-1 ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>
             <button
               onClick={() => setIsAddTradeOpen(true)}
               className={`p-1 rounded transition ${
-                isLight ? 'hover:bg-zinc-100 hover:text-zinc-800' : 'hover:bg-zinc-800 hover:text-zinc-200'
+                isLight ? 'hover:bg-[#F1F5F9] hover:text-[#111827]' : 'hover:bg-[#111722] hover:text-[#F3F6FB]'
               }`}
               title="Add Trade"
             >
@@ -253,7 +253,7 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
             </button>
             <button
               className={`p-1 rounded transition ${
-                isLight ? 'hover:bg-zinc-100 hover:text-zinc-800' : 'hover:bg-zinc-800 hover:text-zinc-200'
+                isLight ? 'hover:bg-[#F1F5F9] hover:text-[#111827]' : 'hover:bg-[#111722] hover:text-[#F3F6FB]'
               }`}
               title="Calendar Settings"
             >
@@ -261,7 +261,7 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
             </button>
             <button
               className={`p-1 rounded transition ${
-                isLight ? 'hover:bg-zinc-100 hover:text-zinc-800' : 'hover:bg-zinc-800 hover:text-zinc-200'
+                isLight ? 'hover:bg-[#F1F5F9] hover:text-[#111827]' : 'hover:bg-[#111722] hover:text-[#F3F6FB]'
               }`}
               title="Snapshot View"
             >
@@ -269,7 +269,7 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
             </button>
             <span
               className={`cursor-pointer ${
-                isLight ? 'hover:text-zinc-800' : 'hover:text-zinc-200'
+                isLight ? 'hover:text-[#111827]' : 'hover:text-[#F3F6FB]'
               }`}
               title="Trading Calendar Analytics"
             >
@@ -289,7 +289,7 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
               <div
                 key={idx}
                 className={`text-[11px] font-semibold py-1 uppercase tracking-wider ${
-                  isLight ? 'text-zinc-500' : 'text-zinc-400'
+                  isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'
                 }`}
               >
                 {day}
@@ -306,8 +306,8 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
                     return (
                       <div
                         key={`empty-${week.weekNumber}-${dIdx}`}
-                        className={`min-h-[76px] sm:min-h-[86px] rounded-xl border border-transparent ${
-                          isLight ? 'bg-zinc-50/40' : 'bg-zinc-950/30'
+                        className={`min-h-[76px] sm:min-h-[86px] rounded-lg border border-transparent ${
+                          isLight ? 'bg-[#F8FAFC]/40' : 'bg-[#0A0E16]/30'
                         }`}
                       />
                     );
@@ -336,18 +336,18 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
                           });
                         }
                       }}
-                      className={`min-h-[76px] sm:min-h-[86px] p-2 rounded-xl border transition-all duration-150 flex flex-col justify-between relative group ${
+                      className={`min-h-[76px] sm:min-h-[86px] p-2 rounded-lg border transition-all duration-150 flex flex-col justify-between relative group ${
                         hasTrades
                           ? isProfitable
                             ? isLight
-                              ? 'bg-emerald-50/90 border-emerald-300 hover:border-emerald-500 cursor-pointer shadow-xs'
-                              : 'bg-emerald-950/20 border-emerald-500/30 hover:border-emerald-400/60 cursor-pointer shadow-sm'
+                              ? 'bg-[rgba(0,214,163,0.06)] border-[rgba(0,214,163,0.25)] hover:border-[rgba(0,214,163,0.50)] cursor-pointer'
+                              : 'bg-[rgba(0,214,163,0.08)] border-[rgba(0,214,163,0.22)] hover:border-[rgba(0,214,163,0.45)] cursor-pointer'
                             : isLight
-                            ? 'bg-rose-50/90 border-rose-300 hover:border-rose-500 cursor-pointer shadow-xs'
-                            : 'bg-rose-950/20 border-rose-500/30 hover:border-rose-400/60 cursor-pointer shadow-sm'
+                            ? 'bg-[rgba(255,61,110,0.06)] border-[rgba(255,61,110,0.25)] hover:border-[rgba(255,61,110,0.50)] cursor-pointer'
+                            : 'bg-[rgba(255,61,110,0.08)] border-[rgba(255,61,110,0.22)] hover:border-[rgba(255,61,110,0.45)] cursor-pointer'
                           : isLight
-                          ? 'bg-zinc-50/70 border-zinc-200 text-zinc-400'
-                          : 'bg-zinc-950/40 border-zinc-800/60 text-zinc-600'
+                          ? 'bg-[#F8FAFC] border-[#E5E7EB] text-[#9CA3AF]'
+                          : 'bg-[#0A0E16]/60 border-[#20283A]/60 text-[#5F6B80]'
                       }`}
                     >
                       {/* Top Row: Event Icon + Day Number */}
@@ -355,7 +355,7 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
                         {hasTrades ? (
                           <span
                             className={`p-0.5 rounded ${
-                              isLight ? 'text-zinc-600' : 'text-zinc-400'
+                              isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'
                             }`}
                             title="Daily executions logged"
                           >
@@ -369,11 +369,11 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
                           className={`text-xs font-bold ${
                             hasTrades
                               ? isLight
-                                ? 'text-zinc-900'
-                                : 'text-zinc-100'
+                                ? 'text-[#111827]'
+                                : 'text-[#F3F6FB]'
                               : isLight
-                              ? 'text-zinc-400'
-                              : 'text-zinc-500'
+                              ? 'text-[#9CA3AF]'
+                              : 'text-[#5F6B80]'
                           }`}
                         >
                           {dayNum}
@@ -384,27 +384,27 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
                       {hasTrades ? (
                         <div className="space-y-0.5 text-center mt-1">
                           <div
-                            className={`text-xs sm:text-sm font-mono font-extrabold tracking-tight ${
+                            className={`text-xs sm:text-sm font-mono font-bold tracking-tight ${
                               isProfitable
                                 ? isLight
-                                  ? 'text-emerald-700'
-                                  : 'text-emerald-400'
+                                  ? 'text-[#059669]'
+                                  : 'text-[#00D6A3]'
                                 : isLight
-                                ? 'text-rose-700'
-                                : 'text-rose-400'
+                                ? 'text-[#DC2626]'
+                                : 'text-[#FF3D6E]'
                             }`}
                           >
                             {formatCompactCurrency(dayPnl)}
                           </div>
 
                           <div className={`text-[10px] font-mono leading-tight ${
-                            isLight ? 'text-zinc-600' : 'text-zinc-400'
+                            isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'
                           }`}>
                             {dayTrades.length} {dayTrades.length === 1 ? 'trade' : 'trades'}
                           </div>
 
                           <div className={`text-[9.5px] font-mono leading-tight ${
-                            isLight ? 'text-zinc-500' : 'text-zinc-400'
+                            isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'
                           }`}>
                             {winRate.toFixed(1)}%
                           </div>
@@ -429,29 +429,29 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
             return (
               <div
                 key={`summary-${week.weekNumber}`}
-                className={`min-h-[76px] sm:min-h-[86px] p-2.5 rounded-xl border flex flex-col justify-center text-center transition-all ${
+                className={`min-h-[76px] sm:min-h-[86px] p-2.5 rounded-lg border flex flex-col justify-center text-center transition-all ${
                   isLight
-                    ? 'bg-zinc-50 border-zinc-200'
-                    : 'bg-zinc-950/60 border-zinc-800'
+                    ? 'bg-[#F8FAFC] border-[#E5E7EB]'
+                    : 'bg-[#0A0E16] border-[#20283A]'
                 }`}
               >
-                <span className={`text-[11px] font-semibold ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                <span className={`text-[11px] font-semibold ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>
                   Week {week.weekNumber}
                 </span>
 
                 <div
-                  className={`text-xs sm:text-sm font-mono font-extrabold my-0.5 ${
+                  className={`text-xs sm:text-sm font-mono font-bold my-0.5 ${
                     isPositive
-                      ? isLight ? 'text-emerald-700' : 'text-emerald-400'
+                      ? isLight ? 'text-[#059669]' : 'text-[#00D6A3]'
                       : isNegative
-                      ? isLight ? 'text-rose-700' : 'text-rose-400'
-                      : isLight ? 'text-zinc-600' : 'text-zinc-400'
+                      ? isLight ? 'text-[#DC2626]' : 'text-[#FF3D6E]'
+                      : isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'
                   }`}
                 >
                   {formatCompactCurrency(week.weekPnl)}
                 </div>
 
-                <span className={`text-[10px] font-mono ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                <span className={`text-[10px] font-mono ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>
                   {week.activeDaysCount} {week.activeDaysCount === 1 ? 'day' : 'days'}
                 </span>
               </div>

@@ -93,7 +93,7 @@ export const DailyPnlBarChart: React.FC<DailyPnlBarChartProps> = ({ trades, form
                   <div className="w-full flex flex-col items-center justify-end h-1/2">
                     <div
                       style={{ height: `${heightPercent}%` }}
-                      className="w-full max-w-[16px] rounded-t-sm transition-all shadow-sm bg-emerald-500 group-hover:bg-emerald-400"
+                      className="w-full max-w-[14px] rounded-t-sm transition-all bg-[#00D6A3] hover:opacity-85"
                     />
                   </div>
                 ) : (
@@ -101,14 +101,14 @@ export const DailyPnlBarChart: React.FC<DailyPnlBarChartProps> = ({ trades, form
                 )}
 
                 {/* Zero baseline line */}
-                <div className={`w-full h-[1px] ${isLight ? 'bg-zinc-300' : 'bg-zinc-800'}`} />
+                <div className={`w-full h-[1px] ${isLight ? 'bg-[#E5E7EB]' : 'bg-[#20283A]'}`} />
 
                 {/* Negative (Bottom) */}
                 {!isPos ? (
                   <div className="w-full flex flex-col items-center justify-start h-1/2">
                     <div
                       style={{ height: `${heightPercent}%` }}
-                      className="w-full max-w-[16px] rounded-b-sm transition-all shadow-sm bg-rose-500 group-hover:bg-rose-400"
+                      className="w-full max-w-[14px] rounded-b-sm transition-all bg-[#FF3D6E] hover:opacity-85"
                     />
                   </div>
                 ) : (
@@ -117,7 +117,7 @@ export const DailyPnlBarChart: React.FC<DailyPnlBarChartProps> = ({ trades, form
               </div>
 
               {/* Date label */}
-              <span className={`text-[9px] mt-1 font-mono ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
+              <span className={`text-[9px] mt-1 font-mono ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>
                 {bar.displayDate}
               </span>
             </div>
@@ -128,37 +128,37 @@ export const DailyPnlBarChart: React.FC<DailyPnlBarChartProps> = ({ trades, form
       {/* Hover tooltip */}
       {hoveredBar && (
         <div
-          className={`absolute top-1 right-4 px-3 py-1.5 rounded-lg text-xs z-20 pointer-events-none animate-in fade-in ${
+          className={`absolute top-1 right-4 px-3 py-1.5 rounded-lg text-xs z-20 pointer-events-none animate-in fade-in border ${
             isLight
-              ? 'bg-white border border-zinc-200 text-zinc-900 shadow-xl'
-              : 'bg-zinc-900 border border-zinc-700 text-zinc-100 shadow-2xl'
+              ? 'bg-white border-[#E5E7EB] text-[#111827] shadow-xl'
+              : 'bg-[#0D111B] border-[#28344A] text-[#F3F6FB] shadow-2xl'
           }`}
         >
-          <div className="text-[10px] font-semibold flex items-center justify-between gap-3 text-zinc-400">
-            <span className={isLight ? 'text-zinc-600' : 'text-zinc-400'}>{hoveredBar.dateKey}</span>
-            <span className={`${isLight ? 'text-zinc-600' : 'text-zinc-400'} font-mono`}>{hoveredBar.tradeCount} trades</span>
+          <div className="text-[10px] font-semibold flex items-center justify-between gap-3 border-b pb-0.5 border-[#20283A]/30">
+            <span className={isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}>{hoveredBar.dateKey}</span>
+            <span className={`${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'} font-mono`}>{hoveredBar.tradeCount} trades</span>
           </div>
           <div className="mt-1 flex items-center justify-between gap-3 font-mono">
-            <span className={`${isLight ? 'text-zinc-600' : 'text-zinc-400'} text-[11px]`}>Net P&L:</span>
-            <span className={`text-[12px] font-bold ${hoveredBar.pnl >= 0 ? (isLight ? 'text-emerald-700' : 'text-emerald-400') : (isLight ? 'text-rose-700' : 'text-rose-400')}`}>
+            <span className={`${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'} text-[11px]`}>Net P&L:</span>
+            <span className={`text-[12px] font-bold ${hoveredBar.pnl >= 0 ? (isLight ? 'text-[#059669]' : 'text-[#00D6A3]') : (isLight ? 'text-[#DC2626]' : 'text-[#FF3D6E]')}`}>
               {formatCurrency(hoveredBar.pnl)}
             </span>
           </div>
-          <div className="text-[9px] text-zinc-400 mt-0.5 flex items-center gap-1.5">
-            <span className={isLight ? 'text-emerald-700 font-semibold' : 'text-emerald-400'}>{hoveredBar.wins}W</span>
+          <div className="text-[9px] text-[#8C97AB] mt-0.5 flex items-center gap-1.5 font-mono">
+            <span className={isLight ? 'text-[#059669] font-semibold' : 'text-[#00D6A3]'}>{hoveredBar.wins}W</span>
             <span>-</span>
-            <span className={isLight ? 'text-rose-700 font-semibold' : 'text-rose-400'}>{hoveredBar.losses}L</span>
+            <span className={isLight ? 'text-[#DC2626] font-semibold' : 'text-[#FF3D6E]'}>{hoveredBar.losses}L</span>
           </div>
         </div>
       )}
 
       {/* Bottom Summary Bar */}
-      <div className={`flex justify-between px-3 text-[10px] border-t pt-1 font-mono ${
-        isLight ? 'text-zinc-600 border-zinc-200' : 'text-zinc-400 border-zinc-800'
+      <div className={`flex justify-between px-3 text-[10px] border-t pt-1.5 font-mono ${
+        isLight ? 'text-[#6B7280] border-[#E5E7EB]' : 'text-[#8C97AB] border-[#20283A]'
       }`}>
         <span>{bars.length} Trading Days</span>
-        <span className={isLight ? 'text-zinc-700' : 'text-zinc-300'}>
-          Max Day: <strong className="text-emerald-400">+{formatCurrency(Math.round(maxAbs))}</strong>
+        <span className={isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'}>
+          Max Day: <strong className={isLight ? 'text-[#059669]' : 'text-[#00D6A3]'}>+{formatCurrency(Math.round(maxAbs))}</strong>
         </span>
       </div>
     </div>

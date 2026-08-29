@@ -192,49 +192,55 @@ export const PropFirmView: React.FC = () => {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 animate-fadeIn text-zinc-100">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 animate-fadeIn text-zinc-100">
       {/* Top Header & Account Switcher */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-zinc-800/60">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black tracking-tight text-zinc-50 flex items-center gap-2.5">
-              <Shield className="w-6 h-6 text-blue-400" />
-              <span>Prop Firm Hub</span>
-            </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-zinc-800/80 border border-zinc-700/50 text-zinc-300">
-              Data-Driven Engine
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 shadow-xs shadow-blue-500/10">
+              <Shield className="w-7 h-7 text-blue-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+                  Prop Firm Hub
+                </h1>
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/15 border border-blue-500/30 text-blue-400">
+                  Data-Driven Engine
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+                Real-time multi-firm compliance monitor, rule health center & configurable risk state engine.
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-zinc-400 mt-1">
-            Real-time multi-firm compliance monitor, rule health center & configurable risk state engine.
-          </p>
         </div>
 
         {/* Account Selector Pills & New Account Button */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center bg-[#090A0F] p-1 rounded-xl border border-zinc-800/80">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center bg-black/40 backdrop-blur-xl p-1.5 rounded-2xl border border-white/10 shadow-inner">
             {propFirmAccounts.map((acc) => {
               const isSelected = acc.id === activeAccount.id;
               return (
                 <button
                   key={acc.id}
                   onClick={() => setSelectedPropFirmAccountId(acc.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2.5 ${
                     isSelected
-                      ? 'bg-zinc-800/90 text-white shadow-sm border border-zinc-700/60'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
+                      ? 'bg-blue-600/20 text-white shadow-md border border-blue-500/40 text-blue-300'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
                   }`}
                 >
                   <span>{acc.name}</span>
                   <span
-                    className={`w-2 h-2 rounded-full ${
+                    className={`w-2.5 h-2.5 rounded-full shadow-xs ${
                       acc.riskState === 'SAFE'
-                        ? 'bg-emerald-400'
+                        ? 'bg-emerald-400 shadow-[0_0_8px_#10B981]'
                         : acc.riskState === 'WARNING'
-                        ? 'bg-amber-400'
+                        ? 'bg-amber-400 shadow-[0_0_8px_#F59E0B]'
                         : acc.riskState === 'CRITICAL'
-                        ? 'bg-rose-400'
-                        : 'bg-red-500'
+                        ? 'bg-rose-400 shadow-[0_0_8px_#F43F5E]'
+                        : 'bg-red-500 shadow-[0_0_8px_#EF4444]'
                     }`}
                   />
                 </button>
@@ -244,9 +250,9 @@ export const PropFirmView: React.FC = () => {
 
           <button
             onClick={() => setIsAddAccountModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600/90 hover:bg-blue-500 text-white text-xs font-semibold transition border border-blue-500/40 shadow-sm"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-lg shadow-blue-600/25 active:scale-95"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-4 h-4" />
             <span>Add Account</span>
           </button>
         </div>
@@ -254,57 +260,57 @@ export const PropFirmView: React.FC = () => {
 
       {/* Live Risk State & Contextual Intelligence Banner */}
       <div
-        className={`p-4 rounded-2xl border transition backdrop-blur-xl ${
+        className={`p-5 sm:p-6 rounded-2xl md:rounded-3xl border transition backdrop-blur-2xl ${
           evaluation?.riskState === 'SAFE'
-            ? 'bg-[#090A0F]/90 border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.05)]'
+            ? 'bg-emerald-950/20 border-emerald-500/30 shadow-[0_10px_30px_rgba(16,185,129,0.08)]'
             : evaluation?.riskState === 'WARNING'
-            ? 'bg-[#0E1118]/90 border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.08)]'
+            ? 'bg-amber-950/20 border-amber-500/35 shadow-[0_10px_30px_rgba(245,158,11,0.1)]'
             : evaluation?.riskState === 'CRITICAL'
-            ? 'bg-[#141824]/90 border-rose-500/40 shadow-[0_0_25px_rgba(244,63,94,0.12)]'
-            : 'bg-red-950/40 border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]'
+            ? 'bg-rose-950/25 border-rose-500/45 shadow-[0_12px_35px_rgba(244,63,94,0.15)]'
+            : 'bg-red-950/30 border-red-500/50 shadow-[0_15px_40px_rgba(239,68,68,0.2)]'
         }`}
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-start sm:items-center gap-3">
-            <div className="p-2 rounded-xl bg-zinc-900/80 border border-zinc-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-4">
+            <div className="p-3 rounded-2xl bg-white/[0.05] border border-white/15 shrink-0 shadow-inner">
               {evaluation?.riskState === 'SAFE' ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                <CheckCircle2 className="w-6 h-6 text-emerald-400" />
               ) : evaluation?.riskState === 'WARNING' ? (
-                <AlertTriangle className="w-5 h-5 text-amber-400" />
+                <AlertTriangle className="w-6 h-6 text-amber-400" />
               ) : (
-                <AlertOctagon className="w-5 h-5 text-rose-400 animate-pulse" />
+                <AlertOctagon className="w-6 h-6 text-rose-400 animate-pulse" />
               )}
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2.5">
                 {getRiskStateBadge(evaluation?.riskState || 'SAFE')}
-                <span className="text-xs font-bold text-zinc-300">
+                <span className="text-xs sm:text-sm font-bold text-slate-200">
                   {activeAccount.firmName} • {activeAccount.phaseName || activeAccount.phase}
                 </span>
-                <span className="text-xs text-zinc-500">({activeAccount.sessionTimezone})</span>
+                <span className="text-xs text-slate-500">({activeAccount.sessionTimezone})</span>
               </div>
-              <p className="text-sm font-semibold text-zinc-100 mt-1">
+              <p className="text-sm sm:text-base font-bold text-white mt-1">
                 {evaluation?.statusMessage}
               </p>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className="text-xs sm:text-sm text-slate-400 mt-0.5 leading-relaxed">
                 {evaluation?.actionableAdvice}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-center">
+          <div className="flex items-center gap-2.5 self-end sm:self-center shrink-0">
             <button
               onClick={() => setActiveTab('pre-trade')}
-              className="px-3 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 text-xs font-semibold text-zinc-200 border border-zinc-700/60 transition flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-xs font-bold text-slate-200 border border-white/15 transition flex items-center gap-2 shadow-xs"
             >
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <Zap className="w-4 h-4 text-amber-400" />
               <span>Pre-Trade Check</span>
             </button>
             <button
               onClick={() => setIsEditAccountModalOpen(true)}
-              className="px-3 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 text-xs font-semibold text-zinc-200 border border-zinc-700/60 transition flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-xs font-bold text-slate-200 border border-white/15 transition flex items-center gap-2 shadow-xs"
             >
-              <Sliders className="w-3.5 h-3.5 text-blue-400" />
+              <Sliders className="w-4 h-4 text-blue-400" />
               <span>Configure Account</span>
             </button>
           </div>
@@ -312,173 +318,173 @@ export const PropFirmView: React.FC = () => {
       </div>
 
       {/* 4 Core Hero Metric Panels */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         {/* Card 1: Account Balance & Equity */}
-        <div className="p-4 rounded-2xl bg-[#090A0F]/80 border border-zinc-800/80 backdrop-blur-xl space-y-3">
-          <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span className="font-semibold uppercase tracking-wider text-[10px] text-zinc-500">Account Balance</span>
-            <span className="px-2 py-0.5 rounded-md bg-zinc-900 text-zinc-300 font-mono text-[10px] border border-zinc-800">
+        <div className="p-5 sm:p-6 rounded-2xl md:rounded-3xl glass-card backdrop-blur-2xl border border-white/10 space-y-4 shadow-xl">
+          <div className="flex items-center justify-between text-xs text-slate-400">
+            <span className="font-bold uppercase tracking-wider text-[11px] text-slate-400">Account Balance</span>
+            <span className="px-2 py-0.5 rounded-lg bg-white/[0.05] text-slate-300 font-mono text-[11px] border border-white/10">
               Start: {formatCurrency(activeAccount.startingBalance)}
             </span>
           </div>
-          <div className="space-y-1">
-            <div className="text-2xl font-black tracking-tight text-white font-mono">
+          <div className="space-y-1.5">
+            <div className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-mono">
               {formatCurrency(activeAccount.currentBalance)}
             </div>
             <div className="flex items-center gap-2 text-xs">
               <span
-                className={`font-semibold flex items-center ${
+                className={`font-bold flex items-center ${
                   activeAccount.currentBalance >= activeAccount.startingBalance
                     ? 'text-emerald-400'
                     : 'text-rose-400'
                 }`}
               >
                 {activeAccount.currentBalance >= activeAccount.startingBalance ? (
-                  <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
+                  <ArrowUpRight className="w-4 h-4 mr-0.5" />
                 ) : (
-                  <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />
+                  <ArrowDownRight className="w-4 h-4 mr-0.5" />
                 )}
                 {formatCurrency(activeAccount.currentBalance - activeAccount.startingBalance)} (
                 {(((activeAccount.currentBalance - activeAccount.startingBalance) / activeAccount.startingBalance) * 100).toFixed(2)}%)
               </span>
             </div>
           </div>
-          <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between text-[11px] text-zinc-400">
+          <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
             <span>High-Water Mark</span>
-            <span className="font-mono text-zinc-300">
+            <span className="font-mono font-semibold text-slate-200">
               {formatCurrency(maxDrawdownData?.peakEquity || activeAccount.startingBalance)}
             </span>
           </div>
         </div>
 
         {/* Card 2: Profit Target & Progress */}
-        <div className="p-4 rounded-2xl bg-[#090A0F]/80 border border-zinc-800/80 backdrop-blur-xl space-y-3">
-          <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span className="font-semibold uppercase tracking-wider text-[10px] text-zinc-500">Profit Target</span>
+        <div className="p-5 sm:p-6 rounded-2xl md:rounded-3xl glass-card backdrop-blur-2xl border border-white/10 space-y-4 shadow-xl">
+          <div className="flex items-center justify-between text-xs text-slate-400">
+            <span className="font-bold uppercase tracking-wider text-[11px] text-slate-400">Profit Target</span>
             <span
-              className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+              className={`px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold border ${
                 profitTargetData?.isPassed
-                  ? 'bg-emerald-950/60 border-emerald-500/30 text-emerald-400'
-                  : 'bg-zinc-900 border-zinc-800 text-zinc-300'
+                  ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-400'
+                  : 'bg-white/[0.05] border-white/10 text-slate-300'
               }`}
             >
-              {profitTargetData?.isPassed ? 'PASSED' : `${profitTargetData?.progressPercent.toFixed(0)}% DONE`}
+              {profitTargetData?.isPassed ? 'PASSED' : `${(profitTargetData?.progressPercent ?? 0).toFixed(0)}% DONE`}
             </span>
           </div>
-          <div className="space-y-1">
-            <div className="text-2xl font-black tracking-tight text-white font-mono flex items-baseline justify-between">
+          <div className="space-y-2">
+            <div className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-mono flex items-baseline justify-between">
               <span>{formatCurrency(profitTargetData?.currentProfit || 0)}</span>
-              <span className="text-xs font-normal text-zinc-500">
+              <span className="text-xs font-semibold text-slate-500 font-mono">
                 / {formatCurrency(profitTargetData?.target || 0)}
               </span>
             </div>
             {/* Progress Bar */}
-            <div className="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-800">
+            <div className="w-full bg-white/[0.06] h-2.5 rounded-full overflow-hidden border border-white/10">
               <div
-                className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                style={{ width: `${profitTargetData?.progressPercent || 0}%` }}
+                className="bg-emerald-500 h-full rounded-full transition-all duration-500 shadow-[0_0_10px_#10B981]"
+                style={{ width: `${Math.min(100, profitTargetData?.progressPercent || 0)}%` }}
               />
             </div>
           </div>
-          <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between text-[11px] text-zinc-400">
+          <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
             <span>Remaining to Target</span>
-            <span className="font-mono text-emerald-400 font-semibold">
+            <span className="font-mono text-emerald-400 font-bold">
               {profitTargetData?.isPassed ? 'Goal Met!' : formatCurrency(profitTargetData?.remainingProfit || 0)}
             </span>
           </div>
         </div>
 
         {/* Card 3: Daily Drawdown & Buffer */}
-        <div className="p-4 rounded-2xl bg-[#090A0F]/80 border border-zinc-800/80 backdrop-blur-xl space-y-3">
-          <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span className="font-semibold uppercase tracking-wider text-[10px] text-zinc-500">Daily Loss Limit</span>
-            <span className="px-2 py-0.5 rounded-md bg-zinc-900 text-zinc-300 font-mono text-[10px] border border-zinc-800">
+        <div className="p-5 sm:p-6 rounded-2xl md:rounded-3xl glass-card backdrop-blur-2xl border border-white/10 space-y-4 shadow-xl">
+          <div className="flex items-center justify-between text-xs text-slate-400">
+            <span className="font-bold uppercase tracking-wider text-[11px] text-slate-400">Daily Loss Limit</span>
+            <span className="px-2 py-0.5 rounded-lg bg-white/[0.05] text-slate-300 font-mono text-[11px] border border-white/10">
               Max: {formatCurrency(dailyDrawdownData?.dailyLimit || 0)}
             </span>
           </div>
-          <div className="space-y-1">
-            <div className="text-2xl font-black tracking-tight text-white font-mono flex items-baseline justify-between">
-              <span className={dailyDrawdownData?.todayLoss ? 'text-rose-400' : 'text-zinc-200'}>
+          <div className="space-y-2">
+            <div className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-mono flex items-baseline justify-between">
+              <span className={dailyDrawdownData?.todayLoss ? 'text-rose-400' : 'text-slate-100'}>
                 {formatCurrency(dailyDrawdownData?.todayLoss || 0)}
               </span>
-              <span className="text-xs font-normal text-zinc-500">today's loss</span>
+              <span className="text-xs font-semibold text-slate-500">today's loss</span>
             </div>
             {/* Daily Buffer Bar */}
-            <div className="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-800">
+            <div className="w-full bg-white/[0.06] h-2.5 rounded-full overflow-hidden border border-white/10">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
                   dailyDrawdownData && dailyDrawdownData.remainingDailyBufferPercent < 30
-                    ? 'bg-rose-500'
+                    ? 'bg-rose-500 shadow-[0_0_10px_#F43F5E]'
                     : dailyDrawdownData && dailyDrawdownData.remainingDailyBufferPercent < 60
-                    ? 'bg-amber-500'
-                    : 'bg-blue-500'
+                    ? 'bg-amber-500 shadow-[0_0_10px_#F59E0B]'
+                    : 'bg-blue-500 shadow-[0_0_10px_#3B82F6]'
                 }`}
-                style={{ width: `${100 - (dailyDrawdownData?.remainingDailyBufferPercent || 0)}%` }}
+                style={{ width: `${Math.min(100, Math.max(0, 100 - (dailyDrawdownData?.remainingDailyBufferPercent || 0)))}%` }}
               />
             </div>
           </div>
-          <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between text-[11px] text-zinc-400">
+          <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
             <span>Remaining Daily Buffer</span>
             <span
-              className={`font-mono font-semibold ${
+              className={`font-mono font-bold ${
                 dailyDrawdownData && dailyDrawdownData.remainingDailyBuffer <= 200
-                  ? 'text-rose-400 font-bold'
-                  : 'text-zinc-200'
+                  ? 'text-rose-400'
+                  : 'text-slate-200'
               }`}
             >
-              {formatCurrency(dailyDrawdownData?.remainingDailyBuffer || 0)} ({dailyDrawdownData?.remainingDailyBufferPercent.toFixed(0)}%)
+              {formatCurrency(dailyDrawdownData?.remainingDailyBuffer || 0)} ({(dailyDrawdownData?.remainingDailyBufferPercent ?? 0).toFixed(0)}%)
             </span>
           </div>
         </div>
 
         {/* Card 4: Maximum Drawdown & Buffer */}
-        <div className="p-4 rounded-2xl bg-[#090A0F]/80 border border-zinc-800/80 backdrop-blur-xl space-y-3">
-          <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span className="font-semibold uppercase tracking-wider text-[10px] text-zinc-500">Max Drawdown</span>
-            <span className="px-1.5 py-0.5 rounded-md bg-zinc-900 text-blue-400 font-mono text-[9px] border border-blue-900/40">
+        <div className="p-5 sm:p-6 rounded-2xl md:rounded-3xl glass-card backdrop-blur-2xl border border-white/10 space-y-4 shadow-xl">
+          <div className="flex items-center justify-between text-xs text-slate-400">
+            <span className="font-bold uppercase tracking-wider text-[11px] text-slate-400">Max Drawdown</span>
+            <span className="px-2 py-0.5 rounded-lg bg-blue-500/15 text-blue-400 font-mono text-[10px] font-bold border border-blue-500/30">
               {activeAccount.drawdownModel.replace('_', ' ')}
             </span>
           </div>
-          <div className="space-y-1">
-            <div className="text-2xl font-black tracking-tight text-white font-mono flex items-baseline justify-between">
-              <span className={maxDrawdownData?.currentDrawdown ? 'text-amber-400' : 'text-zinc-200'}>
+          <div className="space-y-2">
+            <div className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-mono flex items-baseline justify-between">
+              <span className={maxDrawdownData?.currentDrawdown ? 'text-amber-400' : 'text-slate-100'}>
                 {formatCurrency(maxDrawdownData?.currentDrawdown || 0)}
               </span>
-              <span className="text-xs font-normal text-zinc-500">
+              <span className="text-xs font-semibold text-slate-500 font-mono">
                 / {formatCurrency(activeAccount.rules.find((r) => r.type === 'MAX_DRAWDOWN')?.threshold || 10000)}
               </span>
             </div>
             {/* Drawdown Buffer Bar */}
-            <div className="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-800">
+            <div className="w-full bg-white/[0.06] h-2.5 rounded-full overflow-hidden border border-white/10">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
                   maxDrawdownData && maxDrawdownData.bufferPercent < 30
-                    ? 'bg-rose-500'
+                    ? 'bg-rose-500 shadow-[0_0_10px_#F43F5E]'
                     : maxDrawdownData && maxDrawdownData.bufferPercent < 60
-                    ? 'bg-amber-500'
-                    : 'bg-emerald-500'
+                    ? 'bg-amber-500 shadow-[0_0_10px_#F59E0B]'
+                    : 'bg-emerald-500 shadow-[0_0_10px_#10B981]'
                 }`}
-                style={{ width: `${100 - (maxDrawdownData?.bufferPercent || 0)}%` }}
+                style={{ width: `${Math.min(100, Math.max(0, 100 - (maxDrawdownData?.bufferPercent || 0)))}%` }}
               />
             </div>
           </div>
-          <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between text-[11px] text-zinc-400">
-            <span>Remaining Max Buffer</span>
+          <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
+            <span>Remaining Buffer</span>
             <span
-              className={`font-mono font-semibold ${
+              className={`font-mono font-bold ${
                 maxDrawdownData && maxDrawdownData.bufferRemaining <= 500
-                  ? 'text-rose-400 font-bold'
-                  : 'text-zinc-200'
+                  ? 'text-rose-400'
+                  : 'text-slate-200'
               }`}
             >
-              {formatCurrency(maxDrawdownData?.bufferRemaining || 0)} ({maxDrawdownData?.bufferPercent.toFixed(0)}%)
+              {formatCurrency(maxDrawdownData?.bufferRemaining || 0)} ({(maxDrawdownData?.bufferPercent ?? 0).toFixed(0)}%)
             </span>
           </div>
         </div>
       </div>
 
       {/* Sub-Navigation Tabs */}
-      <div className="flex items-center gap-1 border-b border-zinc-800/80 overflow-x-auto pb-1">
+      <div className="flex items-center gap-2 border-b border-white/10 overflow-x-auto pb-2 custom-scrollbar">
         <button
           onClick={() => setActiveTab('overview')}
           className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 border whitespace-nowrap ${
@@ -555,27 +561,27 @@ export const PropFirmView: React.FC = () => {
       {/* TAB CONTENT 1: Rule Health Center Overview */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          <div className="rounded-2xl bg-[#090A0F]/80 border border-zinc-800/80 backdrop-blur-xl overflow-hidden shadow-xl">
-            <div className="p-4 bg-zinc-900/60 border-b border-zinc-800/80 flex items-center justify-between">
+          <div className="rounded-2xl md:rounded-3xl glass-card backdrop-blur-2xl border border-white/10 overflow-hidden shadow-2xl">
+            <div className="p-5 sm:p-6 bg-white/[0.03] border-b border-white/10 flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-blue-400" />
+                <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2.5">
+                  <Shield className="w-5 h-5 text-blue-400" />
                   <span>Active Rule Health & Compliance Matrix</span>
                 </h3>
-                <p className="text-xs text-zinc-400 mt-0.5">
+                <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
                   Live status, threshold boundaries and calculation transparent formulas.
                 </p>
               </div>
               <button
                 onClick={() => setIsAddRuleModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold transition border border-zinc-700"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] text-white text-xs font-bold transition border border-white/15 shadow-sm active:scale-95"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-4 h-4" />
                 <span>Add Custom Rule</span>
               </button>
             </div>
 
-            <div className="divide-y divide-zinc-800/60">
+            <div className="divide-y divide-white/5">
               {evaluation?.evaluatedRules.map((rule) => {
                 const isSafe = rule.status === 'SAFE' || rule.status === 'COMPLETED';
                 const isWarn = rule.status === 'WARNING';
@@ -585,56 +591,56 @@ export const PropFirmView: React.FC = () => {
                 return (
                   <div
                     key={rule.id}
-                    className="p-4 hover:bg-zinc-900/30 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    className="p-5 sm:p-6 hover:bg-white/[0.02] transition flex flex-col md:flex-row md:items-center justify-between gap-5"
                   >
-                    <div className="space-y-1 max-w-xl">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-zinc-100">{rule.name}</span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-zinc-900 border border-zinc-800 text-zinc-400">
+                    <div className="space-y-1.5 max-w-xl">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <span className="text-sm sm:text-base font-bold text-white">{rule.name}</span>
+                        <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-mono font-bold uppercase bg-white/[0.06] border border-white/10 text-slate-300">
                           {rule.type}
                         </span>
                         {!rule.enabled && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-zinc-800 text-zinc-500">
+                          <span className="px-2 py-0.5 rounded-lg text-[10px] bg-zinc-800 text-zinc-500 font-medium">
                             Disabled
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-zinc-400">{rule.description}</p>
-                      <div className="flex items-center gap-3 text-[11px] text-zinc-500 pt-1">
-                        <span>Methodology: <code className="text-zinc-300 bg-zinc-900 px-1 py-0.5 rounded text-[10px]">{rule.calculationMethodology}</code></span>
+                      <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">{rule.description}</p>
+                      <div className="flex items-center gap-3 text-xs text-slate-400 pt-1">
+                        <span>Methodology: <code className="text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 text-[11px] font-mono">{rule.calculationMethodology}</code></span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 self-end md:self-center">
+                    <div className="flex items-center gap-5 self-end md:self-center shrink-0">
                       <div className="text-right">
-                        <div className="text-xs font-mono font-bold text-zinc-200">
+                        <div className="text-sm font-mono font-bold text-slate-100">
                           {rule.details || `Threshold: ${rule.threshold} ${rule.unit}`}
                         </div>
-                        <div className="text-[10px] text-zinc-500">
+                        <div className="text-xs text-slate-400">
                           Limit: {rule.threshold} {rule.unit}
                         </div>
                       </div>
 
-                      <div className="min-w-[100px] flex justify-end">
+                      <div className="min-w-[110px] flex justify-end">
                         {isBreach ? (
-                          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-950/80 border border-red-500/50 text-red-300">
+                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-950/80 border border-red-500/60 text-red-300 shadow-[0_0_12px_rgba(239,68,68,0.2)]">
                             BREACHED
                           </span>
                         ) : isCrit ? (
-                          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-950/80 border border-rose-500/50 text-rose-300">
+                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-rose-950/80 border border-rose-500/60 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.2)]">
                             CRITICAL
                           </span>
                         ) : isWarn ? (
-                          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-950/80 border border-amber-500/40 text-amber-400">
+                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-950/80 border border-amber-500/50 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
                             WARNING
                           </span>
                         ) : rule.status === 'COMPLETED' ? (
-                          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 flex items-center gap-1">
-                            <Check className="w-3 h-3" />
+                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-950/80 border border-emerald-500/50 text-emerald-400 flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+                            <Check className="w-3.5 h-3.5" />
                             COMPLETED
                           </span>
                         ) : (
-                          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-950/60 border border-emerald-500/30 text-emerald-400">
+                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-950/50 border border-emerald-500/40 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.15)]">
                             SAFE
                           </span>
                         )}

@@ -355,39 +355,39 @@ export const RadarScoreCard: React.FC<RadarScoreCardProps> = ({ trades }) => {
     if (score >= 85) {
       return {
         label: 'EXCELLENT',
-        color: 'text-cyan-400 bg-cyan-500/15 border-cyan-500/30',
-        glow: 'rgba(6, 182, 212, 0.4)',
+        color: 'text-[#00D6A3] bg-[rgba(0,214,163,0.12)] border-[rgba(0,214,163,0.25)]',
+        glow: 'rgba(0, 214, 163, 0.4)',
         summary: 'Institutional-grade execution with high expectancy and minimal drawdown.',
       };
     }
     if (score >= 70) {
       return {
         label: 'STRONG',
-        color: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30',
-        glow: 'rgba(16, 185, 129, 0.4)',
+        color: 'text-[#00D6A3] bg-[rgba(0,214,163,0.12)] border-[rgba(0,214,163,0.25)]',
+        glow: 'rgba(0, 214, 163, 0.4)',
         summary: 'Solid profitable baseline with consistent discipline across trading sessions.',
       };
     }
     if (score >= 55) {
       return {
         label: 'CONSISTENT',
-        color: 'text-blue-400 bg-blue-500/15 border-blue-500/30',
-        glow: 'rgba(59, 130, 246, 0.4)',
+        color: 'text-[#4C7DFF] bg-[rgba(37,99,255,0.12)] border-[rgba(37,99,255,0.25)]',
+        glow: 'rgba(37, 99, 255, 0.4)',
         summary: 'Reliable win frequency; optimize win/loss ratio for greater leverage.',
       };
     }
     if (score >= 40) {
       return {
         label: 'DEVELOPING',
-        color: 'text-amber-400 bg-amber-500/15 border-amber-500/30',
-        glow: 'rgba(245, 158, 11, 0.4)',
+        color: 'text-[#FFB547] bg-[rgba(255,181,71,0.12)] border-[rgba(255,181,71,0.25)]',
+        glow: 'rgba(255, 181, 71, 0.4)',
         summary: 'Forming trading habits; reduce loss sizes and adhere to trade checklists.',
       };
     }
     return {
       label: 'NEEDS IMPROVEMENT',
-      color: 'text-rose-400 bg-rose-500/15 border-rose-500/30',
-      glow: 'rgba(244, 63, 94, 0.4)',
+      color: 'text-[#FF3D6E] bg-[rgba(255,61,110,0.12)] border-[rgba(255,61,110,0.25)]',
+      glow: 'rgba(255, 61, 110, 0.4)',
       summary: 'High drawdown or low win rate detected. Enforce hard stop loss limits.',
     };
   };
@@ -442,11 +442,11 @@ export const RadarScoreCard: React.FC<RadarScoreCardProps> = ({ trades }) => {
     <div className="flex flex-col justify-between w-full h-full pt-1 pb-1 select-none relative">
       {/* Top Header info */}
       <div className="flex items-center justify-between px-1 mb-1">
-        <div className={`flex items-center gap-1.5 text-xs ${isLight ? 'text-zinc-600' : 'text-slate-400'}`}>
-          <Sparkles className={`w-3.5 h-3.5 ${isLight ? 'text-blue-600' : 'text-violet-400'} animate-pulse`} />
-          <span className={`font-semibold ${isLight ? 'text-zinc-900' : 'text-slate-200'}`}>Performance Hexagon</span>
+        <div className={`flex items-center gap-1.5 text-xs ${isLight ? 'text-[#4B5563]' : 'text-[#8C97AB]'}`}>
+          <Sparkles className={`w-3.5 h-3.5 ${isLight ? 'text-[#1D4ED8]' : 'text-[#4C7DFF]'}`} />
+          <span className={`font-semibold ${isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'}`}>Performance Hexagon</span>
         </div>
-        <span className={`text-[10px] font-mono ${isLight ? 'text-zinc-500' : 'text-slate-400'}`}>
+        <span className={`text-[10px] font-mono ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>
           {closedCount} Closed Trades
         </span>
       </div>
@@ -464,22 +464,22 @@ export const RadarScoreCard: React.FC<RadarScoreCardProps> = ({ trades }) => {
             <radialGradient id="duskflowRadarGrad" cx="50%" cy="50%" r="50%">
               {isLight ? (
                 <>
-                  <stop offset="0%" stopColor="#2563eb" stopOpacity="0.30" />
-                  <stop offset="60%" stopColor="#3b82f6" stopOpacity="0.16" />
-                  <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.04" />
+                  <stop offset="0%" stopColor="#2563FF" stopOpacity="0.25" />
+                  <stop offset="60%" stopColor="#2563FF" stopOpacity="0.12" />
+                  <stop offset="100%" stopColor="#2563FF" stopOpacity="0.03" />
                 </>
               ) : (
                 <>
-                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.55" />
-                  <stop offset="60%" stopColor="#6366f1" stopOpacity="0.30" />
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.12" />
+                  <stop offset="0%" stopColor="#2563FF" stopOpacity="0.45" />
+                  <stop offset="60%" stopColor="#2563FF" stopOpacity="0.20" />
+                  <stop offset="100%" stopColor="#2563FF" stopOpacity="0.05" />
                 </>
               )}
             </radialGradient>
 
             {/* Glowing filter */}
             <filter id="radarGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feGaussianBlur stdDeviation="2.5" result="blur" />
               <feComposite in="SourceGraphic" in2="blur" operator="over" />
             </filter>
           </defs>
@@ -490,7 +490,7 @@ export const RadarScoreCard: React.FC<RadarScoreCardProps> = ({ trades }) => {
               key={idx}
               points={getHexagonPoints(maxRadius * lvl)}
               fill="none"
-              stroke={isLight ? "rgba(0, 0, 0, 0.08)" : "#27272a"}
+              stroke={isLight ? "#E5E7EB" : "#20283A"}
               strokeWidth={idx === gridLevels.length - 1 ? '1.2' : '0.8'}
               strokeDasharray={lvl === 1.0 ? undefined : '3 3'}
               className="opacity-75 transition-opacity duration-300"
@@ -510,9 +510,9 @@ export const RadarScoreCard: React.FC<RadarScoreCardProps> = ({ trades }) => {
                 y1={cy}
                 x2={x2}
                 y2={y2}
-                stroke={isHovered ? (isLight ? '#2563eb' : '#818cf8') : (isLight ? 'rgba(0, 0, 0, 0.08)' : '#27272a')}
+                stroke={isHovered ? (isLight ? '#2563FF' : '#4C7DFF') : (isLight ? '#E5E7EB' : '#20283A')}
                 strokeWidth={isHovered ? '2' : '1'}
-                className="transition-colors duration-200 opacity-80"
+                className="transition-colors duration-200"
               />
             );
           })}
@@ -521,15 +521,15 @@ export const RadarScoreCard: React.FC<RadarScoreCardProps> = ({ trades }) => {
           <polygon
             points={polygonPoints}
             fill="url(#duskflowRadarGrad)"
-            stroke={isLight ? '#2563eb' : '#a78bfa'}
-            strokeWidth="2.2"
+            stroke={isLight ? '#2563FF' : '#4C7DFF'}
+            strokeWidth="2"
             strokeLinejoin="round"
             className="transition-all duration-300 ease-out"
             filter="url(#radarGlow)"
           />
 
           {/* Center Origin Dot */}
-          <circle cx={cx} cy={cy} r="2.5" fill={isLight ? '#64748b' : '#64748b'} className="opacity-60" />
+          <circle cx={cx} cy={cy} r="2.5" fill={isLight ? '#9CA3AF' : '#4B5563'} className="opacity-60" />
 
           {/* Corner Vertex Dots with Active Hover Ring */}
           {dataPoints.map((p, i) => {
@@ -551,7 +551,7 @@ export const RadarScoreCard: React.FC<RadarScoreCardProps> = ({ trades }) => {
                     cy={p.y}
                     r="8"
                     fill="none"
-                    stroke={isLight ? '#2563eb' : '#a78bfa'}
+                    stroke={isLight ? '#2563FF' : '#4C7DFF'}
                     strokeWidth="1.5"
                     className="animate-ping opacity-75"
                   />
@@ -561,10 +561,10 @@ export const RadarScoreCard: React.FC<RadarScoreCardProps> = ({ trades }) => {
                 <circle
                   cx={p.x}
                   cy={p.y}
-                  r={isHovered ? 6 : 4.5}
-                  fill={isHovered ? '#ffffff' : (isLight ? '#2563eb' : '#8b5cf6')}
-                  stroke={isHovered ? (isLight ? '#2563eb' : '#8b5cf6') : '#ffffff'}
-                  strokeWidth={isHovered ? '2.5' : '1.5'}
+                  r={isHovered ? 5.5 : 4}
+                  fill={isHovered ? '#ffffff' : (isLight ? '#2563FF' : '#4C7DFF')}
+                  stroke={isHovered ? (isLight ? '#2563FF' : '#4C7DFF') : '#ffffff'}
+                  strokeWidth={isHovered ? '2' : '1.5'}
                   className="transition-all duration-200"
                 />
               </g>
@@ -586,9 +586,9 @@ export const RadarScoreCard: React.FC<RadarScoreCardProps> = ({ trades }) => {
                   x={pos.x}
                   y={pos.y}
                   textAnchor={pos.anchor as any}
-                  fill={isHovered ? (isLight ? '#1d4ed8' : '#818cf8') : (isLight ? '#374151' : '#94a3b8')}
-                  fontSize={isHovered ? '10.5' : '9.5'}
-                  fontWeight={isHovered ? '800' : '600'}
+                  fill={isHovered ? (isLight ? '#1D4ED8' : '#4C7DFF') : (isLight ? '#4B5563' : '#8C97AB')}
+                  fontSize={isHovered ? '10' : '9.5'}
+                  fontWeight={isHovered ? '700' : '500'}
                   className="transition-all duration-200"
                 >
                   {metric.name}
@@ -603,40 +603,37 @@ export const RadarScoreCard: React.FC<RadarScoreCardProps> = ({ trades }) => {
           <div
             className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] rounded-xl border p-3 shadow-2xl z-30 pointer-events-none animate-in fade-in zoom-in-95 space-y-1.5 ${
               isLight
-                ? 'bg-white border-zinc-200 text-zinc-900 shadow-xl'
-                : 'border-violet-500/40 bg-slate-950/95 backdrop-blur-xl text-slate-200'
+                ? 'bg-white border-[#E5E7EB] text-[#111827]'
+                : 'border-[#28344A] bg-[#0D111B] text-[#F3F6FB]'
             }`}
-            style={{
-              boxShadow: isLight ? '0 10px 25px -5px rgba(0, 0, 0, 0.15)' : '0 12px 30px -4px rgba(139, 92, 246, 0.35)',
-            }}
           >
             <div className={`flex items-center justify-between pb-1 border-b ${
-              isLight ? 'border-zinc-200' : 'border-slate-800'
+              isLight ? 'border-[#E5E7EB]' : 'border-[#20283A]'
             }`}>
               <div className="flex items-center gap-1.5">
-                <activeMetric.icon className={`w-3.5 h-3.5 ${isLight ? 'text-blue-600' : 'text-violet-400'}`} />
-                <span className={`font-bold text-xs ${isLight ? 'text-zinc-900' : 'text-white'}`}>{activeMetric.name}</span>
+                <activeMetric.icon className={`w-3.5 h-3.5 ${isLight ? 'text-[#1D4ED8]' : 'text-[#4C7DFF]'}`} />
+                <span className={`font-semibold text-xs ${isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'}`}>{activeMetric.name}</span>
               </div>
-              <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${
-                isLight ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-violet-500/20 text-violet-300 border-violet-500/30'
+              <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded border ${
+                isLight ? 'bg-[rgba(37,99,255,0.08)] text-[#1D4ED8] border-[rgba(37,99,255,0.20)]' : 'bg-[rgba(37,99,255,0.12)] text-[#4C7DFF] border-[rgba(37,99,255,0.25)]'
               }`}>
                 {activeMetric.normalizedScore}/100
               </span>
             </div>
 
             <div className="flex items-center justify-between text-xs font-mono">
-              <span className={`text-[11px] ${isLight ? 'text-zinc-500' : 'text-slate-400'}`}>Real Value:</span>
-              <span className={`font-bold ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`}>{activeMetric.rawValue}</span>
+              <span className={`text-[11px] ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>Real Value:</span>
+              <span className={`font-bold ${isLight ? 'text-[#059669]' : 'text-[#00D6A3]'}`}>{activeMetric.rawValue}</span>
             </div>
 
             <div className={`text-[10px] font-mono rounded px-2 py-1 border ${
-              isLight ? 'bg-zinc-100 text-zinc-800 border-zinc-200' : 'text-slate-300 bg-slate-900/90 border-slate-800'
+              isLight ? 'bg-[#F1F5F9] text-[#111827] border-[#E5E7EB]' : 'text-[#8C97AB] bg-[#111722] border-[#20283A]'
             }`}>
               {activeMetric.calculation}
             </div>
 
-            <div className={`text-[10px] leading-snug pt-0.5 ${isLight ? 'text-zinc-600' : 'text-slate-400'}`}>
-              <strong className={isLight ? 'text-blue-700' : 'text-violet-300'}>Tactical Tip: </strong>
+            <div className={`text-[10px] leading-snug pt-0.5 ${isLight ? 'text-[#4B5563]' : 'text-[#8C97AB]'}`}>
+              <strong className={isLight ? 'text-[#1D4ED8]' : 'text-[#4C7DFF]'}>Tactical Tip: </strong>
               {activeMetric.improvementTip}
             </div>
           </div>
@@ -645,20 +642,19 @@ export const RadarScoreCard: React.FC<RadarScoreCardProps> = ({ trades }) => {
 
       {/* Bottom Score & Dynamic Progress Slider */}
       <div className={`mt-2 pt-2.5 border-t space-y-2 ${
-        isLight ? 'border-zinc-200' : 'border-slate-800/80'
+        isLight ? 'border-[#E5E7EB]' : 'border-[#20283A]'
       }`}>
         <div className="flex items-end justify-between">
           <div>
-            <div className={`text-[11px] font-medium ${isLight ? 'text-zinc-600' : 'text-slate-400'}`}>Your TradeForge Score</div>
-            <div className={`text-2xl font-black font-mono tracking-tight flex items-center gap-2 ${
-              isLight ? 'text-zinc-900' : 'text-slate-100'
+            <div className={`text-[11px] font-medium ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>Your TradeForge Score</div>
+            <div className={`text-2xl font-bold font-mono tracking-tight flex items-center gap-2 ${
+              isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'
             }`}>
               <span>{animatedScore.toFixed(2)}</span>
 
               {/* Dynamic Tier Badge */}
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded border transition-all duration-300 ${currentTier.color}`}
-                style={{ textShadow: isLight ? undefined : `0 0 10px ${currentTier.glow}` }}
+                className={`text-[10px] font-semibold px-2 py-0.5 rounded border transition-all duration-300 ${currentTier.color}`}
               >
                 {currentTier.label}
               </span>
@@ -666,8 +662,8 @@ export const RadarScoreCard: React.FC<RadarScoreCardProps> = ({ trades }) => {
               {/* Subtle Score Delta Indicator */}
               {scoreDelta !== null && (
                 <span
-                  className={`text-[11px] font-bold font-mono flex items-center gap-0.5 animate-bounce ${
-                    scoreDelta >= 0 ? (isLight ? 'text-emerald-700' : 'text-emerald-400') : (isLight ? 'text-rose-700' : 'text-rose-400')
+                  className={`text-[11px] font-bold font-mono flex items-center gap-0.5 ${
+                    scoreDelta >= 0 ? (isLight ? 'text-[#059669]' : 'text-[#00D6A3]') : (isLight ? 'text-[#DC2626]' : 'text-[#FF3D6E]')
                   }`}
                 >
                   {scoreDelta >= 0 ? (
@@ -682,45 +678,44 @@ export const RadarScoreCard: React.FC<RadarScoreCardProps> = ({ trades }) => {
           </div>
 
           <div className="text-right">
-            <span className={`text-[10px] ${isLight ? 'text-zinc-600' : 'text-slate-400'}`}>
-              Win/Loss: <strong className={isLight ? 'text-emerald-700' : 'text-emerald-400'}>{winCount}W</strong> / <strong className={isLight ? 'text-rose-700' : 'text-rose-400'}>{lossCount}L</strong>
+            <span className={`text-[10px] ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>
+              Win/Loss: <strong className={isLight ? 'text-[#059669]' : 'text-[#00D6A3]'}>{winCount}W</strong> / <strong className={isLight ? 'text-[#DC2626]' : 'text-[#FF3D6E]'}>{lossCount}L</strong>
             </span>
           </div>
         </div>
 
         {/* Dynamic 0-100 Color Gradient Bar with Animated Thumb */}
         <div className="space-y-1">
-          <div className={`relative h-2 w-full rounded-full overflow-visible ${
-            isLight ? 'bg-zinc-200' : 'bg-slate-800'
+          <div className={`relative h-1.5 w-full rounded-full overflow-visible ${
+            isLight ? 'bg-[#E5E7EB]' : 'bg-[#111722]'
           }`}>
-            {/* Gradient Track: Red -> Amber -> Yellow -> Green -> Cyan */}
+            {/* Gradient Track: Red -> Amber -> Green -> Blue */}
             <div
               className="absolute inset-0 rounded-full transition-opacity duration-300"
               style={{
                 background:
-                  'linear-gradient(to right, #ef4444 0%, #f97316 25%, #eab308 50%, #10b981 75%, #06b6d4 100%)',
+                  'linear-gradient(to right, #FF3D6E 0%, #FFB547 35%, #00D6A3 70%, #2563FF 100%)',
                 opacity: 0.9,
               }}
             />
 
-            {/* Position Indicator Bubble with Soft Glow */}
+            {/* Position Indicator Bubble */}
             <div
-              className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 shadow-lg transition-all duration-500 flex items-center justify-center ${
-                isLight ? 'border-zinc-400' : 'border-slate-950'
+              className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-white border-2 shadow transition-all duration-500 flex items-center justify-center ${
+                isLight ? 'border-[#9CA3AF]' : 'border-[#080B12]'
               }`}
               style={{
                 left: `${Math.min(98, Math.max(2, animatedScore))}%`,
-                boxShadow: '0 0 10px rgba(255, 255, 255, 0.8), 0 2px 6px rgba(0,0,0,0.5)',
               }}
               title={`Score: ${animatedScore.toFixed(2)}`}
             >
-              <div className={`w-1.5 h-1.5 rounded-full ${isLight ? 'bg-blue-600' : 'bg-violet-600'}`} />
+              <div className={`w-1.5 h-1.5 rounded-full ${isLight ? 'bg-[#2563FF]' : 'bg-[#2563FF]'}`} />
             </div>
           </div>
 
           {/* Scale Axis Markers (0, 20, 40, 60, 80, 100) */}
           <div className={`flex justify-between text-[9px] font-mono px-0.5 ${
-            isLight ? 'text-zinc-500' : 'text-slate-500'
+            isLight ? 'text-[#9CA3AF]' : 'text-[#5F6B80]'
           }`}>
             <span>0</span>
             <span>20</span>

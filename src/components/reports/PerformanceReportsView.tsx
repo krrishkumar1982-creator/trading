@@ -551,15 +551,15 @@ export const PerformanceReportsView: React.FC = () => {
                 </SummaryItem>
 
                 <SummaryItem label="Total commissions" tooltip="Cumulative broker commissions paid across all executed trades." isLight={isLight}>
-                  <span className="font-mono font-semibold">${summaryStats.totalCommissions.toFixed(2)}</span>
+                  <span className="font-mono font-semibold">${(summaryStats.totalCommissions ?? 0).toFixed(2)}</span>
                 </SummaryItem>
 
                 <SummaryItem label="Total fees" tooltip="Exchange and regulatory fees incurred." isLight={isLight}>
-                  <span className="font-mono font-semibold">${summaryStats.totalFees.toFixed(2)}</span>
+                  <span className="font-mono font-semibold">${(summaryStats.totalFees ?? 0).toFixed(2)}</span>
                 </SummaryItem>
 
                 <SummaryItem label="Total swap" tooltip="Overnight position holding fees or credits." isLight={isLight}>
-                  <span className="font-mono font-semibold">${summaryStats.totalSwap.toFixed(2)}</span>
+                  <span className="font-mono font-semibold">${(summaryStats.totalSwap ?? 0).toFixed(2)}</span>
                 </SummaryItem>
               </div>
 
@@ -576,11 +576,11 @@ export const PerformanceReportsView: React.FC = () => {
                 </SummaryItem>
 
                 <SummaryItem label="Avg daily win/loss" tooltip="Ratio of average winning day profit to average losing day loss." isLight={isLight}>
-                  <span className="font-mono font-bold">{summaryStats.avgDailyWinLossRatio.toFixed(2)}</span>
+                  <span className="font-mono font-bold">{(summaryStats.avgDailyWinLossRatio ?? 0).toFixed(2)}</span>
                 </SummaryItem>
 
                 <SummaryItem label="Avg trade win/loss" tooltip="Ratio of average winning trade return to average losing trade loss." isLight={isLight}>
-                  <span className="font-mono font-bold">{summaryStats.avgTradeWinLossRatio.toFixed(2)}</span>
+                  <span className="font-mono font-bold">{(summaryStats.avgTradeWinLossRatio ?? 0).toFixed(2)}</span>
                 </SummaryItem>
 
                 <SummaryItem label="Avg hold time" tooltip="Average duration between actual trade entry and exit time." isLight={isLight}>
@@ -696,7 +696,7 @@ export const PerformanceReportsView: React.FC = () => {
                 </SummaryItem>
 
                 <SummaryItem label="Drawdown %" tooltip="Maximum drawdown expressed as a percentage of peak cumulative equity." isLight={isLight}>
-                  <span className="font-mono font-bold text-rose-400">{summaryStats.maxDrawdownPercent.toFixed(2)}%</span>
+                  <span className="font-mono font-bold text-rose-400">{(summaryStats.maxDrawdownPercent ?? 0).toFixed(2)}%</span>
                 </SummaryItem>
 
                 <SummaryItem label="Average drawdown" tooltip="Average depth of equity drawdowns during pullbacks." isLight={isLight}>
@@ -794,17 +794,17 @@ export const PerformanceReportsView: React.FC = () => {
 
                 <div className={`flex items-center justify-between p-2.5 rounded-lg ${isLight ? 'bg-zinc-50' : 'bg-slate-950'}`}>
                   <span className={isLight ? 'text-zinc-600' : 'text-slate-400'}>Total commissions</span>
-                  <strong className="font-mono">${summaryStats.totalCommissions.toFixed(2)}</strong>
+                  <strong className="font-mono">${(summaryStats.totalCommissions ?? 0).toFixed(2)}</strong>
                 </div>
 
                 <div className={`flex items-center justify-between p-2.5 rounded-lg ${isLight ? 'bg-zinc-50' : 'bg-slate-950'}`}>
                   <span className={isLight ? 'text-zinc-600' : 'text-slate-400'}>Total fees</span>
-                  <strong className="font-mono">${summaryStats.totalFees.toFixed(2)}</strong>
+                  <strong className="font-mono">${(summaryStats.totalFees ?? 0).toFixed(2)}</strong>
                 </div>
 
                 <div className={`flex items-center justify-between p-2.5 rounded-lg ${isLight ? 'bg-zinc-50' : 'bg-slate-950'}`}>
                   <span className={isLight ? 'text-zinc-600' : 'text-slate-400'}>Total swap</span>
-                  <strong className="font-mono">${summaryStats.totalSwap.toFixed(2)}</strong>
+                  <strong className="font-mono">${(summaryStats.totalSwap ?? 0).toFixed(2)}</strong>
                 </div>
 
                 <div className={`flex items-center justify-between p-2.5 rounded-lg ${isLight ? 'bg-zinc-50' : 'bg-slate-950'}`}>
@@ -876,7 +876,7 @@ export const PerformanceReportsView: React.FC = () => {
 
                 <div className={`flex items-center justify-between p-2.5 rounded-lg ${isLight ? 'bg-zinc-50' : 'bg-slate-950'}`}>
                   <span className={isLight ? 'text-zinc-600' : 'text-slate-400'}>Max drawdown %</span>
-                  <strong className="font-mono text-rose-400">{summaryStats.maxDrawdownPercent.toFixed(2)}%</strong>
+                  <strong className="font-mono text-rose-400">{(summaryStats.maxDrawdownPercent ?? 0).toFixed(2)}%</strong>
                 </div>
 
                 <div className={`flex items-center justify-between p-2.5 rounded-lg ${isLight ? 'bg-zinc-50' : 'bg-slate-950'}`}>

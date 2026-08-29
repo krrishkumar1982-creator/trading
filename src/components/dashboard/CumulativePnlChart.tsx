@@ -182,9 +182,9 @@ export const CumulativePnlChart: React.FC<CumulativePnlChartProps> = ({ trades, 
       >
         <defs>
           <linearGradient id="cumPnlGreen" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={isLight ? "#059669" : "#10b981"} stopOpacity={isLight ? "0.22" : "0.30"} />
-            <stop offset="85%" stopColor={isLight ? "#059669" : "#10b981"} stopOpacity={isLight ? "0.03" : "0.05"} />
-            <stop offset="100%" stopColor={isLight ? "#059669" : "#10b981"} stopOpacity="0.0" />
+            <stop offset="0%" stopColor={isLight ? "#00D6A3" : "#00D6A3"} stopOpacity={isLight ? "0.22" : "0.25"} />
+            <stop offset="85%" stopColor={isLight ? "#00D6A3" : "#00D6A3"} stopOpacity={isLight ? "0.03" : "0.04"} />
+            <stop offset="100%" stopColor={isLight ? "#00D6A3" : "#00D6A3"} stopOpacity="0.0" />
           </linearGradient>
         </defs>
 
@@ -194,7 +194,7 @@ export const CumulativePnlChart: React.FC<CumulativePnlChartProps> = ({ trades, 
           y1={zeroY}
           x2={width - paddingRight}
           y2={zeroY}
-          stroke={isLight ? 'rgba(0, 0, 0, 0.08)' : '#27272a'}
+          stroke={isLight ? '#E5E7EB' : '#20283A'}
           strokeWidth="1"
           strokeDasharray="3 3"
         />
@@ -203,7 +203,7 @@ export const CumulativePnlChart: React.FC<CumulativePnlChartProps> = ({ trades, 
           y1={paddingTop}
           x2={width - paddingRight}
           y2={paddingTop}
-          stroke={isLight ? 'rgba(0, 0, 0, 0.05)' : '#1f1f23'}
+          stroke={isLight ? '#F1F5F9' : '#151C28'}
           strokeWidth="1"
         />
         <line
@@ -211,7 +211,7 @@ export const CumulativePnlChart: React.FC<CumulativePnlChartProps> = ({ trades, 
           y1={height - paddingBottom}
           x2={width - paddingRight}
           y2={height - paddingBottom}
-          stroke={isLight ? 'rgba(0, 0, 0, 0.05)' : '#1f1f23'}
+          stroke={isLight ? '#F1F5F9' : '#151C28'}
           strokeWidth="1"
         />
 
@@ -221,7 +221,7 @@ export const CumulativePnlChart: React.FC<CumulativePnlChartProps> = ({ trades, 
             key={idx}
             x={paddingLeft - 8}
             y={getY(val) + 3}
-            fill={isLight ? '#64748b' : '#71717a'}
+            fill={isLight ? '#6B7280' : '#8C97AB'}
             fontSize="9"
             textAnchor="end"
             fontFamily="monospace"
@@ -236,8 +236,8 @@ export const CumulativePnlChart: React.FC<CumulativePnlChartProps> = ({ trades, 
         {/* Main Cumulative Line */}
         <polyline
           fill="none"
-          stroke={isLight ? '#059669' : '#10b981'}
-          strokeWidth="2.5"
+          stroke={isLight ? '#00D6A3' : '#00D6A3'}
+          strokeWidth="2.2"
           strokeLinecap="round"
           strokeLinejoin="round"
           points={linePoints}
@@ -252,15 +252,15 @@ export const CumulativePnlChart: React.FC<CumulativePnlChartProps> = ({ trades, 
               y1={paddingTop}
               x2={getX(activeIdx)}
               y2={height - paddingBottom}
-              stroke={isLight ? '#2563eb' : '#3b82f6'}
+              stroke={isLight ? '#2563FF' : '#4C7DFF'}
               strokeWidth="1"
               strokeDasharray="2 2"
             />
             <circle
               cx={getX(activeIdx)}
               cy={getY(activePoint.cumulativePnl)}
-              r="5"
-              fill={isLight ? '#2563eb' : '#3b82f6'}
+              r="4.5"
+              fill={isLight ? '#2563FF' : '#4C7DFF'}
               stroke="#ffffff"
               strokeWidth="2"
             />
@@ -271,10 +271,10 @@ export const CumulativePnlChart: React.FC<CumulativePnlChartProps> = ({ trades, 
       {/* Floating Hover Tooltip Card */}
       {activeIdx !== null && activePoint && (
         <div
-          className={`absolute z-30 px-3 py-1.5 rounded-lg text-xs pointer-events-none transition-all duration-150 ${
+          className={`absolute z-30 px-3 py-1.5 rounded-lg text-xs pointer-events-none transition-all duration-150 border ${
             isLight
-              ? 'bg-white border border-gray-200 text-gray-900 shadow-lg'
-              : 'bg-zinc-900 border border-zinc-700 text-zinc-100 shadow-xl'
+              ? 'bg-white border-[#E5E7EB] text-[#111827] shadow-lg'
+              : 'bg-[#0D111B] border-[#28344A] text-[#F3F6FB] shadow-2xl'
           }`}
           style={{
             top: '4px',
@@ -282,18 +282,20 @@ export const CumulativePnlChart: React.FC<CumulativePnlChartProps> = ({ trades, 
             transform: 'translateX(-50%)',
           }}
         >
-          <div className="text-[10px] text-zinc-400 font-semibold border-b border-zinc-700/40 pb-0.5 flex items-center justify-between gap-3">
+          <div className={`text-[10px] font-semibold border-b pb-0.5 flex items-center justify-between gap-3 ${
+            isLight ? 'text-[#6B7280] border-[#E5E7EB]' : 'text-[#8C97AB] border-[#20283A]'
+          }`}>
             <span>{activePoint.dateStr}</span>
             <span className="font-mono">{activePoint.tradeCount} trades</span>
           </div>
           <div className="mt-0.5 space-y-0.5 text-[11px] font-mono">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-zinc-400">Cumulative:</span>
+              <span className={isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}>Cumulative:</span>
               <span
                 className={
                   activePoint.cumulativePnl >= 0
-                    ? 'text-emerald-500 font-bold'
-                    : 'text-rose-500 font-bold'
+                    ? isLight ? 'text-[#059669] font-bold' : 'text-[#00D6A3] font-bold'
+                    : isLight ? 'text-[#DC2626] font-bold' : 'text-[#FF3D6E] font-bold'
                 }
               >
                 {formatCurrency(activePoint.cumulativePnl)}
@@ -301,8 +303,8 @@ export const CumulativePnlChart: React.FC<CumulativePnlChartProps> = ({ trades, 
             </div>
             {activePoint.dailyPnl !== 0 && (
               <div className="flex items-center justify-between gap-3 text-[10px]">
-                <span className="text-zinc-400">Daily:</span>
-                <span className={activePoint.dailyPnl >= 0 ? 'text-emerald-500' : 'text-rose-500'}>
+                <span className={isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}>Daily:</span>
+                <span className={activePoint.dailyPnl >= 0 ? (isLight ? 'text-[#059669]' : 'text-[#00D6A3]') : (isLight ? 'text-[#DC2626]' : 'text-[#FF3D6E]')}>
                   {activePoint.dailyPnl >= 0 ? '+' : ''}
                   {formatCurrency(activePoint.dailyPnl)}
                 </span>
@@ -313,7 +315,9 @@ export const CumulativePnlChart: React.FC<CumulativePnlChartProps> = ({ trades, 
       )}
 
       {/* X Axis Date Labels */}
-      <div className="flex justify-between px-10 text-[9px] text-zinc-500 font-mono uppercase tracking-wider">
+      <div className={`flex justify-between px-10 text-[9px] font-mono uppercase tracking-wider ${
+        isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'
+      }`}>
         <span>{dataPoints[0]?.dateStr || ''}</span>
         {dataPoints.length > 2 && <span>{dataPoints[Math.floor(dataPoints.length / 2)]?.dateStr || ''}</span>}
         <span>{dataPoints[dataPoints.length - 1]?.dateStr || ''}</span>

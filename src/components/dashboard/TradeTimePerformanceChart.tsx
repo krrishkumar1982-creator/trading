@@ -152,19 +152,23 @@ export const TradeTimePerformanceChart: React.FC<TradeTimePerformanceChartProps>
 
   return (
     <div
-      className={`rounded-2xl border p-4 shadow-sm transition flex flex-col justify-between relative select-none ${
+      className={`rounded-xl border p-4 shadow-sm transition flex flex-col justify-between relative select-none ${
         theme === 'light'
-          ? 'bg-white border-zinc-200'
-          : 'bg-zinc-900 border-zinc-800'
+          ? 'bg-white border-[#E5E7EB]'
+          : 'bg-[#0D111B] border-[#20283A]'
       }`}
     >
-      {/* Widget Header matching reference screenshot */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-2">
+      {/* Widget Header */}
+      <div className={`flex items-center justify-between pb-3 border-b mb-2 ${
+        theme === 'light' ? 'border-[#E5E7EB]' : 'border-[#20283A]'
+      }`}>
         <div className="flex items-center gap-2">
-          <h3 className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
+          <h3 className={`text-xs sm:text-sm font-semibold flex items-center gap-1.5 ${
+            theme === 'light' ? 'text-[#111827]' : 'text-[#F3F6FB]'
+          }`}>
             Trade time performance
             <span
-              className="text-slate-400 hover:text-slate-200 cursor-pointer"
+              className={`${theme === 'light' ? 'text-[#6B7280] hover:text-[#111827]' : 'text-[#8C97AB] hover:text-[#F3F6FB]'} cursor-pointer`}
               title="Execution timing scatter plot: Each dot represents a trade entered at that time of day"
             >
               <Info className="w-3.5 h-3.5" />
@@ -174,20 +178,24 @@ export const TradeTimePerformanceChart: React.FC<TradeTimePerformanceChartProps>
 
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 text-[10px] font-mono">
-            <span className="flex items-center gap-1 text-emerald-400 font-semibold">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block shadow-xs" />
+            <span className={`flex items-center gap-1 font-semibold ${theme === 'light' ? 'text-[#059669]' : 'text-[#00D6A3]'}`}>
+              <span className={`w-2 h-2 rounded-full inline-block ${theme === 'light' ? 'bg-[#059669]' : 'bg-[#00D6A3]'}`} />
               {totalWins} Wins
             </span>
-            <span className="text-slate-600">•</span>
-            <span className="flex items-center gap-1 text-rose-400 font-semibold">
-              <span className="w-2 h-2 rounded-full bg-rose-500 inline-block shadow-xs" />
+            <span className={theme === 'light' ? 'text-[#D1D5DB]' : 'text-[#374151]'}>•</span>
+            <span className={`flex items-center gap-1 font-semibold ${theme === 'light' ? 'text-[#DC2626]' : 'text-[#FF3D6E]'}`}>
+              <span className={`w-2 h-2 rounded-full inline-block ${theme === 'light' ? 'bg-[#DC2626]' : 'bg-[#FF3D6E]'}`} />
               {totalLosses} Losses
             </span>
           </div>
 
           <button
             onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+            className={`p-1 rounded-lg transition ${
+              theme === 'light'
+                ? 'text-[#6B7280] hover:text-[#111827] hover:bg-[#F1F5F9]'
+                : 'text-[#8C97AB] hover:text-[#F3F6FB] hover:bg-[#111722]'
+            }`}
             title="Filter Chart"
           >
             <Settings className="w-3.5 h-3.5" />
@@ -197,8 +205,12 @@ export const TradeTimePerformanceChart: React.FC<TradeTimePerformanceChartProps>
 
       {/* Filter bar when settings opened */}
       {isSettingsOpen && (
-        <div className="flex items-center justify-between gap-2 p-2 mb-2 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] animate-in fade-in">
-          <span className="text-slate-400">Filter Session:</span>
+        <div className={`flex items-center justify-between gap-2 p-2 mb-2 rounded-lg border text-[11px] animate-in fade-in ${
+          theme === 'light'
+            ? 'bg-[#F8FAFC] border-[#E5E7EB]'
+            : 'bg-[#0A0E16] border-[#20283A]'
+        }`}>
+          <span className={theme === 'light' ? 'text-[#6B7280]' : 'text-[#8C97AB]'}>Filter Session:</span>
           <div className="flex items-center gap-1">
             {(['ALL', 'NY', 'LONDON', 'ASIA'] as const).map(s => (
               <button
@@ -206,8 +218,10 @@ export const TradeTimePerformanceChart: React.FC<TradeTimePerformanceChartProps>
                 onClick={() => setFilterSession(s)}
                 className={`px-2 py-0.5 rounded-md font-semibold transition ${
                   filterSession === s
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                    ? 'bg-[#2563FF] text-white'
+                    : theme === 'light'
+                    ? 'text-[#6B7280] hover:text-[#111827] hover:bg-[#E5E7EB]'
+                    : 'text-[#8C97AB] hover:text-[#F3F6FB] hover:bg-[#172030]'
                 }`}
               >
                 {s}
@@ -225,14 +239,18 @@ export const TradeTimePerformanceChart: React.FC<TradeTimePerformanceChartProps>
         {/* Y-Axis Grid Lines & Tick Labels (Left) */}
         <div className="absolute inset-y-2 left-0 w-12 flex flex-col justify-between pointer-events-none text-right pr-1.5">
           {yTicks.map((val, idx) => (
-            <span key={idx} className="text-[10px] font-mono text-slate-400 truncate">
+            <span key={idx} className={`text-[10px] font-mono truncate ${
+              theme === 'light' ? 'text-[#6B7280]' : 'text-[#8C97AB]'
+            }`}>
               {val < 0 ? `-$${Math.abs(val).toLocaleString()}` : `$${val.toLocaleString()}`}
             </span>
           ))}
         </div>
 
         {/* Chart Canvas Area with Background Grid */}
-        <div className="relative w-full h-full border-l border-b border-slate-700/60 rounded-bl-sm overflow-visible">
+        <div className={`relative w-full h-full border-l border-b rounded-bl-sm overflow-visible ${
+          theme === 'light' ? 'border-[#E5E7EB]' : 'border-[#20283A]'
+        }`}>
           {/* Horizontal Grid lines */}
           {yTicks.map((val, idx) => {
             const range = maxPnl - minPnl || 1;
@@ -242,7 +260,9 @@ export const TradeTimePerformanceChart: React.FC<TradeTimePerformanceChartProps>
               <div
                 key={idx}
                 className={`absolute left-0 right-0 ${
-                  isZero ? 'border-b border-slate-500/80' : 'border-b border-slate-800/40 border-dashed'
+                  isZero
+                    ? theme === 'light' ? 'border-b border-[#9CA3AF]' : 'border-b border-[#374151]'
+                    : theme === 'light' ? 'border-b border-[#F1F5F9]' : 'border-b border-[#20283A]/50 border-dashed'
                 }`}
                 style={{ top: `${topPct}%` }}
               />
@@ -255,7 +275,9 @@ export const TradeTimePerformanceChart: React.FC<TradeTimePerformanceChartProps>
             return (
               <div
                 key={m}
-                className="absolute top-0 bottom-0 border-r border-slate-800/40 border-dashed pointer-events-none"
+                className={`absolute top-0 bottom-0 border-r border-dashed pointer-events-none ${
+                  theme === 'light' ? 'border-[#F1F5F9]' : 'border-[#20283A]/40'
+                }`}
                 style={{ left: `${leftPct}%` }}
               />
             );
@@ -279,10 +301,10 @@ export const TradeTimePerformanceChart: React.FC<TradeTimePerformanceChartProps>
                 <div
                   className={`rounded-full transition-all duration-150 ${
                     pt.isWin
-                      ? 'bg-emerald-500 hover:bg-emerald-400 ring-2 ring-emerald-500/30'
+                      ? 'bg-[#00D6A3] hover:opacity-90 ring-2 ring-[#00D6A3]/30'
                       : pt.isLoss
-                      ? 'bg-rose-500 hover:bg-rose-400 ring-2 ring-rose-500/30'
-                      : 'bg-blue-400 hover:bg-blue-300 ring-2 ring-blue-400/30'
+                      ? 'bg-[#FF3D6E] hover:opacity-90 ring-2 ring-[#FF3D6E]/30'
+                      : 'bg-[#2563FF] hover:opacity-90 ring-2 ring-[#2563FF]/30'
                   } ${isHovered ? 'w-4 h-4 scale-125 z-30 shadow-lg shadow-black/50' : 'w-2.5 h-2.5 sm:w-3 sm:h-3'}`}
                 />
               </div>
@@ -291,8 +313,10 @@ export const TradeTimePerformanceChart: React.FC<TradeTimePerformanceChartProps>
 
           {/* Empty state when no trades exist */}
           {filteredPoints.length === 0 && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 text-xs">
-              <Clock className="w-6 h-6 mb-1 text-slate-600" />
+            <div className={`absolute inset-0 flex flex-col items-center justify-center text-xs ${
+              theme === 'light' ? 'text-[#9CA3AF]' : 'text-[#5F6B80]'
+            }`}>
+              <Clock className="w-6 h-6 mb-1 opacity-50" />
               <span>No trade execution times recorded</span>
             </div>
           )}
@@ -300,38 +324,40 @@ export const TradeTimePerformanceChart: React.FC<TradeTimePerformanceChartProps>
           {/* Interactive Floating Hover Tooltip */}
           {hoveredPoint && (
             <div
-              className={`absolute z-40 transform -translate-x-1/2 -translate-y-full -mt-2.5 pointer-events-none p-2.5 rounded-xl shadow-xl border text-xs min-w-[160px] animate-in fade-in zoom-in-95 ${
+              className={`absolute z-40 transform -translate-x-1/2 -translate-y-full -mt-2.5 pointer-events-none p-2.5 rounded-lg shadow-xl border text-xs min-w-[160px] animate-in fade-in zoom-in-95 ${
                 theme === 'light'
-                  ? 'bg-white border-slate-300 text-slate-900 shadow-slate-300/50'
-                  : 'bg-slate-950/95 border-slate-700 text-slate-100 backdrop-blur-md shadow-black/80'
+                  ? 'bg-white border-[#E5E7EB] text-[#111827]'
+                  : 'bg-[#0D111B] border-[#28344A] text-[#F3F6FB]'
               }`}
               style={{
                 left: `${hoveredPoint.x}%`,
                 top: `${hoveredPoint.y}%`,
               }}
             >
-              <div className="flex items-center justify-between pb-1 border-b border-slate-700/60 mb-1">
+              <div className={`flex items-center justify-between pb-1 border-b mb-1 ${
+                theme === 'light' ? 'border-[#E5E7EB]' : 'border-[#20283A]'
+              }`}>
                 <span className="font-bold text-[11px] flex items-center gap-1.5">
                   <span
                     className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
                       hoveredPoint.trade.direction === 'BUY'
-                        ? 'bg-emerald-500/20 text-emerald-400'
-                        : 'bg-rose-500/20 text-rose-400'
+                        ? 'bg-[rgba(0,214,163,0.15)] text-[#00D6A3]'
+                        : 'bg-[rgba(255,61,110,0.15)] text-[#FF3D6E]'
                     }`}
                   >
                     {hoveredPoint.trade.direction}
                   </span>
                   {hoveredPoint.trade.symbol}
                 </span>
-                <span className="font-mono text-[10px] text-slate-400">{hoveredPoint.timeLabel}</span>
+                <span className={`font-mono text-[10px] ${theme === 'light' ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>{hoveredPoint.timeLabel}</span>
               </div>
 
               <div className="space-y-0.5 text-[11px]">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Net P&L:</span>
+                  <span className={theme === 'light' ? 'text-[#6B7280]' : 'text-[#8C97AB]'}>Net P&L:</span>
                   <span
                     className={`font-mono font-bold ${
-                      hoveredPoint.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                      hoveredPoint.pnl >= 0 ? (theme === 'light' ? 'text-[#059669]' : 'text-[#00D6A3]') : (theme === 'light' ? 'text-[#DC2626]' : 'text-[#FF3D6E]')
                     }`}
                   >
                     {formatCurrency(hoveredPoint.pnl)}
@@ -339,14 +365,14 @@ export const TradeTimePerformanceChart: React.FC<TradeTimePerformanceChartProps>
                 </div>
                 {hoveredPoint.trade.rMultiple !== undefined && (
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">R-Multiple:</span>
-                    <span className="font-mono text-slate-200">{hoveredPoint.trade.rMultiple}R</span>
+                    <span className={theme === 'light' ? 'text-[#6B7280]' : 'text-[#8C97AB]'}>R-Multiple:</span>
+                    <span className="font-mono">{hoveredPoint.trade.rMultiple}R</span>
                   </div>
                 )}
                 {hoveredPoint.trade.setupType && (
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Setup:</span>
-                    <span className="text-blue-400 font-semibold truncate max-w-[90px]">
+                    <span className={theme === 'light' ? 'text-[#6B7280]' : 'text-[#8C97AB]'}>Setup:</span>
+                    <span className="text-[#2563FF] font-semibold truncate max-w-[90px]">
                       {hoveredPoint.trade.setupType}
                     </span>
                   </div>
@@ -357,7 +383,9 @@ export const TradeTimePerformanceChart: React.FC<TradeTimePerformanceChartProps>
         </div>
 
         {/* X-Axis Time Labels (Bottom) */}
-        <div className="absolute -bottom-1 left-14 right-3 flex justify-between text-[9.5px] font-mono text-slate-400 pt-1 pointer-events-none">
+        <div className={`absolute -bottom-1 left-14 right-3 flex justify-between text-[9.5px] font-mono pt-1 pointer-events-none ${
+          theme === 'light' ? 'text-[#6B7280]' : 'text-[#8C97AB]'
+        }`}>
           {timeLabels.map((tl, i) => (
             <span key={i} className="transform -translate-x-1/2">
               {tl.label}

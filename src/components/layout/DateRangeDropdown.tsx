@@ -213,7 +213,7 @@ export const DateRangeDropdown: React.FC<DateRangeDropdownProps> = ({
           {isFirstMonth ? (
             <button
               onClick={handlePrevMonth}
-              className={`p-1 rounded transition ${isLight ? 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'}`}
+              className={`p-1 rounded transition ${isLight ? 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900' : 'hover:bg-[#18181C] text-[#A1A1AA] hover:text-[#F4F4F5]'}`}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -221,15 +221,15 @@ export const DateRangeDropdown: React.FC<DateRangeDropdownProps> = ({
             <div className="w-4" />
           )}
 
-          <div className={`flex items-center gap-1.5 text-xs font-semibold ${isLight ? 'text-zinc-900' : 'text-slate-200'}`}>
+          <div className={`flex items-center gap-1.5 text-xs font-semibold ${isLight ? 'text-zinc-900' : 'text-[#F4F4F5]'}`}>
             <span>{monthName}</span>
-            <span className={isLight ? 'text-zinc-500' : 'text-slate-400'}>{year}</span>
+            <span className={isLight ? 'text-zinc-500' : 'text-[#A1A1AA]'}>{year}</span>
           </div>
 
           {!isFirstMonth ? (
             <button
               onClick={handleNextMonth}
-              className={`p-1 rounded transition ${isLight ? 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'}`}
+              className={`p-1 rounded transition ${isLight ? 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900' : 'hover:bg-[#18181C] text-[#A1A1AA] hover:text-[#F4F4F5]'}`}
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -239,7 +239,7 @@ export const DateRangeDropdown: React.FC<DateRangeDropdownProps> = ({
         </div>
 
         {/* Days of week header */}
-        <div className={`grid grid-cols-7 text-center text-[10px] font-medium mb-1 ${isLight ? 'text-zinc-400' : 'text-slate-500'}`}>
+        <div className={`grid grid-cols-7 text-center text-[10px] font-medium mb-1 ${isLight ? 'text-zinc-400' : 'text-[#71717A]'}`}>
           <span>Su</span>
           <span>Mo</span>
           <span>Tu</span>
@@ -263,12 +263,12 @@ export const DateRangeDropdown: React.FC<DateRangeDropdownProps> = ({
                 onClick={() => handleDateClick(d.dateStr)}
                 className={`h-7 w-7 mx-auto rounded-full flex items-center justify-center text-[11px] transition-colors ${
                   !d.isCurrentMonth
-                    ? isLight ? 'text-zinc-300' : 'text-slate-600'
+                    ? isLight ? 'text-zinc-300' : 'text-[#52525B]'
                     : isSelectedStart || isSelectedEnd
-                    ? 'bg-blue-600 text-white font-bold shadow-sm'
+                    ? 'bg-[#2563FF] text-white font-bold shadow-sm'
                     : isInRange
-                    ? isLight ? 'bg-blue-100 text-blue-800 rounded-none' : 'bg-blue-500/20 text-blue-300 rounded-none'
-                    : isLight ? 'text-zinc-700 hover:bg-zinc-100' : 'text-slate-300 hover:bg-slate-800'
+                    ? isLight ? 'bg-blue-100 text-blue-800 rounded-none' : 'bg-[#2563FF]/20 text-[#4C7DFF] rounded-none'
+                    : isLight ? 'text-zinc-700 hover:bg-zinc-100' : 'text-[#D4D4D8] hover:bg-[#18181C]'
                 }`}
               >
                 {d.dayNumber}
@@ -283,31 +283,31 @@ export const DateRangeDropdown: React.FC<DateRangeDropdownProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`absolute top-full right-0 mt-2 z-50 rounded-2xl border shadow-2xl p-4 animate-in fade-in zoom-in-95 ${
+      className={`absolute top-full right-0 mt-2 z-50 rounded-xl border p-4 animate-in fade-in zoom-in-95 ${
         isLight
-          ? 'bg-white border-zinc-200 text-zinc-900 shadow-2xl'
-          : 'border-slate-800 bg-slate-900 text-slate-200 shadow-2xl backdrop-blur-xl'
+          ? 'bg-white border-[#E5E7EB] text-[#111827] shadow-xl'
+          : 'border-[#26262B] bg-[#121215] text-[#F4F4F5] shadow-2xl'
       }`}
       style={{ width: '640px' }}
     >
       {/* Top Header: Start Date -> End Date */}
-      <div className={`flex items-center justify-between pb-3 mb-3 border-b text-xs ${isLight ? 'border-zinc-200' : 'border-slate-800'}`}>
+      <div className={`flex items-center justify-between pb-3 mb-3 border-b text-xs ${isLight ? 'border-[#E5E7EB]' : 'border-[#26262B]'}`}>
         <div className="flex items-center gap-4 flex-1">
           <div className={`flex-1 px-3 py-1.5 rounded-lg border font-mono text-center ${
-            isLight ? 'bg-zinc-50 border-zinc-200 text-zinc-800' : 'bg-slate-950 border-slate-800 text-slate-300'
+            isLight ? 'bg-[#F8FAFC] border-[#E5E7EB] text-[#111827]' : 'bg-[#0E0E11] border-[#26262B] text-[#F4F4F5]'
           }`}>
             {tempStart ? tempStart : 'Start Date'}
           </div>
-          <span className={`font-bold ${isLight ? 'text-zinc-400' : 'text-slate-500'}`}>→</span>
+          <span className={`font-bold ${isLight ? 'text-[#9CA3AF]' : 'text-[#71717A]'}`}>→</span>
           <div className={`flex-1 px-3 py-1.5 rounded-lg border font-mono text-center ${
-            isLight ? 'bg-zinc-50 border-zinc-200 text-zinc-800' : 'bg-slate-950 border-slate-800 text-slate-300'
+            isLight ? 'bg-[#F8FAFC] border-[#E5E7EB] text-[#111827]' : 'bg-[#0E0E11] border-[#26262B] text-[#F4F4F5]'
           }`}>
             {tempEnd ? tempEnd : 'End Date'}
           </div>
         </div>
         <button
           onClick={onClose}
-          className={`ml-3 p-1 rounded transition ${isLight ? 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
+          className={`ml-3 p-1 rounded-lg transition ${isLight ? 'text-[#6B7280] hover:text-[#111827] hover:bg-[#F8FAFC]' : 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[#18181C]'}`}
         >
           <X className="w-4 h-4" />
         </button>
@@ -316,14 +316,14 @@ export const DateRangeDropdown: React.FC<DateRangeDropdownProps> = ({
       {/* Main Dual Calendar + Presets Column */}
       <div className="flex gap-4">
         {/* Left Side: Dual Month Calendars */}
-        <div className={`flex gap-4 border-r pr-4 ${isLight ? 'border-zinc-200' : 'border-slate-800'}`}>
+        <div className={`flex gap-4 border-r pr-4 ${isLight ? 'border-[#E5E7EB]' : 'border-[#26262B]'}`}>
           {renderCalendar(currentMonthDate, true)}
           {renderCalendar(nextMonthDate, false)}
         </div>
 
         {/* Right Side: Quick Presets */}
         <div className="w-[140px] flex flex-col justify-start space-y-1">
-          <div className={`text-[10px] font-bold uppercase tracking-wider pb-1 ${isLight ? 'text-zinc-400' : 'text-slate-500'}`}>
+          <div className={`text-[10px] font-bold uppercase tracking-wider pb-1 ${isLight ? 'text-[#9CA3AF]' : 'text-[#71717A]'}`}>
             Quick Select
           </div>
           {PRESETS.map(preset => {
@@ -335,11 +335,11 @@ export const DateRangeDropdown: React.FC<DateRangeDropdownProps> = ({
                 className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
                   isSelected
                     ? isLight
-                      ? 'bg-blue-50 text-blue-700 font-semibold border border-blue-200'
-                      : 'bg-blue-600/15 text-blue-400 font-semibold border border-blue-500/25'
+                      ? 'bg-[rgba(37,99,255,0.08)] text-[#1D4ED8] font-semibold border border-[rgba(37,99,255,0.20)]'
+                      : 'bg-[rgba(37,99,255,0.12)] text-[#4C7DFF] font-semibold border border-[rgba(37,99,255,0.25)]'
                     : isLight
-                      ? 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-transparent'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
+                      ? 'text-[#4B5563] hover:text-[#111827] hover:bg-[#F8FAFC] border border-transparent'
+                      : 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[#18181C] border border-transparent'
                 }`}
               >
                 {preset}

@@ -15,6 +15,7 @@ import {
   LayoutGrid
 } from 'lucide-react';
 import { useTrading } from '../../context/TradingContext';
+import { calculateComprehensiveMetrics } from '../../lib/calcEngine';
 import { MultiSegmentSemicircleGauge, ProfitFactorDonut } from './SemicircleGauge';
 import { RadarScoreCard } from './RadarScoreCard';
 import { ProgressTrackerCard } from './ProgressTrackerCard';
@@ -75,60 +76,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
     return filteredTrades.filter(t => t.status === 'OPEN');
   }, [filteredTrades]);
 
-  // Real Trade Metrics Calculation
+  // Real Trade Metrics Calculation using Unified Financial Engine
   const metrics = useMemo(() => {
-    const totalNetPnl = closedTrades.reduce((acc, t) => acc + t.netPnl, 0);
-    const winTrades = closedTrades.filter(t => t.netPnl > 0);
-    const lossTrades = closedTrades.filter(t => t.netPnl < 0);
-    const beTrades = closedTrades.filter(t => t.netPnl === 0);
-
-    const totalTradesCount = closedTrades.length;
-    const tradeWinRate = totalTradesCount > 0 ? (winTrades.length / totalTradesCount) * 100 : 0;
-
-    const grossProfit = winTrades.reduce((acc, t) => acc + t.netPnl, 0);
-    const grossLoss = Math.abs(lossTrades.reduce((acc, t) => acc + t.netPnl, 0));
-    const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? 5.0 : 0;
-
-    const avgWin = winTrades.length ? grossProfit / winTrades.length : 0;
-    const avgLoss = lossTrades.length ? grossLoss / lossTrades.length : 0;
-    const avgWinLossRatio = avgLoss > 0 ? avgWin / avgLoss : avgWin > 0 ? avgWin : 0;
-
-    // Day Win Rate Calculation (from unique trading days)
-    const dayMap: { [dateStr: string]: number } = {};
-    closedTrades.forEach(t => {
-      if (!t.entryDate) return;
-      const d = t.entryDate.split('T')[0];
-      dayMap[d] = (dayMap[d] || 0) + t.netPnl;
-    });
-
-    const dayPnlList = Object.values(dayMap);
-    const winDays = dayPnlList.filter(pnl => pnl > 0).length;
-    const lossDays = dayPnlList.filter(pnl => pnl < 0).length;
-    const beDays = dayPnlList.filter(pnl => pnl === 0).length;
-    const totalDays = dayPnlList.length;
-    const dayWinRate = totalDays > 0 ? (winDays / totalDays) * 100 : 0;
-
     const startingCap = selectedAccount?.initialBalance || 50000;
-    const accountGrowthPercent = (totalNetPnl / startingCap) * 100;
+    const m = calculateComprehensiveMetrics(closedTrades, { initialBalance: startingCap });
+    const accountGrowthPercent = startingCap > 0 ? (m.netPnl / startingCap) * 100 : 0;
 
     return {
-      totalNetPnl,
-      winTradesCount: winTrades.length,
-      lossTradesCount: lossTrades.length,
-      beTradesCount: beTrades.length,
-      totalTradesCount,
-      tradeWinRate,
-      grossProfit,
-      grossLoss,
-      profitFactor,
-      avgWin,
-      avgLoss,
-      avgWinLossRatio,
-      winDays,
-      lossDays,
-      beDays,
-      totalDays,
-      dayWinRate,
+      totalNetPnl: m.netPnl,
+      winTradesCount: m.winningTrades,
+      lossTradesCount: m.losingTrades,
+      beTradesCount: m.breakevenTrades,
+      totalTradesCount: m.closedTrades,
+      tradeWinRate: m.winRate !== null ? m.winRate : m.allTradesWinRate,
+      grossProfit: m.grossProfit,
+      grossLoss: m.grossLoss,
+      profitFactor: m.profitFactor !== null && isFinite(m.profitFactor) ? m.profitFactor : (m.grossProfit > 0 ? 99.9 : 0),
+      avgWin: m.avgWinningTrade,
+      avgLoss: m.avgLosingTrade,
+      avgWinLossRatio: m.payoffRatio !== null && isFinite(m.payoffRatio) ? m.payoffRatio : (m.avgWinningTrade > 0 ? m.avgWinningTrade : 0),
+      winDays: m.winningDays,
+      lossDays: m.losingDays,
+      beDays: m.breakevenDays,
+      totalDays: m.totalTradingDays,
+      dayWinRate: m.dayWinRate !== null ? m.dayWinRate : 0,
       accountGrowthPercent,
     };
   }, [closedTrades, selectedAccount]);
@@ -144,38 +115,38 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
             }`}>
               Executive Dashboard
             </h1>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono tracking-wide bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold font-mono tracking-wide bg-[rgba(37,99,255,0.12)] text-[#4C7DFF] border border-[rgba(37,99,255,0.25)]">
               LIVE PORTFOLIO
             </span>
           </div>
           <p className={`text-xs mt-1 flex items-center gap-2 ${
-            isLight ? 'text-zinc-500' : 'text-slate-400'
+            isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'
           }`}>
             <span>Real-time trading performance & execution analytics</span>
-            <span className={isLight ? 'text-zinc-300' : 'text-slate-700'}>•</span>
-            <span className={`font-mono font-medium ${isLight ? 'text-zinc-700' : 'text-slate-300'}`}>
+            <span className={isLight ? 'text-[#D1D5DB]' : 'text-[#20283A]'}>•</span>
+            <span className={`font-mono font-medium ${isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'}`}>
               {closedTrades.length} closed trades recorded
             </span>
           </p>
         </div>
 
         {/* Dashboard View Mode Tabs + Action Buttons */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className={`flex items-center gap-1 p-1 rounded-xl border transition ${
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className={`flex items-center gap-1 p-1 rounded-lg border transition ${
             isLight
-              ? 'bg-zinc-100 border-zinc-200 shadow-xs'
-              : 'bg-[#121622] border-[#1E2536]'
+              ? 'bg-[#F1F5F9] border-[#E5E7EB]'
+              : 'bg-[#0D111B] border-[#20283A]'
           }`}>
             <button
               onClick={() => setDashboardMode('overview')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
                 dashboardMode === 'overview'
                   ? isLight
-                    ? 'bg-white text-zinc-900 shadow-xs border border-zinc-200'
-                    : 'bg-blue-600 text-white shadow-[0_0_12px_rgba(59,130,246,0.35)]'
+                    ? 'bg-white text-[#111827] shadow-xs border border-[#E5E7EB]'
+                    : 'bg-[#2563FF] text-white'
                   : isLight
-                    ? 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#161B26]'
+                    ? 'text-[#4B5563] hover:text-[#111827]'
+                    : 'text-[#8C97AB] hover:text-[#F3F6FB]'
               }`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
@@ -183,14 +154,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
             </button>
             <button
               onClick={() => setDashboardMode('calendar')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
                 dashboardMode === 'calendar'
                   ? isLight
-                    ? 'bg-white text-zinc-900 shadow-xs border border-zinc-200'
-                    : 'bg-blue-600 text-white shadow-[0_0_12px_rgba(59,130,246,0.35)]'
+                    ? 'bg-white text-[#111827] shadow-xs border border-[#E5E7EB]'
+                    : 'bg-[#2563FF] text-white'
                   : isLight
-                    ? 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#161B26]'
+                    ? 'text-[#4B5563] hover:text-[#111827]'
+                    : 'text-[#8C97AB] hover:text-[#F3F6FB]'
               }`}
             >
               <CalendarDays className="w-3.5 h-3.5" />
@@ -200,18 +171,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
 
           <button
             onClick={() => setIsEditWidgetsOpen(true)}
-            className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold transition ${
+            className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
               isLight
-                ? 'border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 shadow-xs'
-                : 'border-[#1E2536] bg-[#121622] text-slate-300 hover:text-white hover:border-[#2A344B]'
+                ? 'border-[#E5E7EB] bg-white hover:bg-[#F8FAFC] text-[#4B5563]'
+                : 'border-[#20283A] bg-[#0D111B] text-[#8C97AB] hover:text-[#F3F6FB] hover:border-[#28344A]'
             }`}
           >
-            <SlidersHorizontal className={`w-3.5 h-3.5 ${isLight ? 'text-zinc-500' : 'text-slate-400'}`} />
+            <SlidersHorizontal className={`w-3.5 h-3.5 ${isLight ? 'text-[#6B7280]' : 'text-[#7F8BA0]'}`} />
             <span>Customize</span>
           </button>
           <button
             onClick={onOpenImport}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white px-4 py-2 text-xs font-bold shadow-[0_0_20px_rgba(59,130,246,0.3)] transition active:scale-[0.98]"
+            className="flex items-center gap-2 rounded-lg bg-[#2563FF] hover:bg-[#2F6BFF] text-white px-3.5 py-1.5 text-xs font-semibold transition active:scale-[0.98]"
           >
             <Upload className="w-3.5 h-3.5" />
             <span>Import Trades</span>
@@ -261,73 +232,73 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
       {widgets.kpis && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {/* 1. Net P&L Card */}
-          <div className={`rounded-2xl border p-5 flex flex-col justify-between transition-all duration-200 ${
+          <div className={`rounded-xl border p-4 flex flex-col justify-between transition ${
             isLight
-              ? 'border-zinc-200 bg-white shadow-xs hover:shadow-md'
-              : 'border-[#1E2536] bg-[#0F131D]/80 backdrop-blur-xl hover:border-[#2A344B]'
+              ? 'border-[#E5E7EB] bg-white shadow-xs'
+              : 'border-[#20283A] bg-[#0D111B] hover:border-[#28344A]'
           }`}>
             <div className="flex items-center justify-between text-xs">
-              <span className={`font-semibold flex items-center gap-1.5 ${
-                isLight ? 'text-zinc-700' : 'text-slate-300'
+              <span className={`font-medium flex items-center gap-1.5 ${
+                isLight ? 'text-[#4B5563]' : 'text-[#8C97AB]'
               }`}>
                 Net P&L <DashboardInfoTooltip info={METRIC_INFOS.netPnl} />
               </span>
-              <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold font-mono ${
+              <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold font-mono ${
                 isLight
-                  ? 'bg-zinc-100 text-zinc-600 border border-zinc-200'
-                  : 'bg-[#1A2130] text-slate-300 border border-[#2A344B]'
+                  ? 'bg-[#F1F5F9] text-[#4B5563] border border-[#E5E7EB]'
+                  : 'bg-[#111722] text-[#8C97AB] border border-[#20283A]'
               }`}>
                 {metrics.totalTradesCount} trades
               </span>
             </div>
-            <div className="flex items-center justify-between my-3">
-              <div className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${
+            <div className="flex items-center justify-between my-2.5">
+              <div className={`text-2xl font-bold font-mono tracking-tight ${
                 metrics.totalNetPnl >= 0
-                  ? isLight ? 'text-emerald-600' : 'text-emerald-400'
-                  : isLight ? 'text-rose-600' : 'text-rose-400'
+                  ? isLight ? 'text-[#059669]' : 'text-[#00D6A3]'
+                  : isLight ? 'text-[#DC2626]' : 'text-[#FF3D6E]'
               }`}>
                 {formatCurrency(metrics.totalNetPnl)}
               </div>
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                 isLight
-                  ? 'bg-blue-50 border border-blue-200 text-blue-600'
-                  : 'bg-blue-500/10 border border-blue-500/20 text-blue-400'
+                  ? 'bg-[rgba(37,99,255,0.08)] border border-[rgba(37,99,255,0.20)] text-[#1D4ED8]'
+                  : 'bg-[rgba(37,99,255,0.10)] border border-[rgba(37,99,255,0.20)] text-[#4C7DFF]'
               }`}>
                 <BarChart2 className="w-4 h-4" />
               </div>
             </div>
             <div className={`text-[11px] flex items-center justify-between font-mono pt-2 border-t ${
-              isLight ? 'text-zinc-500 border-zinc-100' : 'text-slate-400 border-[#1E2536]'
+              isLight ? 'text-[#6B7280] border-[#E5E7EB]' : 'text-[#8C97AB] border-[#20283A]'
             }`}>
               <span>Account Growth</span>
               <span className={`font-bold ${
-                metrics.accountGrowthPercent >= 0
-                  ? isLight ? 'text-emerald-600' : 'text-emerald-400'
-                  : isLight ? 'text-rose-600' : 'text-rose-400'
+                (metrics.accountGrowthPercent ?? 0) >= 0
+                  ? isLight ? 'text-[#059669]' : 'text-[#00D6A3]'
+                  : isLight ? 'text-[#DC2626]' : 'text-[#FF3D6E]'
               }`}>
-                {metrics.accountGrowthPercent >= 0 ? '+' : ''}{metrics.accountGrowthPercent.toFixed(2)}%
+                {(metrics.accountGrowthPercent ?? 0) >= 0 ? '+' : ''}{(metrics.accountGrowthPercent ?? 0).toFixed(2)}%
               </span>
             </div>
           </div>
 
           {/* 2. Trade Win % Card */}
-          <div className={`rounded-2xl border p-5 flex flex-col justify-between transition-all duration-200 ${
+          <div className={`rounded-xl border p-4 flex flex-col justify-between transition ${
             isLight
-              ? 'border-zinc-200 bg-white shadow-xs hover:shadow-md'
-              : 'border-[#1E2536] bg-[#0F131D]/80 backdrop-blur-xl hover:border-[#2A344B]'
+              ? 'border-[#E5E7EB] bg-white shadow-xs'
+              : 'border-[#20283A] bg-[#0D111B] hover:border-[#28344A]'
           }`}>
             <div className="flex items-center justify-between text-xs">
-              <span className={`font-semibold flex items-center gap-1.5 ${
-                isLight ? 'text-zinc-700' : 'text-slate-300'
+              <span className={`font-medium flex items-center gap-1.5 ${
+                isLight ? 'text-[#4B5563]' : 'text-[#8C97AB]'
               }`}>
                 Trade Win % <DashboardInfoTooltip info={METRIC_INFOS.tradeWinRate} />
               </span>
             </div>
             <div className="flex items-center justify-between my-2">
-              <div className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${
-                isLight ? 'text-zinc-900' : 'text-white'
+              <div className={`text-2xl font-bold font-mono tracking-tight ${
+                isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'
               }`}>
-                {metrics.tradeWinRate.toFixed(1)}%
+                {(metrics.tradeWinRate ?? 0).toFixed(1)}%
               </div>
               <MultiSegmentSemicircleGauge
                 wins={metrics.winTradesCount}
@@ -339,24 +310,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
             </div>
             {/* Pill breakdown underneath gauge */}
             <div className={`flex items-center justify-between text-[11px] font-mono pt-2 border-t ${
-              isLight ? 'text-zinc-500 border-zinc-100' : 'text-slate-400 border-[#1E2536]'
+              isLight ? 'text-[#6B7280] border-[#E5E7EB]' : 'text-[#8C97AB] border-[#20283A]'
             }`}>
-              <span className="text-[10px] uppercase font-bold text-slate-500">Record</span>
+              <span className="text-[10px] uppercase font-semibold text-[#5F6B80]">Record</span>
               <div className="flex items-center gap-1.5">
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                  isLight ? 'bg-emerald-50 text-emerald-700' : 'bg-emerald-500/15 text-emerald-400'
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                  isLight ? 'bg-[#ECFDF5] text-[#059669]' : 'bg-[rgba(0,214,163,0.12)] text-[#00D6A3] border border-[rgba(0,214,163,0.25)]'
                 }`}>
                   {metrics.winTradesCount}W
                 </span>
                 {metrics.beTradesCount > 0 && (
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                    isLight ? 'bg-blue-50 text-blue-700' : 'bg-blue-500/15 text-blue-400'
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                    isLight ? 'bg-[rgba(37,99,255,0.08)] text-[#1D4ED8]' : 'bg-[rgba(37,99,255,0.12)] text-[#4C7DFF] border border-[rgba(37,99,255,0.25)]'
                   }`}>
                     {metrics.beTradesCount}BE
                   </span>
                 )}
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                  isLight ? 'bg-rose-50 text-rose-700' : 'bg-rose-500/15 text-rose-400'
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                  isLight ? 'bg-[#FEF2F2] text-[#DC2626]' : 'bg-[rgba(255,61,110,0.12)] text-[#FF3D6E] border border-[rgba(255,61,110,0.25)]'
                 }`}>
                   {metrics.lossTradesCount}L
                 </span>
@@ -365,23 +336,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
           </div>
 
           {/* 3. Profit Factor Card */}
-          <div className={`rounded-2xl border p-5 flex flex-col justify-between transition-all duration-200 ${
+          <div className={`rounded-xl border p-4 flex flex-col justify-between transition ${
             isLight
-              ? 'border-zinc-200 bg-white shadow-xs hover:shadow-md'
-              : 'border-[#1E2536] bg-[#0F131D]/80 backdrop-blur-xl hover:border-[#2A344B]'
+              ? 'border-[#E5E7EB] bg-white shadow-xs'
+              : 'border-[#20283A] bg-[#0D111B] hover:border-[#28344A]'
           }`}>
             <div className="flex items-center justify-between text-xs">
-              <span className={`font-semibold flex items-center gap-1.5 ${
-                isLight ? 'text-zinc-700' : 'text-slate-300'
+              <span className={`font-medium flex items-center gap-1.5 ${
+                isLight ? 'text-[#4B5563]' : 'text-[#8C97AB]'
               }`}>
                 Profit Factor <DashboardInfoTooltip info={METRIC_INFOS.profitFactor} />
               </span>
             </div>
             <div className="flex items-center justify-between my-2">
-              <div className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${
-                isLight ? 'text-zinc-900' : 'text-white'
+              <div className={`text-2xl font-bold font-mono tracking-tight ${
+                isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'
               }`}>
-                {metrics.profitFactor.toFixed(2)}
+                {(metrics.profitFactor ?? 0).toFixed(2)}
               </div>
               <ProfitFactorDonut
                 grossProfit={metrics.grossProfit}
@@ -393,15 +364,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
             </div>
             {/* Gross profit and loss breakdown */}
             <div className={`text-[11px] flex items-center justify-between font-mono pt-2 border-t ${
-              isLight ? 'text-zinc-500 border-zinc-100' : 'text-slate-400 border-[#1E2536]'
+              isLight ? 'text-[#6B7280] border-[#E5E7EB]' : 'text-[#8C97AB] border-[#20283A]'
             }`}>
               <span>
-                W: <strong className={isLight ? 'text-emerald-600 font-bold' : 'text-emerald-400 font-bold'}>
+                W: <strong className={isLight ? 'text-[#059669] font-bold' : 'text-[#00D6A3] font-bold'}>
                   ${Math.round(metrics.grossProfit).toLocaleString()}
                 </strong>
               </span>
               <span>
-                L: <strong className={isLight ? 'text-rose-600 font-bold' : 'text-rose-400 font-bold'}>
+                L: <strong className={isLight ? 'text-[#DC2626] font-bold' : 'text-[#FF3D6E] font-bold'}>
                   -${Math.round(metrics.grossLoss).toLocaleString()}
                 </strong>
               </span>
@@ -409,23 +380,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
           </div>
 
           {/* 4. Day Win % Card */}
-          <div className={`rounded-2xl border p-5 flex flex-col justify-between transition-all duration-200 ${
+          <div className={`rounded-xl border p-4 flex flex-col justify-between transition ${
             isLight
-              ? 'border-zinc-200 bg-white shadow-xs hover:shadow-md'
-              : 'border-[#1E2536] bg-[#0F131D]/80 backdrop-blur-xl hover:border-[#2A344B]'
+              ? 'border-[#E5E7EB] bg-white shadow-xs'
+              : 'border-[#20283A] bg-[#0D111B] hover:border-[#28344A]'
           }`}>
             <div className="flex items-center justify-between text-xs">
-              <span className={`font-semibold flex items-center gap-1.5 ${
-                isLight ? 'text-zinc-700' : 'text-slate-300'
+              <span className={`font-medium flex items-center gap-1.5 ${
+                isLight ? 'text-[#4B5563]' : 'text-[#8C97AB]'
               }`}>
                 Day Win % <DashboardInfoTooltip info={METRIC_INFOS.dayWinRate} />
               </span>
             </div>
             <div className="flex items-center justify-between my-2">
-              <div className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${
-                isLight ? 'text-zinc-900' : 'text-white'
+              <div className={`text-2xl font-bold font-mono tracking-tight ${
+                isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'
               }`}>
-                {metrics.dayWinRate.toFixed(1)}%
+                {(metrics.dayWinRate ?? 0).toFixed(1)}%
               </div>
               <MultiSegmentSemicircleGauge
                 wins={metrics.winDays}
@@ -437,17 +408,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
             </div>
             {/* Day counts pill breakdown */}
             <div className={`flex items-center justify-between text-[11px] font-mono pt-2 border-t ${
-              isLight ? 'text-zinc-500 border-zinc-100' : 'text-slate-400 border-[#1E2536]'
+              isLight ? 'text-[#6B7280] border-[#E5E7EB]' : 'text-[#8C97AB] border-[#20283A]'
             }`}>
-              <span className="text-[10px] uppercase font-bold text-slate-500">Days</span>
+              <span className="text-[10px] uppercase font-semibold text-[#5F6B80]">Days</span>
               <div className="flex items-center gap-1.5">
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                  isLight ? 'bg-emerald-50 text-emerald-700' : 'bg-emerald-500/15 text-emerald-400'
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                  isLight ? 'bg-[#ECFDF5] text-[#059669]' : 'bg-[rgba(0,214,163,0.12)] text-[#00D6A3] border border-[rgba(0,214,163,0.25)]'
                 }`}>
                   {metrics.winDays} Green
                 </span>
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                  isLight ? 'bg-rose-50 text-rose-700' : 'bg-rose-500/15 text-rose-400'
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                  isLight ? 'bg-[#FEF2F2] text-[#DC2626]' : 'bg-[rgba(255,61,110,0.12)] text-[#FF3D6E] border border-[rgba(255,61,110,0.25)]'
                 }`}>
                   {metrics.lossDays} Red
                 </span>
@@ -456,47 +427,47 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
           </div>
 
           {/* 5. Avg Win / Loss Trade Card */}
-          <div className={`rounded-2xl border p-5 flex flex-col justify-between transition-all duration-200 ${
+          <div className={`rounded-xl border p-4 flex flex-col justify-between transition ${
             isLight
-              ? 'border-zinc-200 bg-white shadow-xs hover:shadow-md'
-              : 'border-[#1E2536] bg-[#0F131D]/80 backdrop-blur-xl hover:border-[#2A344B]'
+              ? 'border-[#E5E7EB] bg-white shadow-xs'
+              : 'border-[#20283A] bg-[#0D111B] hover:border-[#28344A]'
           }`}>
             <div className="flex items-center justify-between text-xs">
-              <span className={`font-semibold flex items-center gap-1.5 ${
-                isLight ? 'text-zinc-700' : 'text-slate-300'
+              <span className={`font-medium flex items-center gap-1.5 ${
+                isLight ? 'text-[#4B5563]' : 'text-[#8C97AB]'
               }`}>
                 Avg Win/Loss <DashboardInfoTooltip info={METRIC_INFOS.avgWinLoss} />
               </span>
             </div>
             <div className="flex items-center justify-between my-2">
-              <div className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${
-                isLight ? 'text-zinc-900' : 'text-white'
+              <div className={`text-2xl font-bold font-mono tracking-tight ${
+                isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'
               }`}>
-                {metrics.avgWinLossRatio.toFixed(2)}
+                {(metrics.avgWinLossRatio ?? 0).toFixed(2)}
               </div>
               {/* Dual horizontal ratio bar */}
               <div className="w-20 flex flex-col gap-1">
                 <div className={`h-2 w-full rounded-full overflow-hidden flex ${
-                  isLight ? 'bg-zinc-200' : 'bg-zinc-800'
+                  isLight ? 'bg-[#E5E7EB]' : 'bg-[#111722]'
                 }`}>
                   <div
-                    className={`${isLight ? 'bg-emerald-500' : 'bg-emerald-400'} h-full transition-all`}
+                    className={`${isLight ? 'bg-[#059669]' : 'bg-[#00D6A3]'} h-full transition-all`}
                     style={{ width: `${(metrics.avgWin / (metrics.avgWin + metrics.avgLoss || 1)) * 100}%` }}
                   />
                   <div
-                    className={`${isLight ? 'bg-rose-500' : 'bg-rose-500'} h-full transition-all`}
+                    className={`${isLight ? 'bg-[#DC2626]' : 'bg-[#FF3D6E]'} h-full transition-all`}
                     style={{ width: `${(metrics.avgLoss / (metrics.avgWin + metrics.avgLoss || 1)) * 100}%` }}
                   />
                 </div>
               </div>
             </div>
             <div className={`text-[11px] flex items-center justify-between font-mono pt-2 border-t ${
-              isLight ? 'text-zinc-500 border-zinc-100' : 'text-slate-400 border-[#1E2536]'
+              isLight ? 'text-[#6B7280] border-[#E5E7EB]' : 'text-[#8C97AB] border-[#20283A]'
             }`}>
-              <span className={isLight ? 'text-emerald-600 font-bold' : 'text-emerald-400 font-bold'}>
+              <span className={isLight ? 'text-[#059669] font-bold' : 'text-[#00D6A3] font-bold'}>
                 +${Math.round(metrics.avgWin).toLocaleString()}
               </span>
-              <span className={isLight ? 'text-rose-600 font-bold' : 'text-rose-400 font-bold'}>
+              <span className={isLight ? 'text-[#DC2626] font-bold' : 'text-[#FF3D6E] font-bold'}>
                 -${Math.round(metrics.avgLoss).toLocaleString()}
               </span>
             </div>
@@ -508,16 +479,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Card 1: TradeForge Radar Score */}
         {widgets.scoreCard && (
-          <div className={`rounded-2xl border p-5 flex flex-col justify-between transition ${
+          <div className={`rounded-xl border p-4 flex flex-col justify-between transition ${
             isLight
-              ? 'border-zinc-200 bg-white shadow-xs'
-              : 'border-[#1E2536] bg-[#0F131D]/80 backdrop-blur-xl'
+              ? 'border-[#E5E7EB] bg-white shadow-xs'
+              : 'border-[#20283A] bg-[#0D111B]'
           }`}>
             <div className={`flex items-center justify-between pb-3 border-b ${
-              isLight ? 'border-zinc-100' : 'border-[#1E2536]'
+              isLight ? 'border-[#E5E7EB]' : 'border-[#20283A]'
             }`}>
-              <span className={`text-xs font-bold flex items-center gap-2 ${
-                isLight ? 'text-zinc-900' : 'text-slate-100'
+              <span className={`text-xs font-semibold flex items-center gap-2 ${
+                isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'
               }`}>
                 TradeForge Score <DashboardInfoTooltip info={METRIC_INFOS.tradeForgeScore || METRIC_INFOS.duskFlowScore} />
               </span>
@@ -528,23 +499,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
 
         {/* Card 2: Progress Tracker Activity Heatmap */}
         {widgets.progressTracker && (
-          <div className={`rounded-2xl border p-5 flex flex-col justify-between transition ${
+          <div className={`rounded-xl border p-4 flex flex-col justify-between transition ${
             isLight
-              ? 'border-zinc-200 bg-white shadow-xs'
-              : 'border-[#1E2536] bg-[#0F131D]/80 backdrop-blur-xl'
+              ? 'border-[#E5E7EB] bg-white shadow-xs'
+              : 'border-[#20283A] bg-[#0D111B]'
           }`}>
             <div className={`flex items-center justify-between pb-3 border-b ${
-              isLight ? 'border-zinc-100' : 'border-[#1E2536]'
+              isLight ? 'border-[#E5E7EB]' : 'border-[#20283A]'
             }`}>
-              <span className={`text-xs font-bold flex items-center gap-2 ${
-                isLight ? 'text-zinc-900' : 'text-slate-100'
+              <span className={`text-xs font-semibold flex items-center gap-2 ${
+                isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'
               }`}>
                 Progress Tracker <DashboardInfoTooltip info={METRIC_INFOS.progressTracker} />
               </span>
               <button
                 onClick={() => setActiveView('calendar')}
-                className={`text-[11px] font-bold transition ${
-                  isLight ? 'text-blue-600 hover:text-blue-700' : 'text-blue-400 hover:text-blue-300'
+                className={`text-[11px] font-semibold transition ${
+                  isLight ? 'text-[#1D4ED8] hover:text-[#1E40AF]' : 'text-[#4C7DFF] hover:text-[#7096FF]'
                 }`}
               >
                 View Full Calendar →
@@ -556,23 +527,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
 
         {/* Card 3: Daily Net Cumulative P&L */}
         {widgets.cumulativeChart && (
-          <div className={`rounded-2xl border p-5 flex flex-col justify-between transition ${
+          <div className={`rounded-xl border p-4 flex flex-col justify-between transition ${
             isLight
-              ? 'border-zinc-200 bg-white shadow-xs'
-              : 'border-[#1E2536] bg-[#0F131D]/80 backdrop-blur-xl'
+              ? 'border-[#E5E7EB] bg-white shadow-xs'
+              : 'border-[#20283A] bg-[#0D111B]'
           }`}>
             <div className={`flex items-center justify-between pb-3 border-b ${
-              isLight ? 'border-zinc-100' : 'border-[#1E2536]'
+              isLight ? 'border-[#E5E7EB]' : 'border-[#20283A]'
             }`}>
-              <span className={`text-xs font-bold flex items-center gap-2 ${
-                isLight ? 'text-zinc-900' : 'text-slate-100'
+              <span className={`text-xs font-semibold flex items-center gap-2 ${
+                isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'
               }`}>
                 Daily Cumulative Equity <DashboardInfoTooltip info={METRIC_INFOS.cumulativePnl} />
               </span>
               <span className={`text-xs font-mono font-bold ${
                 metrics.totalNetPnl >= 0
-                  ? isLight ? 'text-emerald-600' : 'text-emerald-400'
-                  : isLight ? 'text-rose-600' : 'text-rose-400'
+                  ? isLight ? 'text-[#059669]' : 'text-[#00D6A3]'
+                  : isLight ? 'text-[#DC2626]' : 'text-[#FF3D6E]'
               }`}>
                 {formatCurrency(metrics.totalNetPnl)}
               </span>
@@ -586,16 +557,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* 1. Net Daily P&L */}
         {widgets.dailyBarChart && (
-          <div className={`rounded-2xl border p-5 flex flex-col justify-between transition ${
+          <div className={`rounded-xl border p-4 flex flex-col justify-between transition ${
             isLight
-              ? 'border-zinc-200 bg-white shadow-xs'
-              : 'border-[#1E2536] bg-[#0F131D]/80 backdrop-blur-xl'
+              ? 'border-[#E5E7EB] bg-white shadow-xs'
+              : 'border-[#20283A] bg-[#0D111B]'
           }`}>
             <div className={`flex items-center justify-between pb-3 border-b ${
-              isLight ? 'border-zinc-100' : 'border-[#1E2536]'
+              isLight ? 'border-[#E5E7EB]' : 'border-[#20283A]'
             }`}>
-              <span className={`text-xs font-bold flex items-center gap-2 ${
-                isLight ? 'text-zinc-900' : 'text-slate-100'
+              <span className={`text-xs font-semibold flex items-center gap-2 ${
+                isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'
               }`}>
                 Net Daily P&L Distribution <DashboardInfoTooltip info={METRIC_INFOS.netDailyPnl} />
               </span>
@@ -606,47 +577,47 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
 
         {/* 2. Recent Trades / Open Positions Tabs */}
         {widgets.positionsTable && (
-          <div className={`rounded-2xl border p-5 flex flex-col justify-between transition ${
+          <div className={`rounded-xl border p-4 flex flex-col justify-between transition ${
             isLight
-              ? 'border-zinc-200 bg-white shadow-xs'
-              : 'border-[#1E2536] bg-[#0F131D]/80 backdrop-blur-xl'
+              ? 'border-[#E5E7EB] bg-white shadow-xs'
+              : 'border-[#20283A] bg-[#0D111B]'
           }`}>
             <div>
               {/* Tab Selector */}
               <div className={`flex items-center gap-4 border-b pb-3 mb-3 ${
-                isLight ? 'border-zinc-100' : 'border-[#1E2536]'
+                isLight ? 'border-[#E5E7EB]' : 'border-[#20283A]'
               }`}>
                 <button
                   onClick={() => setActiveTab('recent')}
-                  className={`text-xs font-bold pb-0.5 transition relative ${
+                  className={`text-xs font-semibold pb-0.5 transition relative ${
                     activeTab === 'recent'
-                      ? isLight ? 'text-blue-600' : 'text-blue-400'
-                      : isLight ? 'text-zinc-500 hover:text-zinc-800' : 'text-slate-400 hover:text-slate-200'
+                      ? isLight ? 'text-[#1D4ED8]' : 'text-[#4C7DFF]'
+                      : isLight ? 'text-[#4B5563] hover:text-[#111827]' : 'text-[#8C97AB] hover:text-[#F3F6FB]'
                   }`}
                 >
                   Recent Executions
                   {activeTab === 'recent' && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full -mb-3 bg-blue-500" />
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full -mb-3 bg-[#2563FF]" />
                   )}
                 </button>
                 <button
                   onClick={() => setActiveTab('open')}
-                  className={`text-xs font-bold pb-0.5 transition relative ${
+                  className={`text-xs font-semibold pb-0.5 transition relative ${
                     activeTab === 'open'
-                      ? isLight ? 'text-blue-600' : 'text-blue-400'
-                      : isLight ? 'text-zinc-500 hover:text-zinc-800' : 'text-slate-400 hover:text-slate-200'
+                      ? isLight ? 'text-[#1D4ED8]' : 'text-[#4C7DFF]'
+                      : isLight ? 'text-[#4B5563] hover:text-[#111827]' : 'text-[#8C97AB] hover:text-[#F3F6FB]'
                   }`}
                 >
                   Open Positions ({openTrades.length})
                   {activeTab === 'open' && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full -mb-3 bg-blue-500" />
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full -mb-3 bg-[#2563FF]" />
                   )}
                 </button>
               </div>
 
               {/* Table Header */}
               <div className={`grid grid-cols-3 text-[10px] font-bold uppercase tracking-wider px-3 py-2 rounded-lg ${
-                isLight ? 'bg-zinc-100 text-zinc-600' : 'bg-[#121622] text-slate-400'
+                isLight ? 'bg-[#F1F5F9] text-[#4B5563]' : 'bg-[#111722] text-[#8C97AB] border border-[#20283A]'
               }`}>
                 <span>Close Date</span>
                 <span>Symbol / Side</span>
@@ -659,14 +630,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
                   <div
                     key={trade.id}
                     onClick={() => onSelectTrade(trade)}
-                    className={`grid grid-cols-3 items-center px-3 py-2.5 rounded-lg border cursor-pointer transition text-xs ${
+                    className={`grid grid-cols-3 items-center px-3 py-2 rounded-lg border cursor-pointer transition text-xs ${
                       isLight
-                        ? 'bg-zinc-50 border-zinc-200/70 hover:border-blue-400 hover:bg-blue-50/40 text-zinc-900'
-                        : 'bg-[#121622]/60 border-[#1E2536]/80 hover:border-blue-500/50 hover:bg-[#161B26] text-slate-200'
+                        ? 'bg-[#F8FAFC] border-[#E5E7EB] hover:border-[#CBD5E1] text-[#111827]'
+                        : 'bg-[#0A0E16] border-[#20283A] hover:border-[#28344A] text-[#F3F6FB]'
                     }`}
                   >
                     <span className={`font-mono text-[11px] ${
-                      isLight ? 'text-zinc-600' : 'text-slate-400'
+                      isLight ? 'text-[#4B5563]' : 'text-[#8C97AB]'
                     }`}>
                       {trade.exitDate
                         ? new Date(trade.exitDate).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
@@ -675,21 +646,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
                         : 'Open'}
                     </span>
                     <span className={`font-semibold flex items-center gap-1.5 ${
-                      isLight ? 'text-zinc-900' : 'text-slate-200'
+                      isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'
                     }`}>
                       {trade.symbol}
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold ${
+                      <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold ${
                         trade.direction === 'BUY'
-                          ? isLight ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-emerald-500/15 text-emerald-400'
-                          : isLight ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-rose-500/15 text-rose-400'
+                          ? isLight ? 'bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]' : 'bg-[rgba(0,214,163,0.12)] text-[#00D6A3] border border-[rgba(0,214,163,0.25)]'
+                          : isLight ? 'bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA]' : 'bg-[rgba(255,61,110,0.12)] text-[#FF3D6E] border border-[rgba(255,61,110,0.25)]'
                       }`}>
                         {trade.direction}
                       </span>
                     </span>
                     <span className={`text-right font-mono font-bold ${
                       trade.netPnl >= 0
-                        ? isLight ? 'text-emerald-600' : 'text-emerald-400'
-                        : isLight ? 'text-rose-600' : 'text-rose-400'
+                        ? isLight ? 'text-[#059669]' : 'text-[#00D6A3]'
+                        : isLight ? 'text-[#DC2626]' : 'text-[#FF3D6E]'
                     }`}>
                       {formatCurrency(trade.netPnl)}
                     </span>
@@ -698,7 +669,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
 
                 {(activeTab === 'recent' ? closedTrades : openTrades).length === 0 && (
                   <div className={`text-center py-8 text-xs ${
-                    isLight ? 'text-zinc-400' : 'text-slate-500'
+                    isLight ? 'text-[#9CA3AF]' : 'text-[#5F6B80]'
                   }`}>
                     {activeTab === 'recent' ? 'No closed trades recorded' : 'No open positions running'}
                   </div>
@@ -708,12 +679,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
 
             {/* Quick Footer Action */}
             <div className={`pt-3 border-t mt-3 flex items-center justify-between text-xs ${
-              isLight ? 'border-zinc-100' : 'border-[#1E2536]'
+              isLight ? 'border-[#E5E7EB]' : 'border-[#20283A]'
             }`}>
               <button
                 onClick={() => setIsAddTradeOpen(true)}
                 className={`font-semibold flex items-center gap-1.5 transition ${
-                  isLight ? 'text-blue-600 hover:text-blue-700' : 'text-blue-400 hover:text-blue-300'
+                  isLight ? 'text-[#1D4ED8] hover:text-[#1E40AF]' : 'text-[#4C7DFF] hover:text-[#7096FF]'
                 }`}
               >
                 <Plus className="w-3.5 h-3.5" /> Log new trade
@@ -721,7 +692,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
               <button
                 onClick={() => setActiveView('trades')}
                 className={`transition font-medium ${
-                  isLight ? 'text-zinc-600 hover:text-zinc-900' : 'text-slate-400 hover:text-slate-200'
+                  isLight ? 'text-[#4B5563] hover:text-[#111827]' : 'text-[#8C97AB] hover:text-[#F3F6FB]'
                 }`}
               >
                 View all trades →
@@ -732,16 +703,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
 
         {/* 3. Account Balance / Equity Curve */}
         {widgets.accountBalance && (
-          <div className={`rounded-2xl border p-5 flex flex-col justify-between transition ${
+          <div className={`rounded-xl border p-4 flex flex-col justify-between transition ${
             isLight
-              ? 'border-zinc-200 bg-white shadow-xs'
-              : 'border-[#1E2536] bg-[#0F131D]/80 backdrop-blur-xl'
+              ? 'border-[#E5E7EB] bg-white shadow-xs'
+              : 'border-[#20283A] bg-[#0D111B]'
           }`}>
             <div className={`flex items-center justify-between pb-3 border-b ${
-              isLight ? 'border-zinc-100' : 'border-[#1E2536]'
+              isLight ? 'border-[#E5E7EB]' : 'border-[#20283A]'
             }`}>
-              <span className={`text-xs font-bold flex items-center gap-2 ${
-                isLight ? 'text-zinc-900' : 'text-slate-100'
+              <span className={`text-xs font-semibold flex items-center gap-2 ${
+                isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'
               }`}>
                 Portfolio Balance Curve <DashboardInfoTooltip info={METRIC_INFOS.accountBalance} />
               </span>
@@ -757,18 +728,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
 
       {/* Additive Feature Section: Performance Calendar & Trade Time Analytics */}
       {(widgets.calendar || widgets.drawdown || widgets.tradeTimePerformance) && (
-        <div className={`pt-5 border-t ${isLight ? 'border-zinc-200' : 'border-[#1E2536]'}`}>
+        <div className={`pt-5 border-t ${isLight ? 'border-[#E5E7EB]' : 'border-[#20283A]'}`}>
           <div className="flex items-center justify-between pb-4">
             <div className="flex items-center gap-2.5">
-              <CalendarDays className={`w-4 h-4 ${isLight ? 'text-blue-600' : 'text-blue-400'}`} />
-              <h2 className={`text-sm font-bold ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+              <CalendarDays className="w-4 h-4 text-[#2563FF]" />
+              <h2 className={`text-sm font-semibold ${isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'}`}>
                 Monthly Performance & Execution Analytics
               </h2>
             </div>
             <button
               onClick={() => setDashboardMode('calendar')}
               className={`text-xs font-semibold transition ${
-                isLight ? 'text-blue-600 hover:text-blue-700' : 'text-blue-400 hover:text-blue-300'
+                isLight ? 'text-[#2563FF] hover:text-[#1D4ED8]' : 'text-[#4C7DFF] hover:text-[#7096FF]'
               }`}
             >
               Expand to full calendar view →
@@ -826,25 +797,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
           <div
             role="dialog"
             aria-modal="true"
-            className={`w-full max-w-md rounded-2xl border p-6 shadow-2xl space-y-4 ${
+            className={`w-full max-w-md rounded-xl border p-5 shadow-2xl space-y-4 ${
               isLight
-                ? 'bg-white border-zinc-200 text-zinc-900 shadow-2xl'
-                : 'bg-[#0F131D] border-[#1E2536] text-slate-100 shadow-2xl'
+                ? 'bg-white border-[#E5E7EB] text-[#111827]'
+                : 'bg-[#0D111B] border-[#28344A] text-[#F3F6FB]'
             }`}
           >
             <div className={`flex items-center justify-between pb-3 border-b ${
-              isLight ? 'border-zinc-200' : 'border-[#1E2536]'
+              isLight ? 'border-[#E5E7EB]' : 'border-[#20283A]'
             }`}>
-              <h3 className={`text-sm font-bold flex items-center gap-2 ${
-                isLight ? 'text-zinc-900' : 'text-white'
+              <h3 className={`text-sm font-semibold flex items-center gap-2 ${
+                isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'
               }`}>
-                <SlidersHorizontal className={`w-4 h-4 ${isLight ? 'text-blue-600' : 'text-blue-400'}`} />
+                <SlidersHorizontal className={`w-4 h-4 ${isLight ? 'text-[#1D4ED8]' : 'text-[#4C7DFF]'}`} />
                 Customize Dashboard Widgets
               </h3>
               <button
                 onClick={() => setIsEditWidgetsOpen(false)}
                 className={`text-xs transition ${
-                  isLight ? 'text-zinc-500 hover:text-zinc-900' : 'text-slate-400 hover:text-white'
+                  isLight ? 'text-[#6B7280] hover:text-[#111827]' : 'text-[#8C97AB] hover:text-[#F3F6FB]'
                 }`}
               >
                 Close
@@ -866,14 +837,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
               ].map(item => (
                 <label
                   key={item.key}
-                  className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer select-none transition ${
+                  className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer select-none transition ${
                     isLight
-                      ? 'bg-zinc-50 border-zinc-200 hover:border-zinc-300'
-                      : 'bg-[#121622] border-[#1E2536] hover:border-[#2A344B]'
+                      ? 'bg-[#F8FAFC] border-[#E5E7EB] hover:border-[#CBD5E1]'
+                      : 'bg-[#0A0E16] border-[#20283A] hover:border-[#28344A]'
                   }`}
                 >
-                  <span className={`text-xs font-semibold ${
-                    isLight ? 'text-zinc-800' : 'text-slate-200'
+                  <span className={`text-xs font-medium ${
+                    isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'
                   }`}>
                     {item.label}
                   </span>
@@ -883,7 +854,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
                     onChange={e =>
                       setWidgets(prev => ({ ...prev, [item.key]: e.target.checked }))
                     }
-                    className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4 border-slate-700 bg-slate-900"
+                    className="rounded text-[#2563FF] focus:ring-[#2563FF] h-4 w-4 border-[#28344A] bg-[#111722]"
                   />
                 </label>
               ))}
@@ -892,7 +863,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
             <div className="pt-2 flex justify-end">
               <button
                 onClick={() => setIsEditWidgetsOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/20 transition active:scale-[0.98]"
+                className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#2563FF] hover:bg-[#2F6BFF] text-white transition active:scale-[0.98]"
               >
                 Save Layout
               </button>

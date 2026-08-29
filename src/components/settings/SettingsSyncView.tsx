@@ -731,13 +731,13 @@ export const SettingsSyncView: React.FC<SettingsSyncViewProps> = ({ onOpenImport
                               <div className="space-y-1">
                                 <div className="text-[10px] text-slate-500 uppercase font-sans font-semibold">Success Rate</div>
                                 <div className="font-mono font-bold text-slate-200">
-                                  {(integrationHealths[item.id].successRate * 100).toFixed(1)}%
+                                  {((integrationHealths[item.id]?.successRate ?? 1) * 100).toFixed(1)}%
                                 </div>
                               </div>
                               <div className="space-y-1">
                                 <div className="text-[10px] text-slate-500 uppercase font-sans font-semibold">Failure Rate</div>
                                 <div className="font-mono font-bold text-slate-200">
-                                  {(integrationHealths[item.id].failureRate * 100).toFixed(1)}%
+                                  {((integrationHealths[item.id]?.failureRate ?? 0) * 100).toFixed(1)}%
                                 </div>
                               </div>
                               <div className="space-y-1">
@@ -1060,10 +1060,10 @@ export const SettingsSyncView: React.FC<SettingsSyncViewProps> = ({ onOpenImport
                         <td className="py-2.5 px-3 text-slate-400">{r.mode}</td>
                         <td className="py-2.5 px-3 text-slate-400">{r.apply}</td>
                         <td className="py-2.5 px-3 text-emerald-400 font-semibold">
-                          ${r.commission.toFixed(2)}
+                          ${(r.commission ?? 0).toFixed(2)}
                         </td>
                         <td className="py-2.5 px-3 text-amber-400 font-semibold">
-                          ${r.fee.toFixed(2)}
+                          ${(r.fee ?? 0).toFixed(2)}
                         </td>
                         <td className="py-2.5 px-3 text-right">
                           <button

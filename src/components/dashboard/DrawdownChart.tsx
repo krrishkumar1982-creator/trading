@@ -144,20 +144,22 @@ export const DrawdownChart: React.FC<DrawdownChartProps> = ({ trades, formatCurr
 
   return (
     <div
-      className={`rounded-2xl border p-4 shadow-sm transition flex flex-col justify-between relative select-none ${
+      className={`rounded-xl border p-4 shadow-sm transition flex flex-col justify-between relative select-none ${
         theme === 'light'
-          ? 'bg-white border-slate-200'
-          : theme === 'liquid-glass'
-          ? 'liquid-glass-card'
-          : 'bg-slate-900/90 border-slate-800/80'
+          ? 'bg-white border-[#E5E7EB]'
+          : 'bg-[#0D111B] border-[#20283A]'
       }`}
     >
-      {/* Header matching reference screenshot */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-2">
-        <h3 className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
+      {/* Header */}
+      <div className={`flex items-center justify-between pb-3 border-b mb-2 ${
+        theme === 'light' ? 'border-[#E5E7EB]' : 'border-[#20283A]'
+      }`}>
+        <h3 className={`text-xs sm:text-sm font-semibold flex items-center gap-1.5 ${
+          theme === 'light' ? 'text-[#111827]' : 'text-[#F3F6FB]'
+        }`}>
           Drawdown
           <span
-            className="text-slate-400 hover:text-slate-200 cursor-pointer"
+            className={`${theme === 'light' ? 'text-[#6B7280] hover:text-[#111827]' : 'text-[#8C97AB] hover:text-[#F3F6FB]'} cursor-pointer`}
             title="Underwater equity drawdown curve showing depth and recovery from account peaks"
           >
             <Info className="w-3.5 h-3.5" />
@@ -165,8 +167,8 @@ export const DrawdownChart: React.FC<DrawdownChartProps> = ({ trades, formatCurr
         </h3>
 
         <div className="text-xs font-mono">
-          <span className="text-slate-400">Max DD: </span>
-          <span className="text-rose-400 font-bold">-${maxDrawdown.toLocaleString()}</span>
+          <span className={theme === 'light' ? 'text-[#6B7280]' : 'text-[#8C97AB]'}>Max DD: </span>
+          <span className={`font-bold ${theme === 'light' ? 'text-[#DC2626]' : 'text-[#FF3D6E]'}`}>-${maxDrawdown.toLocaleString()}</span>
         </div>
       </div>
 
@@ -178,21 +180,27 @@ export const DrawdownChart: React.FC<DrawdownChartProps> = ({ trades, formatCurr
         {/* Y-Axis Tick Labels (Left) */}
         <div className="absolute inset-y-1 left-0 w-11 flex flex-col justify-between pointer-events-none text-right pr-1.5">
           {yTicks.map((val, idx) => (
-            <span key={idx} className="text-[10px] font-mono text-slate-400 truncate">
+            <span key={idx} className={`text-[10px] font-mono truncate ${
+              theme === 'light' ? 'text-[#6B7280]' : 'text-[#8C97AB]'
+            }`}>
               {val === 0 ? '$0' : `-$${Math.abs(val).toLocaleString()}`}
             </span>
           ))}
         </div>
 
         {/* SVG Drawing Canvas */}
-        <div className="relative w-full h-full border-l border-t border-slate-700/60 rounded-tl-sm overflow-hidden">
+        <div className={`relative w-full h-full border-l border-t rounded-tl-sm overflow-hidden ${
+          theme === 'light' ? 'border-[#E5E7EB]' : 'border-[#20283A]'
+        }`}>
           {/* Subtle horizontal grid lines */}
           {yTicks.map((val, idx) => {
             const topPct = (Math.abs(val) / maxDrawdown) * 100;
             return (
               <div
                 key={idx}
-                className="absolute left-0 right-0 border-b border-slate-800/40 border-dashed"
+                className={`absolute left-0 right-0 border-b border-dashed ${
+                  theme === 'light' ? 'border-[#E5E7EB]' : 'border-[#20283A]/50'
+                }`}
                 style={{ top: `${topPct}%` }}
               />
             );
@@ -204,10 +212,9 @@ export const DrawdownChart: React.FC<DrawdownChartProps> = ({ trades, formatCurr
             preserveAspectRatio="none"
           >
             <defs>
-              {/* Shaded Area Gradient matching the screenshot's soft pink/violet tint */}
               <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#F43F5E" stopOpacity="0.05" />
-                <stop offset="100%" stopColor="#F43F5E" stopOpacity="0.3" />
+                <stop offset="0%" stopColor="#FF3D6E" stopOpacity="0.04" />
+                <stop offset="100%" stopColor="#FF3D6E" stopOpacity="0.30" />
               </linearGradient>
             </defs>
 
@@ -221,7 +228,7 @@ export const DrawdownChart: React.FC<DrawdownChartProps> = ({ trades, formatCurr
               <path
                 d={linePath}
                 fill="none"
-                stroke="#818CF8"
+                stroke="#FF3D6E"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -244,12 +251,12 @@ export const DrawdownChart: React.FC<DrawdownChartProps> = ({ trades, formatCurr
                   <>
                     {/* Vertical guideline */}
                     <div
-                      className="absolute top-0 bottom-0 w-[1px] bg-indigo-400/80 pointer-events-none"
+                      className="absolute top-0 bottom-0 w-[1px] bg-[#FF3D6E]/60 pointer-events-none"
                       style={{ left: '50%' }}
                     />
                     {/* Intersection Dot */}
                     <div
-                      className="absolute w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                      className="absolute w-2.5 h-2.5 rounded-full bg-[#FF3D6E] ring-2 ring-white transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
                       style={{
                         left: '50%',
                         top: `${pt.y}%`,
@@ -264,35 +271,39 @@ export const DrawdownChart: React.FC<DrawdownChartProps> = ({ trades, formatCurr
           {/* Hover Tooltip */}
           {hoveredPoint && (
             <div
-              className={`absolute z-30 transform -translate-x-1/2 -translate-y-full -mt-2 pointer-events-none p-2 rounded-xl shadow-xl border text-xs min-w-[140px] animate-in fade-in ${
+              className={`absolute z-30 transform -translate-x-1/2 -translate-y-full -mt-2 pointer-events-none p-2 rounded-lg shadow-xl border text-xs min-w-[140px] animate-in fade-in ${
                 theme === 'light'
-                  ? 'bg-white border-slate-300 text-slate-900 shadow-slate-300/50'
-                  : 'bg-slate-950/95 border-slate-700 text-slate-100 backdrop-blur-md shadow-black/80'
+                  ? 'bg-white border-[#E5E7EB] text-[#111827]'
+                  : 'bg-[#0D111B] border-[#28344A] text-[#F3F6FB]'
               }`}
               style={{
                 left: `${hoveredPoint.x}%`,
                 top: `${Math.max(25, hoveredPoint.y)}%`,
               }}
             >
-              <div className="text-[10px] text-slate-400 pb-1 border-b border-slate-700/60 mb-1 font-mono">
+              <div className={`text-[10px] pb-1 border-b mb-1 font-mono ${
+                theme === 'light' ? 'text-[#6B7280] border-[#E5E7EB]' : 'text-[#8C97AB] border-[#20283A]'
+              }`}>
                 {hoveredPoint.displayDate}
               </div>
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-400">Drawdown:</span>
-                <span className="font-mono font-bold text-rose-400">
+                <span className={theme === 'light' ? 'text-[#6B7280]' : 'text-[#8C97AB]'}>Drawdown:</span>
+                <span className={`font-mono font-bold ${theme === 'light' ? 'text-[#DC2626]' : 'text-[#FF3D6E]'}`}>
                   {formatCurrency(hoveredPoint.drawdownDollar)}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-[10px] text-slate-400">
+              <div className={`flex items-center justify-between text-[10px] ${theme === 'light' ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>
                 <span>Depth:</span>
-                <span className="font-mono text-rose-400">-{hoveredPoint.drawdownPercent.toFixed(1)}%</span>
+                <span className={`font-mono ${theme === 'light' ? 'text-[#DC2626]' : 'text-[#FF3D6E]'}`}>-{hoveredPoint.drawdownPercent.toFixed(1)}%</span>
               </div>
             </div>
           )}
         </div>
 
         {/* X-Axis Date Labels (Bottom) */}
-        <div className="absolute -bottom-1 left-12 right-2 flex justify-between text-[9.5px] font-mono text-slate-400 pt-1 pointer-events-none">
+        <div className={`absolute -bottom-1 left-12 right-2 flex justify-between text-[9.5px] font-mono pt-1 pointer-events-none ${
+          theme === 'light' ? 'text-[#6B7280]' : 'text-[#8C97AB]'
+        }`}>
           {dateLabels.map((lbl, i) => (
             <span key={i} className="transform -translate-x-1/2">
               {lbl}

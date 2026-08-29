@@ -227,18 +227,18 @@ export const ProgressTrackerCard: React.FC<ProgressTrackerCardProps> = ({
   // Intensity color mapper
   const getCellColor = (count: number, pnl: number) => {
     if (count === 0) {
-      return isLight ? 'bg-zinc-100 border border-zinc-200' : 'bg-slate-900/60 border border-slate-800/80';
+      return isLight ? 'bg-[#F1F5F9] border border-[#E5E7EB]' : 'bg-[#111722] border border-[#20283A]';
     }
     if (count === 1) {
-      return isLight ? 'bg-blue-100 border border-blue-200' : 'bg-blue-600/30 border border-blue-500/30';
+      return isLight ? 'bg-[rgba(37,99,255,0.20)] border border-[rgba(37,99,255,0.30)]' : 'bg-[rgba(37,99,255,0.25)] border border-[rgba(37,99,255,0.35)]';
     }
     if (count === 2) {
-      return isLight ? 'bg-blue-300 border border-blue-400' : 'bg-blue-600/50 border border-blue-500/50';
+      return isLight ? 'bg-[rgba(37,99,255,0.40)] border border-[rgba(37,99,255,0.50)]' : 'bg-[rgba(37,99,255,0.45)] border border-[rgba(37,99,255,0.55)]';
     }
     if (count <= 4) {
-      return isLight ? 'bg-blue-500 border border-blue-600' : 'bg-blue-600/75 border border-blue-500/80';
+      return isLight ? 'bg-[rgba(37,99,255,0.70)] border border-[rgba(37,99,255,0.80)]' : 'bg-[rgba(37,99,255,0.70)] border border-[rgba(37,99,255,0.80)]';
     }
-    return isLight ? 'bg-blue-600 border border-blue-700' : 'bg-blue-500 border border-blue-400';
+    return 'bg-[#2563FF] border border-[#3B75FF]';
   };
 
   const todayScore = completedItems.length;
@@ -249,7 +249,7 @@ export const ProgressTrackerCard: React.FC<ProgressTrackerCardProps> = ({
       <div className="relative">
         {/* Month Headers */}
         <div className={`flex text-[10px] font-mono pl-7 mb-1.5 justify-between pr-2 ${
-          isLight ? 'text-zinc-500' : 'text-slate-400'
+          isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'
         }`}>
           {monthLabels.map(m => (
             <span key={m.name}>{m.name}</span>
@@ -260,7 +260,7 @@ export const ProgressTrackerCard: React.FC<ProgressTrackerCardProps> = ({
         <div className="flex gap-1.5 items-start">
           {/* Day of Week Labels */}
           <div className={`flex flex-col gap-1 text-[9px] font-mono pr-1 pt-0.5 select-none ${
-            isLight ? 'text-zinc-400' : 'text-slate-500'
+            isLight ? 'text-[#9CA3AF]' : 'text-[#5F6B80]'
           }`}>
             {daysOfWeek.map((d, i) => (
               <span key={d} className="h-3.5 leading-none flex items-center">
@@ -303,35 +303,35 @@ export const ProgressTrackerCard: React.FC<ProgressTrackerCardProps> = ({
 
         {/* Heatmap Legend (Less -> More) */}
         <div className={`flex items-center justify-end gap-1.5 mt-2.5 text-[9px] font-mono ${
-          isLight ? 'text-zinc-500' : 'text-slate-400'
+          isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'
         }`}>
           <span>Less</span>
-          <div className={`w-2.5 h-2.5 rounded-[2px] ${isLight ? 'bg-zinc-100 border border-zinc-200' : 'bg-slate-900 border border-slate-800'}`} />
-          <div className={`w-2.5 h-2.5 rounded-[2px] ${isLight ? 'bg-blue-100 border border-blue-200' : 'bg-blue-600/30 border border-blue-500/30'}`} />
-          <div className={`w-2.5 h-2.5 rounded-[2px] ${isLight ? 'bg-blue-300 border border-blue-400' : 'bg-blue-600/50 border border-blue-500/50'}`} />
-          <div className={`w-2.5 h-2.5 rounded-[2px] ${isLight ? 'bg-blue-500 border border-blue-600' : 'bg-blue-600/75 border border-blue-500/80'}`} />
-          <div className={`w-2.5 h-2.5 rounded-[2px] ${isLight ? 'bg-blue-600 border border-blue-700' : 'bg-blue-50 border border-blue-400'}`} />
+          <div className={`w-2.5 h-2.5 rounded-[2px] ${isLight ? 'bg-[#F1F5F9] border border-[#E5E7EB]' : 'bg-[#111722] border border-[#20283A]'}`} />
+          <div className={`w-2.5 h-2.5 rounded-[2px] ${isLight ? 'bg-[rgba(37,99,255,0.20)] border border-[rgba(37,99,255,0.30)]' : 'bg-[rgba(37,99,255,0.25)] border border-[rgba(37,99,255,0.35)]'}`} />
+          <div className={`w-2.5 h-2.5 rounded-[2px] ${isLight ? 'bg-[rgba(37,99,255,0.40)] border border-[rgba(37,99,255,0.50)]' : 'bg-[rgba(37,99,255,0.45)] border border-[rgba(37,99,255,0.55)]'}`} />
+          <div className={`w-2.5 h-2.5 rounded-[2px] ${isLight ? 'bg-[rgba(37,99,255,0.70)] border border-[rgba(37,99,255,0.80)]' : 'bg-[rgba(37,99,255,0.70)] border border-[rgba(37,99,255,0.80)]'}`} />
+          <div className="w-2.5 h-2.5 rounded-[2px] bg-[#2563FF] border border-[#3B75FF]" />
           <span>More</span>
         </div>
 
         {/* Floating Cell Tooltip */}
         {hoveredCell && (
-          <div className={`absolute top-0 right-0 px-3 py-1.5 rounded-xl text-xs shadow-2xl z-30 pointer-events-none animate-in fade-in border ${
+          <div className={`absolute top-0 right-0 px-3 py-1.5 rounded-lg text-xs shadow-2xl z-30 pointer-events-none animate-in fade-in border ${
             isLight
-              ? 'bg-white border-zinc-200 text-zinc-900 shadow-xl'
-              : 'bg-slate-900 border-slate-700 text-slate-100 shadow-2xl'
+              ? 'bg-white border-[#E5E7EB] text-[#111827]'
+              : 'bg-[#0D111B] border-[#28344A] text-[#F3F6FB]'
           }`}>
-            <div className={`font-semibold ${isLight ? 'text-zinc-900' : 'text-slate-200'}`}>{hoveredCell.dateStr}</div>
+            <div className={`font-semibold ${isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'}`}>{hoveredCell.dateStr}</div>
             <div className="flex items-center gap-2 mt-0.5 text-[11px] font-mono">
-              <span className={isLight ? 'text-zinc-500' : 'text-slate-400'}>{hoveredCell.tradeCount} trades</span>
-              <span className={isLight ? 'text-zinc-300' : 'text-slate-600'}>•</span>
-              <span className={hoveredCell.netPnl >= 0 ? (isLight ? 'text-emerald-600 font-bold' : 'text-emerald-400 font-bold') : (isLight ? 'text-rose-600 font-bold' : 'text-rose-400 font-bold')}>
+              <span className={isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}>{hoveredCell.tradeCount} trades</span>
+              <span className={isLight ? 'text-[#D1D5DB]' : 'text-[#20283A]'}>•</span>
+              <span className={hoveredCell.netPnl >= 0 ? (isLight ? 'text-[#059669] font-bold' : 'text-[#00D6A3] font-bold') : (isLight ? 'text-[#DC2626] font-bold' : 'text-[#FF3D6E] font-bold')}>
                 {formatCurrency(hoveredCell.netPnl)}
               </span>
               {hoveredCell.tradeCount > 0 && (
                 <>
-                  <span className={isLight ? 'text-zinc-300' : 'text-slate-600'}>•</span>
-                  <span className={isLight ? 'text-blue-600' : 'text-blue-400'}>{hoveredCell.winRate.toFixed(0)}% Win</span>
+                  <span className={isLight ? 'text-[#D1D5DB]' : 'text-[#20283A]'}>•</span>
+                  <span className={isLight ? 'text-[#1D4ED8]' : 'text-[#4C7DFF]'}>{hoveredCell.winRate.toFixed(0)}% Win</span>
                 </>
               )}
             </div>
@@ -341,11 +341,11 @@ export const ProgressTrackerCard: React.FC<ProgressTrackerCardProps> = ({
 
       {/* Bottom Row: Today's Score & Daily Checklist button */}
       <div className={`mt-3 pt-3 border-t flex items-center justify-between gap-3 ${
-        isLight ? 'border-zinc-200' : 'border-slate-800/80'
+        isLight ? 'border-[#E5E7EB]' : 'border-[#20283A]'
       }`}>
         <div className="flex-1">
           <div className={`flex items-center gap-1 text-[11px] mb-1 ${
-            isLight ? 'text-zinc-500' : 'text-slate-400'
+            isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'
           }`}>
             <span>Today's score</span>
             <DashboardInfoTooltip
@@ -358,16 +358,16 @@ export const ProgressTrackerCard: React.FC<ProgressTrackerCardProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <span className={`font-mono font-bold text-sm ${
-              isLight ? 'text-zinc-900' : 'text-slate-100'
+              isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'
             }`}>
               {todayScore}/5
             </span>
             {/* Progress bar */}
-            <div className={`h-2 flex-1 max-w-[130px] rounded-full overflow-hidden ${
-              isLight ? 'bg-zinc-200' : 'bg-slate-800'
+            <div className={`h-1.5 flex-1 max-w-[130px] rounded-full overflow-hidden ${
+              isLight ? 'bg-[#E5E7EB]' : 'bg-[#111722]'
             }`}>
               <div
-                className="h-full bg-blue-600 rounded-full transition-all duration-300"
+                className="h-full bg-[#2563FF] rounded-full transition-all duration-300"
                 style={{ width: `${(todayScore / 5) * 100}%` }}
               />
             </div>
@@ -377,13 +377,13 @@ export const ProgressTrackerCard: React.FC<ProgressTrackerCardProps> = ({
         {/* Daily Checklist Button */}
         <button
           onClick={() => setIsChecklistOpen(true)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition ${
             isLight
-              ? 'border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-700 shadow-xs'
-              : 'border-slate-800 bg-slate-950 hover:bg-slate-800/80 hover:border-slate-700 text-slate-200'
+              ? 'border-[#E5E7EB] bg-white hover:bg-[#F8FAFC] text-[#4B5563]'
+              : 'border-[#20283A] bg-[#0D111B] hover:bg-[#111722] hover:border-[#28344A] text-[#8C97AB] hover:text-[#F3F6FB]'
           }`}
         >
-          <CalendarCheck2 className={`w-3.5 h-3.5 ${isLight ? 'text-blue-600' : 'text-blue-400'}`} />
+          <CalendarCheck2 className={`w-3.5 h-3.5 ${isLight ? 'text-[#1D4ED8]' : 'text-[#4C7DFF]'}`} />
           <span>Daily checklist</span>
         </button>
       </div>
@@ -393,9 +393,9 @@ export const ProgressTrackerCard: React.FC<ProgressTrackerCardProps> = ({
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in"
           style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.65)',
-            backdropFilter: 'blur(4px)',
-            WebkitBackdropFilter: 'blur(4px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
           }}
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsChecklistOpen(false);
@@ -404,26 +404,26 @@ export const ProgressTrackerCard: React.FC<ProgressTrackerCardProps> = ({
           <div
             role="dialog"
             aria-modal="true"
-            className={`w-full max-w-md rounded-2xl border p-5 shadow-2xl space-y-4 ${
-              isLight ? 'bg-white border-zinc-200 text-zinc-900 shadow-2xl' : 'bg-slate-900 border-slate-800 text-slate-100'
+            className={`w-full max-w-md rounded-xl border p-5 shadow-2xl space-y-4 ${
+              isLight ? 'bg-white border-[#E5E7EB] text-[#111827]' : 'bg-[#0D111B] border-[#28344A] text-[#F3F6FB]'
             }`}
           >
             <div className={`flex items-center justify-between pb-2 border-b ${
-              isLight ? 'border-zinc-200' : 'border-slate-800'
+              isLight ? 'border-[#E5E7EB]' : 'border-[#20283A]'
             }`}>
               <div className="flex items-center gap-2">
-                <div className={`p-1.5 rounded-lg ${isLight ? 'bg-blue-50 text-blue-600' : 'bg-blue-600/20 text-blue-400'}`}>
+                <div className={`p-1.5 rounded-lg ${isLight ? 'bg-[rgba(37,99,255,0.08)] text-[#1D4ED8]' : 'bg-[rgba(37,99,255,0.12)] text-[#4C7DFF]'}`}>
                   <Trophy className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className={`text-sm font-bold ${isLight ? 'text-zinc-900' : 'text-slate-100'}`}>Daily Execution Checklist</h3>
-                  <p className={`text-[10px] font-mono ${isLight ? 'text-zinc-500' : 'text-slate-400'}`}>Today: {todayKey}</p>
+                  <h3 className={`text-sm font-semibold ${isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'}`}>Daily Execution Checklist</h3>
+                  <p className={`text-[10px] font-mono ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>Today: {todayKey}</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsChecklistOpen(false)}
                 className={`p-1 rounded-lg transition ${
-                  isLight ? 'text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  isLight ? 'text-[#9CA3AF] hover:text-[#111827]' : 'text-[#8C97AB] hover:text-[#F3F6FB]'
                 }`}
               >
                 <X className="w-4 h-4" />
@@ -431,39 +431,39 @@ export const ProgressTrackerCard: React.FC<ProgressTrackerCardProps> = ({
             </div>
 
             {/* Checklist Items */}
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {CHECKLIST_ITEMS.map(item => {
                 const isChecked = completedItems.includes(item.id);
                 return (
                   <div
                     key={item.id}
                     onClick={() => toggleItem(item.id)}
-                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition select-none ${
+                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition select-none ${
                       isChecked
                         ? isLight
-                          ? 'bg-blue-50/80 border-blue-200 text-blue-900'
-                          : 'bg-blue-600/10 border-blue-500/30 text-slate-100'
+                          ? 'bg-[rgba(37,99,255,0.05)] border-[rgba(37,99,255,0.25)] text-[#1D4ED8]'
+                          : 'bg-[rgba(37,99,255,0.08)] border-[rgba(37,99,255,0.25)] text-[#F3F6FB]'
                         : isLight
-                        ? 'bg-zinc-50 border-zinc-200 text-zinc-600 hover:border-zinc-300'
-                        : 'bg-slate-950 border-slate-800/90 text-slate-400 hover:border-slate-700'
+                        ? 'bg-[#F8FAFC] border-[#E5E7EB] text-[#4B5563] hover:border-[#CBD5E1]'
+                        : 'bg-[#0A0E16] border-[#20283A] text-[#8C97AB] hover:border-[#28344A]'
                     }`}
                   >
                     <div className="mt-0.5">
                       {isChecked ? (
-                        <CheckSquare className={`w-4 h-4 shrink-0 ${isLight ? 'text-blue-600' : 'text-blue-400'}`} />
+                        <CheckSquare className={`w-4 h-4 shrink-0 ${isLight ? 'text-[#1D4ED8]' : 'text-[#4C7DFF]'}`} />
                       ) : (
-                        <Square className={`w-4 h-4 shrink-0 ${isLight ? 'text-zinc-400' : 'text-slate-600'}`} />
+                        <Square className={`w-4 h-4 shrink-0 ${isLight ? 'text-[#9CA3AF]' : 'text-[#5F6B80]'}`} />
                       )}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <span className={`text-xs font-semibold ${
                           isChecked
-                            ? isLight ? 'text-zinc-900 font-bold' : 'text-slate-100'
-                            : isLight ? 'text-zinc-700' : 'text-slate-300'
+                            ? isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'
+                            : isLight ? 'text-[#4B5563]' : 'text-[#8C97AB]'
                         }`}>{item.label}</span>
                         <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                          isLight ? 'text-zinc-600 bg-zinc-200/70' : 'text-slate-500 bg-slate-800/80'
+                          isLight ? 'text-[#6B7280] bg-[#F1F5F9]' : 'text-[#8C97AB] bg-[#111722]'
                         }`}>
                           {item.category}
                         </span>
@@ -476,14 +476,14 @@ export const ProgressTrackerCard: React.FC<ProgressTrackerCardProps> = ({
 
             {/* Progress Footer */}
             <div className={`pt-3 border-t flex items-center justify-between ${
-              isLight ? 'border-zinc-200' : 'border-slate-800'
+              isLight ? 'border-[#E5E7EB]' : 'border-[#20283A]'
             }`}>
-              <div className={`text-xs ${isLight ? 'text-zinc-600' : 'text-slate-400'}`}>
-                Score: <strong className={`font-mono ${isLight ? 'text-blue-600 font-bold' : 'text-blue-400'}`}>{todayScore} / 5</strong>
+              <div className={`text-xs ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>
+                Score: <strong className={`font-mono ${isLight ? 'text-[#1D4ED8] font-bold' : 'text-[#4C7DFF] font-bold'}`}>{todayScore} / 5</strong>
               </div>
               <button
                 onClick={() => setIsChecklistOpen(false)}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md transition"
+                className="px-4 py-2 rounded-lg bg-[#2563FF] hover:bg-[#2F6BFF] text-white text-xs font-semibold transition active:scale-[0.98]"
               >
                 Save & Close
               </button>

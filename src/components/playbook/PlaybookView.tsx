@@ -14,10 +14,30 @@ import {
   Square,
   Sparkles,
   Trash2,
-  Edit2
+  Edit2,
+  Zap,
+  Target,
+  Compass,
+  Layers,
+  Flame,
+  Activity,
+  Crosshair,
+  ShieldCheck,
+  BarChart3
 } from 'lucide-react';
 import { useTrading } from '../../context/TradingContext';
 import { Playbook, PlaybookRule } from '../../types';
+
+const getPlaybookLucideIcon = (name: string, iconStr?: string) => {
+  const n = (name + ' ' + (iconStr || '')).toLowerCase();
+  if (n.includes('drive') || n.includes('breakout') || n.includes('🚀')) return Zap;
+  if (n.includes('absorption') || n.includes('reversal') || n.includes('🔄')) return Target;
+  if (n.includes('gap') || n.includes('top') || n.includes('⚡')) return Flame;
+  if (n.includes('trend') || n.includes('continuation') || n.includes('📈')) return TrendingUp;
+  if (n.includes('vwap') || n.includes('bounce') || n.includes('🎯')) return Crosshair;
+  if (n.includes('fomo') || n.includes('impulse') || n.includes('⚠️')) return Activity;
+  return BookmarkCheck;
+};
 
 export const PlaybookView: React.FC = () => {
   const {
@@ -154,36 +174,50 @@ export const PlaybookView: React.FC = () => {
         </div>
       </div>
 
-      {/* Playbook Cards Grid (matching Screenshot 4 & 7) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {/* Playbook Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {sortedPlaybooks.map(pb => {
           const isProfitable = pb.netPnl >= 0;
+          const IconComponent = getPlaybookLucideIcon(pb.name, pb.icon);
+
           return (
             <div
               key={pb.id}
-              className="rounded-2xl border border-slate-800/90 bg-slate-900/95 p-5 shadow-xl backdrop-blur-sm flex flex-col justify-between hover:border-blue-500/40 transition group relative overflow-hidden"
+              className="rounded-3xl border border-white/10 glass-card p-6 shadow-xl backdrop-blur-2xl flex flex-col justify-between hover:border-blue-500/50 hover:-translate-y-1.5 hover:shadow-[0_20px_40px_rgba(0,0,0,0.6),0_0_30px_rgba(59,130,246,0.15)] transition-all duration-300 group relative overflow-hidden"
             >
+              {/* Top Accent Gradient Bar */}
+              <div
+                className="absolute top-0 left-0 right-0 h-1.5 opacity-80 group-hover:opacity-100 transition-opacity"
+                style={{
+                  background: `linear-gradient(90deg, ${pb.color}, ${pb.color}88, transparent)`
+                }}
+              />
+
               {/* Header */}
               <div>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <span
-                      style={{ backgroundColor: `${pb.color}25`, borderColor: `${pb.color}50` }}
-                      className="text-2xl p-2.5 rounded-2xl border flex items-center justify-center"
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3.5">
+                    <div
+                      style={{
+                        backgroundColor: `${pb.color}20`,
+                        borderColor: `${pb.color}40`,
+                        color: pb.color
+                      }}
+                      className="p-3 rounded-2xl border flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform"
                     >
-                      {pb.icon}
-                    </span>
+                      <IconComponent className="w-6 h-6" />
+                    </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-100 group-hover:text-blue-300 transition">
+                      <h3 className="text-base font-bold text-white group-hover:text-blue-300 transition">
                         {pb.name}
                       </h3>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[11px] font-mono font-semibold text-slate-400">
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs font-mono font-semibold text-slate-300">
                           {pb.totalTrades} {pb.totalTrades === 1 ? 'trade' : 'trades'}
                         </span>
                         <span className="text-slate-600">•</span>
-                        <span className="text-[10px] text-slate-500 flex items-center gap-1">
-                          {pb.isPrivate ? <Lock className="w-2.5 h-2.5" /> : <Globe className="w-2.5 h-2.5" />}
+                        <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                          {pb.isPrivate ? <Lock className="w-3 h-3 text-slate-400" /> : <Globe className="w-3 h-3 text-slate-400" />}
                           {pb.isPrivate ? 'Private' : 'Shared'}
                         </span>
                       </div>
@@ -192,59 +226,59 @@ export const PlaybookView: React.FC = () => {
 
                   <button
                     onClick={() => openRuleChecker(pb)}
-                    className="text-[11px] font-semibold text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 px-2.5 py-1 rounded-lg transition"
+                    className="text-xs font-bold text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 px-3 py-1.5 rounded-xl transition shadow-xs active:scale-95 shrink-0"
                   >
                     Check Rules
                   </button>
                 </div>
 
-                <p className="text-xs text-slate-400 mt-3 line-clamp-2 leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-400 mt-4 line-clamp-2 leading-relaxed">
                   {pb.description}
                 </p>
 
-                {/* Primary Metrics Row (matching Screenshot 7) */}
-                <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-slate-800/80">
+                {/* Primary Metrics Row */}
+                <div className="grid grid-cols-2 gap-4 mt-5 pt-4 border-t border-white/10">
                   {/* Win Rate */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full border-2 border-slate-800 border-t-emerald-400 border-r-emerald-400 flex items-center justify-center shrink-0">
-                      <span className="text-[9px] font-mono font-bold text-slate-300">{Math.round(pb.winRate)}%</span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-emerald-400 border-r-emerald-400 flex items-center justify-center shrink-0 bg-white/[0.02]">
+                      <span className="text-[11px] font-mono font-extrabold text-slate-200">{Math.round(pb.winRate)}%</span>
                     </div>
                     <div>
-                      <div className="text-[10px] text-slate-500">Win rate</div>
-                      <div className="text-xs font-bold text-slate-200">{pb.winRate}%</div>
+                      <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Win rate</div>
+                      <div className="text-sm font-bold text-white">{pb.winRate}%</div>
                     </div>
                   </div>
 
                   {/* Net P&L */}
                   <div>
-                    <div className="text-[10px] text-slate-500">Net P&L</div>
-                    <div className={`text-xs font-mono font-extrabold ${isProfitable ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Net P&L</div>
+                    <div className={`text-base font-mono font-black ${isProfitable ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {formatCurrency(pb.netPnl)}
                     </div>
                   </div>
                 </div>
 
                 {/* Secondary Metrics Row */}
-                <div className="grid grid-cols-3 gap-2 mt-3 bg-slate-950/70 p-2.5 rounded-xl text-[11px]">
+                <div className="grid grid-cols-3 gap-2.5 mt-4 bg-white/[0.03] border border-white/5 p-3 rounded-2xl text-xs">
                   <div>
-                    <div className="text-[10px] text-slate-500">Profit Factor</div>
-                    <div className="font-mono font-bold text-slate-200">{pb.profitFactor.toFixed(2)}</div>
+                    <div className="text-[10px] text-slate-400 font-medium">Profit Factor</div>
+                    <div className="font-mono font-bold text-slate-100 mt-0.5">{(pb.profitFactor ?? 0).toFixed(2)}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-slate-500">Expectancy</div>
-                    <div className="font-mono font-bold text-blue-400">{formatCurrency(pb.expectancy)}</div>
+                    <div className="text-[10px] text-slate-400 font-medium">Expectancy</div>
+                    <div className="font-mono font-bold text-blue-400 mt-0.5">{formatCurrency(pb.expectancy || 0)}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-slate-500">Missed</div>
-                    <div className="font-mono font-bold text-amber-400">{pb.missedTradesCount}</div>
+                    <div className="text-[10px] text-slate-400 font-medium">Missed</div>
+                    <div className="font-mono font-bold text-amber-400 mt-0.5">{pb.missedTradesCount || 0}</div>
                   </div>
                 </div>
               </div>
 
               {/* Bottom Decorative Curve */}
-              <div className="mt-4 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
-                <span>Avg Win: <strong className="text-emerald-400 font-mono">${Math.round(pb.avgWinner)}</strong></span>
-                <span>Avg Loss: <strong className="text-rose-400 font-mono">${Math.round(pb.avgLoser)}</strong></span>
+              <div className="mt-5 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
+                <span>Avg Win: <strong className="text-emerald-400 font-mono font-bold">${Math.round(pb.avgWinner)}</strong></span>
+                <span>Avg Loss: <strong className="text-rose-400 font-mono font-bold">${Math.round(pb.avgLoser)}</strong></span>
               </div>
             </div>
           );

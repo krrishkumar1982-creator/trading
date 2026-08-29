@@ -258,7 +258,7 @@ export const TradingToolsView: React.FC = () => {
             </div>
             <div className="text-right font-mono text-xs text-slate-400 space-y-0.5">
               <div>
-                Calculated Risk: <strong className="text-rose-400">${sizingResult.riskAmount.toFixed(2)}</strong> ({sizingResult.riskPercentOfAccount}%)
+                Calculated Risk: <strong className="text-rose-400">${(sizingResult.riskAmount ?? 0).toFixed(2)}</strong> ({sizingResult.riskPercentOfAccount}%)
               </div>
               <div>
                 Stop Distance: <strong>{sizingResult.stopLossDistance} pts</strong> ({sizingResult.stopLossTicksOrPips} ticks/pips)
@@ -337,7 +337,7 @@ export const TradingToolsView: React.FC = () => {
             </div>
             <div className="text-right font-mono text-xs text-slate-400 space-y-0.5">
               <div>
-                Total Net Gain: <strong className="text-emerald-400">+{compoundingResult.totalGrowthPercent.toFixed(1)}%</strong>
+                Total Net Gain: <strong className="text-emerald-400">+{(compoundingResult.totalGrowthPercent ?? 0).toFixed(1)}%</strong>
               </div>
               <div>
                 Realized Profit: <strong className="text-slate-100">{formatCurrency(compoundingResult.totalNetProfit)}</strong>

@@ -25,15 +25,22 @@ export const GoalsRiskView: React.FC = () => {
 
   // Compute Today's Realized Loss
   const todayStr = new Date().toISOString().split('T')[0];
-  const todayTrades = filteredTrades.filter(t => t.entryDate.startsWith(todayStr));
+  const todayTrades = filteredTrades.filter(t => t.entryDate && t.entryDate.startsWith(todayStr) && t.status === 'CLOSED');
   const todayNet = todayTrades.reduce((acc, t) => acc + t.netPnl, 0);
   const todayLossAbs = todayNet < 0 ? Math.abs(todayNet) : 0;
-  const dailyLossPercent = Math.min(100, Math.round((todayLossAbs / dailyMaxLoss) * 100));
+  const dailyLossPercent = dailyMaxLoss > 0 ? Math.min(100, Math.round((todayLossAbs / dailyMaxLoss) * 100)) : 0;
 
-  // Compute Weekly Target Progress
-  const weekTrades = filteredTrades.slice(0, 10);
+  // Compute Weekly Target Progress (trades in current week or latest 7 days)
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const recentTrades = filteredTrades.filter(t => {
+    if (!t.entryDate || t.status !== 'CLOSED') return false;
+    const d = new Date(t.entryDate);
+    return d >= sevenDaysAgo;
+  });
+  const weekTrades = recentTrades.length > 0 ? recentTrades : filteredTrades.filter(t => t.status === 'CLOSED');
   const weekNet = weekTrades.reduce((acc, t) => acc + t.netPnl, 0);
-  const weeklyProgress = Math.min(100, Math.max(0, Math.round((weekNet / weeklyProfitTarget) * 100)));
+  const weeklyProgress = weeklyProfitTarget > 0 ? Math.min(100, Math.max(0, Math.round((Math.max(0, weekNet) / weeklyProfitTarget) * 100))) : 0;
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();

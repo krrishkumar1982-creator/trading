@@ -299,28 +299,28 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
       <div
         role="dialog"
         aria-modal="true"
-        className={`w-full max-w-4xl rounded-2xl border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 flex flex-col relative z-10 ${
+        className={`w-full max-w-4xl rounded-xl border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 flex flex-col relative z-10 ${
           isLight
-            ? 'bg-white border-zinc-200 text-zinc-900 shadow-2xl'
-            : 'bg-[#18181b] border-zinc-800 text-zinc-100 shadow-2xl'
+            ? 'bg-white border-[#E5E7EB] text-[#111827] shadow-2xl'
+            : 'bg-[#0D111B] border-[#20283A] text-[#F3F6FB] shadow-2xl'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* TOP HEADER: Date + Net P&L + View Note + Close Button */}
         <div className={`flex items-center justify-between px-6 pt-5 pb-4 border-b ${
-          isLight ? 'border-zinc-200 bg-white' : 'border-zinc-800 bg-[#18181b]'
+          isLight ? 'border-[#E5E7EB] bg-white' : 'border-[#20283A] bg-[#0D111B]'
         }`}>
           <div className="flex items-center gap-3 flex-wrap">
-            <h2 className={`text-xl font-bold tracking-tight ${isLight ? 'text-zinc-900' : 'text-zinc-100'}`}>
+            <h2 className={`text-xl font-bold tracking-tight ${isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'}`}>
               {formattedHeaderDate}
             </h2>
-            <span className={isLight ? 'text-zinc-400 font-bold text-lg' : 'text-zinc-600 font-bold text-lg'}>•</span>
+            <span className={isLight ? 'text-[#D1D5DB] font-bold text-lg' : 'text-[#374151] font-bold text-lg'}>•</span>
             <div className="flex items-center gap-1.5">
               <span
                 className={`text-base sm:text-lg font-bold font-mono ${
                   isNetPositive
-                    ? isLight ? 'text-emerald-600' : 'text-emerald-400'
-                    : isLight ? 'text-rose-600' : 'text-rose-400'
+                    ? isLight ? 'text-[#059669]' : 'text-[#00D6A3]'
+                    : isLight ? 'text-[#DC2626]' : 'text-[#FF3D6E]'
                 }`}
               >
                 Net P&L {formatCurrency(netPnl)}
@@ -332,11 +332,7 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
             {/* View Note Button */}
             <button
               onClick={handleViewNote}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-semibold text-xs transition active:scale-[0.98] ${
-                isLight
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
-                  : 'bg-[#6355d8] hover:bg-[#5245c7] text-white shadow-md shadow-[#6355d8]/20'
-              }`}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-semibold text-xs transition active:scale-[0.98] bg-[#2563FF] hover:bg-[#1D4ED8] text-white shadow-xs"
               title={dayNote ? 'View recorded journal note' : 'Open journal for this date'}
             >
               <BookOpen className="w-3.5 h-3.5" />
@@ -346,10 +342,10 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
             {/* Circular Close Button */}
             <button
               onClick={onClose}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition ${
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition border ${
                 isLight
-                  ? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900 border border-zinc-200'
-                  : 'bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-100 border border-zinc-700'
+                  ? 'bg-[#F8FAFC] hover:bg-[#F1F5F9] text-[#6B7280] hover:text-[#111827] border-[#E5E7EB]'
+                  : 'bg-[#111722] hover:bg-[#172030] text-[#8C97AB] hover:text-[#F3F6FB] border-[#20283A]'
               }`}
               title="Close modal (Esc)"
             >
@@ -360,7 +356,7 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
 
         {/* MIDDLE SECTION: Intraday Cumulative Net P&L Chart + Summary Metrics Grid */}
         <div className={`px-6 py-5 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center border-b ${
-          isLight ? 'border-zinc-200 bg-white' : 'border-zinc-800 bg-[#18181b]'
+          isLight ? 'border-[#E5E7EB] bg-white' : 'border-[#20283A] bg-[#0D111B]'
         }`}>
           {/* Left: Intraday cumulative net P&L Area Chart (5 cols) */}
           <div className="lg:col-span-5 relative flex flex-col justify-center">
@@ -374,12 +370,12 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
                   <linearGradient id="dayAreaGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop
                       offset="0%"
-                      stopColor={isNetPositive ? (isLight ? '#059669' : '#10b981') : (isLight ? '#dc2626' : '#f43f5e')}
-                      stopOpacity={isLight ? 0.25 : 0.40}
+                      stopColor={isNetPositive ? (isLight ? '#059669' : '#00D6A3') : (isLight ? '#dc2626' : '#FF3D6E')}
+                      stopOpacity={isLight ? 0.20 : 0.35}
                     />
                     <stop
                       offset="100%"
-                      stopColor={isNetPositive ? (isLight ? '#059669' : '#10b981') : (isLight ? '#dc2626' : '#f43f5e')}
+                      stopColor={isNetPositive ? (isLight ? '#059669' : '#00D6A3') : (isLight ? '#dc2626' : '#FF3D6E')}
                       stopOpacity="0.0"
                     />
                   </linearGradient>
@@ -397,14 +393,14 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
                         y1={y}
                         x2="350"
                         y2={y}
-                        stroke={isLight ? '#e5e7eb' : '#27272a'}
+                        stroke={isLight ? '#F1F5F9' : '#20283A'}
                         strokeDasharray="3 3"
                         strokeWidth="0.8"
                       />
                       <text
                         x="38"
                         y={y + 3.5}
-                        fill={isLight ? '#6b7280' : '#71717a'}
+                        fill={isLight ? '#6B7280' : '#8C97AB'}
                         fontSize="9.5"
                         textAnchor="end"
                         fontFamily="monospace"
@@ -429,7 +425,7 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
                   <path
                     d={chartData.pathD}
                     fill="none"
-                    stroke={isNetPositive ? (isLight ? '#059669' : '#34d399') : (isLight ? '#dc2626' : '#fb7185')}
+                    stroke={isNetPositive ? (isLight ? '#059669' : '#00D6A3') : (isLight ? '#dc2626' : '#FF3D6E')}
                     strokeWidth="2.2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -454,7 +450,7 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
                       cx={pt.x}
                       cy={pt.y}
                       r={hoveredPoint?.time === pt.time ? 5 : 3.5}
-                      fill={isNetPositive ? (isLight ? '#059669' : '#10b981') : (isLight ? '#dc2626' : '#f43f5e')}
+                      fill={isNetPositive ? (isLight ? '#059669' : '#00D6A3') : (isLight ? '#dc2626' : '#FF3D6E')}
                       stroke="#ffffff"
                       strokeWidth={hoveredPoint?.time === pt.time ? 2 : 1}
                       className="transition-all duration-150"
@@ -466,24 +462,24 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
               {/* Tooltip Overlay */}
               {hoveredPoint && (
                 <div
-                  className={`absolute z-20 pointer-events-none -translate-x-1/2 -translate-y-full mb-2 px-2.5 py-1 rounded-lg text-center shadow-xl text-[11px] ${
+                  className={`absolute z-20 pointer-events-none -translate-x-1/2 -translate-y-full mb-2 px-2.5 py-1 rounded-lg text-center shadow-xl text-[11px] border ${
                     isLight
-                      ? 'bg-white border border-zinc-200 text-zinc-900 shadow-lg'
-                      : 'bg-zinc-900 border border-zinc-700 text-zinc-100 shadow-2xl'
+                      ? 'bg-white border-[#E5E7EB] text-[#111827] shadow-lg'
+                      : 'bg-[#0D111B] border-[#28344A] text-[#F3F6FB] shadow-2xl'
                   }`}
                   style={{
                     left: `${(hoveredPoint.x / 360) * 100}%`,
                     top: `${(hoveredPoint.y / 140) * 100}%`,
                   }}
                 >
-                  <div className={`font-mono text-[9px] ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                  <div className={`font-mono text-[9px] ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>
                     {hoveredPoint.time}
                   </div>
                   <div
                     className={`font-mono font-bold ${
                       hoveredPoint.pnl >= 0
-                        ? isLight ? 'text-emerald-600' : 'text-emerald-400'
-                        : isLight ? 'text-rose-600' : 'text-rose-400'
+                        ? isLight ? 'text-[#059669]' : 'text-[#00D6A3]'
+                        : isLight ? 'text-[#DC2626]' : 'text-[#FF3D6E]'
                     }`}
                   >
                     {formatCurrency(hoveredPoint.pnl)}
@@ -494,10 +490,10 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
 
             {/* Label badge at bottom of chart */}
             <div className="text-center mt-1">
-              <span className={`inline-block text-[11px] font-medium px-2.5 py-0.5 rounded-full ${
+              <span className={`inline-block text-[11px] font-medium px-2.5 py-0.5 rounded-full border ${
                 isLight
-                  ? 'text-zinc-600 bg-zinc-100 border border-zinc-200'
-                  : 'text-zinc-400 bg-zinc-800/60 border border-zinc-700/50'
+                  ? 'text-[#6B7280] bg-[#F8FAFC] border-[#E5E7EB]'
+                  : 'text-[#8C97AB] bg-[#111722] border-[#20283A]'
               }`}>
                 Intraday cumulative net P&L
               </span>
@@ -507,54 +503,54 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
           {/* Right: Summary Metrics 4-Col Grid with Divider Lines */}
           <div className="lg:col-span-7 grid grid-cols-4 gap-y-4 gap-x-2 sm:gap-x-4 pl-0 lg:pl-4">
             {/* Column 1: Total trades & Winrate */}
-            <div className={`space-y-4 border-r pr-2 sm:pr-4 ${isLight ? 'border-zinc-200' : 'border-zinc-800'}`}>
+            <div className={`space-y-4 border-r pr-2 sm:pr-4 ${isLight ? 'border-[#E5E7EB]' : 'border-[#20283A]'}`}>
               <div>
-                <span className={`block text-xs ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>Total trades</span>
-                <span className={`text-sm sm:text-base font-bold font-mono ${isLight ? 'text-zinc-900' : 'text-zinc-100'}`}>
+                <span className={`block text-xs ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>Total trades</span>
+                <span className={`text-sm sm:text-base font-bold font-mono ${isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'}`}>
                   {totalTrades}
                 </span>
               </div>
               <div>
-                <span className={`block text-xs ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>Winrate</span>
-                <span className={`text-sm sm:text-base font-bold font-mono ${isLight ? 'text-zinc-900' : 'text-zinc-100'}`}>
+                <span className={`block text-xs ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>Winrate</span>
+                <span className={`text-sm sm:text-base font-bold font-mono ${isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'}`}>
                   {winRate}%
                 </span>
               </div>
             </div>
 
             {/* Column 2: Winners & Losers */}
-            <div className={`space-y-4 border-r pr-2 sm:pr-4 ${isLight ? 'border-zinc-200' : 'border-zinc-800'}`}>
+            <div className={`space-y-4 border-r pr-2 sm:pr-4 ${isLight ? 'border-[#E5E7EB]' : 'border-[#20283A]'}`}>
               <div>
-                <span className={`block text-xs ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>Winners</span>
-                <span className={`text-sm sm:text-base font-bold font-mono ${isLight ? 'text-emerald-600' : 'text-emerald-400'}`}>
+                <span className={`block text-xs ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>Winners</span>
+                <span className={`text-sm sm:text-base font-bold font-mono ${isLight ? 'text-[#059669]' : 'text-[#00D6A3]'}`}>
                   {winners}
                 </span>
               </div>
               <div>
-                <span className={`block text-xs ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>Losers</span>
-                <span className={`text-sm sm:text-base font-bold font-mono ${isLight ? 'text-rose-600' : 'text-rose-400'}`}>
+                <span className={`block text-xs ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>Losers</span>
+                <span className={`text-sm sm:text-base font-bold font-mono ${isLight ? 'text-[#DC2626]' : 'text-[#FF3D6E]'}`}>
                   {losers}
                 </span>
               </div>
             </div>
 
             {/* Column 3: Gross P&L & Volume */}
-            <div className={`space-y-4 border-r pr-2 sm:pr-4 ${isLight ? 'border-zinc-200' : 'border-zinc-800'}`}>
+            <div className={`space-y-4 border-r pr-2 sm:pr-4 ${isLight ? 'border-[#E5E7EB]' : 'border-[#20283A]'}`}>
               <div>
-                <span className={`block text-xs ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>Gross P&L</span>
+                <span className={`block text-xs ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>Gross P&L</span>
                 <span
                   className={`text-sm sm:text-base font-bold font-mono ${
                     grossPnl >= 0
-                      ? isLight ? 'text-zinc-900' : 'text-zinc-100'
-                      : isLight ? 'text-rose-600' : 'text-rose-400'
+                      ? isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'
+                      : isLight ? 'text-[#DC2626]' : 'text-[#FF3D6E]'
                   }`}
                 >
                   {formatCurrency(grossPnl)}
                 </span>
               </div>
               <div>
-                <span className={`block text-xs ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>Volume</span>
-                <span className={`text-sm sm:text-base font-bold font-mono ${isLight ? 'text-zinc-900' : 'text-zinc-100'}`}>
+                <span className={`block text-xs ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>Volume</span>
+                <span className={`text-sm sm:text-base font-bold font-mono ${isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'}`}>
                   {volume}
                 </span>
               </div>
@@ -563,14 +559,14 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
             {/* Column 4: Commissions & Profit factor */}
             <div className="space-y-4">
               <div>
-                <span className={`block text-xs ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>Commissions</span>
-                <span className={`text-sm sm:text-base font-bold font-mono ${isLight ? 'text-zinc-900' : 'text-zinc-100'}`}>
+                <span className={`block text-xs ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>Commissions</span>
+                <span className={`text-sm sm:text-base font-bold font-mono ${isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'}`}>
                   {formatCurrency(commissions)}
                 </span>
               </div>
               <div>
-                <span className={`block text-xs ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>Profit factor</span>
-                <span className={`text-sm sm:text-base font-bold font-mono ${isLight ? 'text-zinc-900' : 'text-zinc-100'}`}>
+                <span className={`block text-xs ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>Profit factor</span>
+                <span className={`text-sm sm:text-base font-bold font-mono ${isLight ? 'text-[#111827]' : 'text-[#F3F6FB]'}`}>
                   {profitFactor}
                 </span>
               </div>
@@ -579,13 +575,13 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
         </div>
 
         {/* LOWER SECTION: Trades Table */}
-        <div className={`px-6 py-4 flex-1 overflow-x-auto custom-scrollbar ${isLight ? 'bg-white' : 'bg-[#18181b]'}`}>
+        <div className={`px-6 py-4 flex-1 overflow-x-auto custom-scrollbar ${isLight ? 'bg-white' : 'bg-[#0D111B]'}`}>
           <table className="w-full text-left text-xs border-collapse min-w-[700px]">
             <thead>
-              <tr className={`rounded-xl font-bold border-b ${
+              <tr className={`rounded-lg font-bold border-b ${
                 isLight
-                  ? 'bg-zinc-50 text-zinc-600 border-zinc-200'
-                  : 'bg-zinc-800/60 text-zinc-300 border-zinc-800'
+                  ? 'bg-[#F8FAFC] text-[#4B5563] border-[#E5E7EB]'
+                  : 'bg-[#111722] text-[#8C97AB] border-[#20283A]'
               }`}>
                 <th className="py-2.5 px-3 rounded-l-lg">Open time</th>
                 <th className="py-2.5 px-3">Ticker</th>
@@ -597,10 +593,10 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
                 <th className="py-2.5 px-3 rounded-r-lg">Playbook</th>
               </tr>
             </thead>
-            <tbody className={`divide-y ${isLight ? 'divide-zinc-100' : 'divide-zinc-800/50'}`}>
+            <tbody className={`divide-y ${isLight ? 'divide-[#F1F5F9]' : 'divide-[#20283A]/40'}`}>
               {trades.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className={`py-8 text-center ${isLight ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                  <td colSpan={8} className={`py-8 text-center ${isLight ? 'text-[#9CA3AF]' : 'text-[#5F6B80]'}`}>
                     No trades executed on this date.
                   </td>
                 </tr>
@@ -631,24 +627,24 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
                       className={`cursor-pointer transition ${
                         isLight
                           ? isSelected
-                            ? 'bg-blue-50/80 text-zinc-900'
-                            : 'hover:bg-zinc-50 text-zinc-800'
+                            ? 'bg-blue-50/80 text-[#111827]'
+                            : 'hover:bg-[#F8FAFC] text-[#374151]'
                           : isSelected
-                          ? 'bg-zinc-800/60 text-zinc-100'
-                          : 'hover:bg-zinc-800/40 text-zinc-300'
+                          ? 'bg-[#172238] text-[#F3F6FB]'
+                          : 'hover:bg-[#111722] text-[#8C97AB]'
                       }`}
                     >
                       {/* Open time */}
-                      <td className={`py-3 px-3 font-mono text-[11px] ${isLight ? 'text-zinc-700' : 'text-zinc-300'}`}>
+                      <td className={`py-3 px-3 font-mono text-[11px] ${isLight ? 'text-[#374151]' : 'text-[#C5CEE0]'}`}>
                         {openTimeStr}
                       </td>
 
                       {/* Ticker badge */}
                       <td className="py-3 px-3">
-                        <span className={`inline-block px-2 py-0.5 rounded font-bold text-[11px] ${
+                        <span className={`inline-block px-2 py-0.5 rounded font-bold text-[11px] border ${
                           isLight
-                            ? 'bg-zinc-100 border border-zinc-200 text-zinc-800'
-                            : 'bg-zinc-800 border border-zinc-700 text-zinc-200'
+                            ? 'bg-[#F1F5F9] border-[#E5E7EB] text-[#111827]'
+                            : 'bg-[#151C28] border-[#20283A] text-[#F3F6FB]'
                         }`}>
                           {t.symbol}
                         </span>
@@ -659,8 +655,8 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
                         <span
                           className={`font-bold text-[11px] ${
                             t.direction === 'BUY'
-                              ? isLight ? 'text-blue-600' : 'text-blue-400'
-                              : isLight ? 'text-amber-600' : 'text-amber-400'
+                              ? isLight ? 'text-[#2563FF]' : 'text-[#4C7DFF]'
+                              : isLight ? 'text-[#D97706]' : 'text-[#F59E0B]'
                           }`}
                         >
                           {sideStr}
@@ -668,7 +664,7 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
                       </td>
 
                       {/* Instrument */}
-                      <td className={`py-3 px-3 font-medium ${isLight ? 'text-zinc-700' : 'text-zinc-300'}`}>
+                      <td className={`py-3 px-3 font-medium ${isLight ? 'text-[#374151]' : 'text-[#C5CEE0]'}`}>
                         {t.symbol} {entryDateObj ? entryDateObj.toISOString().slice(5, 10) : ''}
                       </td>
 
@@ -676,15 +672,15 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
                       <td
                         className={`py-3 px-3 font-mono font-bold ${
                           isPositive
-                            ? isLight ? 'text-emerald-600' : 'text-emerald-400'
-                            : isLight ? 'text-rose-600' : 'text-rose-400'
+                            ? isLight ? 'text-[#059669]' : 'text-[#00D6A3]'
+                            : isLight ? 'text-[#DC2626]' : 'text-[#FF3D6E]'
                         }`}
                       >
                         {formatCurrency(t.netPnl)}
                       </td>
 
                       {/* Net ROI */}
-                      <td className={`py-3 px-3 font-mono ${isLight ? 'text-zinc-700' : 'text-zinc-300'}`}>
+                      <td className={`py-3 px-3 font-mono ${isLight ? 'text-[#374151]' : 'text-[#C5CEE0]'}`}>
                         {t.roiPercent
                           ? `${t.roiPercent >= 0 ? '+' : ''}${t.roiPercent.toFixed(2)}%`
                           : isPositive
@@ -693,14 +689,14 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
                       </td>
 
                       {/* Realized R-Multiple */}
-                      <td className={`py-3 px-3 font-mono ${isLight ? 'text-zinc-700' : 'text-zinc-300'}`}>
+                      <td className={`py-3 px-3 font-mono ${isLight ? 'text-[#374151]' : 'text-[#C5CEE0]'}`}>
                         {t.rMultiple
                           ? `${t.rMultiple >= 0 ? '+' : ''}${t.rMultiple.toFixed(2)}R`
                           : formatRMultiple(t.rMultiple || (isPositive ? 3.5 : -1.0))}
                       </td>
 
                       {/* Playbook */}
-                      <td className={`py-3 px-3 ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                      <td className={`py-3 px-3 ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>
                         {playbookName}
                       </td>
                     </tr>
@@ -714,26 +710,22 @@ export const CalendarDayDetailsModal: React.FC<CalendarDayDetailsModalProps> = (
         {/* BOTTOM ACTIONS: Cancel & View Details */}
         <div className={`px-6 py-4 border-t flex items-center justify-end gap-3 ${
           isLight
-            ? 'border-zinc-200 bg-zinc-50/80'
-            : 'border-zinc-800 bg-zinc-900/60'
+            ? 'border-[#E5E7EB] bg-[#F8FAFC]'
+            : 'border-[#20283A] bg-[#0A0E16]'
         }`}>
           <button
             onClick={onClose}
-            className={`px-5 py-2 rounded-xl text-xs font-semibold border transition ${
+            className={`px-5 py-2 rounded-lg text-xs font-semibold border transition ${
               isLight
-                ? 'border-zinc-300 bg-white hover:bg-zinc-100 text-zinc-700 shadow-sm'
-                : 'border-zinc-700 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300'
+                ? 'border-[#E5E7EB] bg-white hover:bg-[#F1F5F9] text-[#374151]'
+                : 'border-[#20283A] bg-[#111722] hover:bg-[#172030] text-[#8C97AB] hover:text-[#F3F6FB]'
             }`}
           >
             Cancel
           </button>
           <button
             onClick={handleViewDetails}
-            className={`px-6 py-2 rounded-xl text-xs font-semibold transition active:scale-[0.98] ${
-              isLight
-                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20'
-                : 'bg-[#6355d8] hover:bg-[#5245c7] text-white shadow-md shadow-[#6355d8]/25'
-            }`}
+            className="px-6 py-2 rounded-lg text-xs font-semibold transition active:scale-[0.98] bg-[#2563FF] hover:bg-[#1D4ED8] text-white shadow-sm"
           >
             View Details
           </button>

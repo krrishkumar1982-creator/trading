@@ -74,32 +74,32 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed })
 
   return (
     <aside
-      className={`relative flex flex-col border-r transition-all duration-300 z-30 select-none ${
+      className={`relative flex flex-col h-screen border-r transition-all duration-200 z-30 select-none overflow-hidden shrink-0 ${
         isLight
-          ? 'bg-white border-zinc-200 text-zinc-900'
-          : 'bg-[#0B0E14] border-[#1E2536] text-slate-100 shadow-[4px_0_24px_rgba(0,0,0,0.4)]'
+          ? 'bg-white border-[#E5E7EB] text-[#111827]'
+          : 'bg-[#0E0E11] border-[#26262B] text-[#F4F4F5]'
       } ${
         isCollapsed ? 'w-16' : 'w-64'
       }`}
     >
       {/* Brand Header */}
-      <div className={`h-16 flex items-center px-4 border-b gap-3 ${isLight ? 'border-zinc-200' : 'border-[#1E2536]'}`}>
-        <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-md shadow-blue-500/25 text-white font-black text-sm tracking-wider ring-1 ring-white/20">
+      <div className={`h-16 flex items-center px-4 border-b gap-3 ${isLight ? 'border-[#E5E7EB]' : 'border-[#26262B] bg-transparent'}`}>
+        <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#2563FF] text-white font-bold text-xs tracking-wider">
           TF
-          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#0B0E14]" />
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#00D6A3] ring-2 ring-[#0E0E11]" />
         </div>
         {!isCollapsed && (
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className={`text-[15px] font-extrabold tracking-tight truncate ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+              <span className={`text-[14px] font-bold tracking-tight truncate ${isLight ? 'text-[#111827]' : 'text-[#F4F4F5]'}`}>
                 TradeForge
               </span>
-              <span className="text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30">
+              <span className="text-[9px] font-semibold tracking-wider px-1.5 py-0.2 rounded bg-[rgba(37,99,255,0.12)] text-[#2563FF] border border-[rgba(37,99,255,0.25)]">
                 PRO
               </span>
             </div>
-            <span className={`text-[11px] font-medium tracking-wide truncate ${isLight ? 'text-zinc-500' : 'text-slate-400'}`}>
-              Institutional Analytics
+            <span className={`text-[11px] font-medium tracking-wide truncate ${isLight ? 'text-[#6B7280]' : 'text-[#A1A1AA]'}`}>
+              Institutional Terminal
             </span>
           </div>
         )}
@@ -110,11 +110,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed })
         {/* Core Nav */}
         <div>
           {!isCollapsed && (
-            <div className={`px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider ${isLight ? 'text-zinc-400' : 'text-slate-500'}`}>
+            <div className={`px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider ${isLight ? 'text-[#9CA3AF]' : 'text-[#71717A]'}`}>
               Platform
             </div>
           )}
-          <nav className="space-y-1">
+          <nav className="space-y-0.5">
             {mainNavItems.map(item => {
               const Icon = item.icon;
               const isActive = activeView === item.id;
@@ -122,35 +122,36 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed })
                 <button
                   key={item.id}
                   onClick={() => setActiveView(item.id)}
-                  className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all duration-200 ${
+                  className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-colors duration-150 ${
                     isActive
                       ? isLight
-                        ? 'bg-blue-50 text-blue-800 border border-blue-200 shadow-xs'
-                        : 'bg-blue-600/15 text-blue-400 border border-blue-500/30 shadow-[0_0_15px_-3px_rgba(59,130,246,0.2)]'
+                        ? 'bg-[rgba(37,99,255,0.08)] text-[#1D4ED8] border border-[rgba(37,99,255,0.20)] font-semibold'
+                        : 'bg-[rgba(37,99,255,0.08)] text-[#F4F4F5] border border-[rgba(37,99,255,0.18)] font-semibold'
                       : isLight
-                        ? 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border border-transparent'
-                        : 'text-slate-400 hover:bg-[#151B28] hover:text-slate-200 border border-transparent'
+                        ? 'text-[#4B5563] hover:bg-[#F8FAFC] hover:text-[#111827] border border-transparent'
+                        : 'text-[#A1A1AA] hover:bg-[rgba(255,255,255,0.035)] hover:text-[#F4F4F5] border border-transparent'
                   } ${isCollapsed ? 'justify-center px-0' : ''}`}
                   title={isCollapsed ? item.label : undefined}
                 >
+                  {/* Small blue left indicator */}
                   {isActive && (
-                    <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-blue-500 shadow-[0_0_8px_#3B82F6]" />
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[18px] rounded-r-[2px] bg-[#2563FF]" />
                   )}
                   <Icon
-                    className={`h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+                    className={`h-4 w-4 shrink-0 transition-colors duration-150 ${
                       isActive
-                        ? isLight ? 'text-blue-600' : 'text-blue-400'
-                        : isLight ? 'text-zinc-400 group-hover:text-zinc-700' : 'text-slate-400 group-hover:text-slate-200'
+                        ? isLight ? 'text-[#2563FF]' : 'text-[#4C7DFF]'
+                        : isLight ? 'text-[#6B7280] group-hover:text-[#111827]' : 'text-[#71717A] group-hover:text-[#D4D4D8]'
                     }`}
                   />
                   {!isCollapsed && (
                     <span className="truncate flex-1 text-left tracking-tight">{item.label}</span>
                   )}
                   {!isCollapsed && item.badge && (
-                    <span className={`ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                    <span className={`ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded ${
                       item.badge === 'PRO'
-                        ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                        : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        ? 'bg-[rgba(37,99,255,0.12)] text-[#4C7DFF] border border-[rgba(37,99,255,0.25)]'
+                        : 'bg-[rgba(0,214,163,0.10)] text-[#00D6A3] border border-[rgba(0,214,163,0.30)]'
                     }`}>
                       {item.badge}
                     </span>
@@ -164,11 +165,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed })
         {/* Tools Section */}
         <div>
           {!isCollapsed && (
-            <div className={`px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider ${isLight ? 'text-zinc-400' : 'text-slate-500'}`}>
+            <div className={`px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider ${isLight ? 'text-[#9CA3AF]' : 'text-[#71717A]'}`}>
               Execution & Intelligence
             </div>
           )}
-          <nav className="space-y-1">
+          <nav className="space-y-0.5">
             {tradingToolsNav.map(item => {
               const Icon = item.icon;
               const isActive = activeView === item.id;
@@ -176,32 +177,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed })
                 <button
                   key={item.id}
                   onClick={() => setActiveView(item.id)}
-                  className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all duration-200 ${
+                  className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-colors duration-150 ${
                     isActive
                       ? isLight
-                        ? 'bg-blue-50 text-blue-800 border border-blue-200 shadow-xs'
-                        : 'bg-blue-600/15 text-blue-400 border border-blue-500/30 shadow-[0_0_15px_-3px_rgba(59,130,246,0.2)]'
+                        ? 'bg-[rgba(37,99,255,0.08)] text-[#1D4ED8] border border-[rgba(37,99,255,0.20)] font-semibold'
+                        : 'bg-[rgba(37,99,255,0.08)] text-[#F4F4F5] border border-[rgba(37,99,255,0.18)] font-semibold'
                       : isLight
-                        ? 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border border-transparent'
-                        : 'text-slate-400 hover:bg-[#151B28] hover:text-slate-200 border border-transparent'
+                        ? 'text-[#4B5563] hover:bg-[#F8FAFC] hover:text-[#111827] border border-transparent'
+                        : 'text-[#A1A1AA] hover:bg-[rgba(255,255,255,0.035)] hover:text-[#F4F4F5] border border-transparent'
                   } ${isCollapsed ? 'justify-center px-0' : ''}`}
                   title={isCollapsed ? item.label : undefined}
                 >
+                  {/* Small blue left indicator */}
                   {isActive && (
-                    <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-blue-500 shadow-[0_0_8px_#3B82F6]" />
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[18px] rounded-r-[2px] bg-[#2563FF]" />
                   )}
                   <Icon
-                    className={`h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+                    className={`h-4 w-4 shrink-0 transition-colors duration-150 ${
                       isActive
-                        ? isLight ? 'text-blue-600' : 'text-blue-400'
-                        : isLight ? 'text-zinc-400 group-hover:text-zinc-700' : 'text-slate-400 group-hover:text-slate-200'
+                        ? isLight ? 'text-[#2563FF]' : 'text-[#4C7DFF]'
+                        : isLight ? 'text-[#6B7280] group-hover:text-[#111827]' : 'text-[#71717A] group-hover:text-[#D4D4D8]'
                     }`}
                   />
                   {!isCollapsed && (
                     <span className="truncate flex-1 text-left tracking-tight">{item.label}</span>
                   )}
                   {!isCollapsed && item.badge && (
-                    <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                    <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[rgba(37,99,255,0.12)] text-[#4C7DFF] border border-[rgba(37,99,255,0.25)]">
                       {item.badge}
                     </span>
                   )}
@@ -214,11 +216,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed })
         {/* System Section */}
         <div>
           {!isCollapsed && (
-            <div className={`px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider ${isLight ? 'text-zinc-400' : 'text-slate-500'}`}>
+            <div className={`px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider ${isLight ? 'text-[#9CA3AF]' : 'text-[#71717A]'}`}>
               Config
             </div>
           )}
-          <nav className="space-y-1">
+          <nav className="space-y-0.5">
             {bottomNav.map(item => {
               const Icon = item.icon;
               const isActive = activeView === item.id;
@@ -226,25 +228,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed })
                 <button
                   key={item.id}
                   onClick={() => setActiveView(item.id)}
-                  className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all duration-200 ${
+                  className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-colors duration-150 ${
                     isActive
                       ? isLight
-                        ? 'bg-blue-50 text-blue-800 border border-blue-200 shadow-xs'
-                        : 'bg-blue-600/15 text-blue-400 border border-blue-500/30 shadow-[0_0_15px_-3px_rgba(59,130,246,0.2)]'
+                        ? 'bg-[rgba(37,99,255,0.08)] text-[#1D4ED8] border border-[rgba(37,99,255,0.20)] font-semibold'
+                        : 'bg-[rgba(37,99,255,0.08)] text-[#F4F4F5] border border-[rgba(37,99,255,0.18)] font-semibold'
                       : isLight
-                        ? 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border border-transparent'
-                        : 'text-slate-400 hover:bg-[#151B28] hover:text-slate-200 border border-transparent'
+                        ? 'text-[#4B5563] hover:bg-[#F8FAFC] hover:text-[#111827] border border-transparent'
+                        : 'text-[#A1A1AA] hover:bg-[rgba(255,255,255,0.035)] hover:text-[#F4F4F5] border border-transparent'
                   } ${isCollapsed ? 'justify-center px-0' : ''}`}
                   title={isCollapsed ? item.label : undefined}
                 >
+                  {/* Small blue left indicator */}
                   {isActive && (
-                    <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-blue-500 shadow-[0_0_8px_#3B82F6]" />
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[18px] rounded-r-[2px] bg-[#2563FF]" />
                   )}
                   <Icon
-                    className={`h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+                    className={`h-4 w-4 shrink-0 transition-colors duration-150 ${
                       isActive
-                        ? isLight ? 'text-blue-600' : 'text-blue-400'
-                        : isLight ? 'text-zinc-400 group-hover:text-zinc-700' : 'text-slate-400 group-hover:text-slate-200'
+                        ? isLight ? 'text-[#2563FF]' : 'text-[#4C7DFF]'
+                        : isLight ? 'text-[#6B7280] group-hover:text-[#111827]' : 'text-[#71717A] group-hover:text-[#D4D4D8]'
                     }`}
                   />
                   {!isCollapsed && (
@@ -258,30 +261,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed })
       </div>
 
       {/* Footer Collapse Toggle & User Badge */}
-      <div className={`p-2.5 border-t flex items-center justify-between ${isLight ? 'border-zinc-200 bg-zinc-50' : 'border-[#1E2536] bg-[#0B0E14]'}`}>
+      <div className={`p-2.5 border-t flex items-center justify-between ${isLight ? 'border-[#E5E7EB] bg-[#F8FAFC]' : 'border-[#26262B] bg-[#0E0E11]'}`}>
         {!isCollapsed ? (
           <div className="flex items-center justify-between w-full px-1">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="relative">
-                <div className={`w-7 h-7 rounded-xl font-bold text-xs flex items-center justify-center ${
-                  isLight ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-blue-600/20 text-blue-300 border border-blue-500/30'
+                <div className={`w-7 h-7 rounded-lg font-semibold text-xs flex items-center justify-center ${
+                  isLight ? 'bg-[rgba(37,99,255,0.10)] text-[#1D4ED8] border border-[rgba(37,99,255,0.20)]' : 'bg-[rgba(37,99,255,0.12)] text-[#4C7DFF] border border-[rgba(37,99,255,0.25)]'
                 }`}>
                   AR
                 </div>
-                <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#0B0E14]" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#00D6A3] ring-2 ring-[#0E0E11]" />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className={`text-xs font-bold truncate ${isLight ? 'text-zinc-900' : 'text-slate-200'}`}>
+                <span className={`text-xs font-semibold truncate ${isLight ? 'text-[#111827]' : 'text-[#F4F4F5]'}`}>
                   Alex River
                 </span>
-                <span className={`text-[10px] font-mono truncate ${isLight ? 'text-zinc-500' : 'text-slate-500'}`}>
+                <span className={`text-[10px] font-mono truncate ${isLight ? 'text-[#6B7280]' : 'text-[#A1A1AA]'}`}>
                   Funded Master
                 </span>
               </div>
             </div>
             <button
               onClick={() => setIsCollapsed(true)}
-              className={`p-1.5 rounded-lg transition ${isLight ? 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200' : 'text-slate-400 hover:text-white hover:bg-[#161B26]'}`}
+              className={`p-1.5 rounded-lg transition-colors ${isLight ? 'text-[#6B7280] hover:text-[#111827] hover:bg-[#E5E7EB]' : 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[rgba(255,255,255,0.05)]'}`}
               title="Collapse Sidebar"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -290,7 +293,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed })
         ) : (
           <button
             onClick={() => setIsCollapsed(false)}
-            className={`w-full flex justify-center p-1.5 rounded-lg transition ${isLight ? 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200' : 'text-slate-400 hover:text-white hover:bg-[#161B26]'}`}
+            className={`w-full flex justify-center p-1.5 rounded-lg transition-colors ${isLight ? 'text-[#6B7280] hover:text-[#111827] hover:bg-[#E5E7EB]' : 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[rgba(255,255,255,0.05)]'}`}
             title="Expand Sidebar"
           >
             <ChevronRight className="w-4 h-4" />

@@ -833,18 +833,24 @@ export async function deleteMentorFeedback(id: string) {
 }
 
 // Leaderboard & Admin API calls
-export async function fetchLeaderboardApi() {
-  try {
-    const res = await authenticatedFetch('/api/leaderboard');
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || 'Failed to fetch leaderboard');
+export async function fetchLeaderboardApi(retries = 3, delay = 500) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await authenticatedFetch('/api/leaderboard');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to fetch leaderboard');
+      }
+      return await res.json();
+    } catch (error) {
+      if (attempt === retries) {
+        console.warn('fetchLeaderboardApi error after retries:', error);
+        return { success: true, leaderboard: [] };
+      }
+      await new Promise((resolve) => setTimeout(resolve, delay * attempt));
     }
-    return await res.json();
-  } catch (error) {
-    console.error('fetchLeaderboardApi error:', error);
-    throw error;
   }
+  return { success: true, leaderboard: [] };
 }
 
 export async function updateUserPointsAdminApi(userId: string, points: number, reason?: string) {

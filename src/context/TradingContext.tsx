@@ -870,7 +870,7 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
         setLeaderboard(data.leaderboard);
       }
     } catch (err: any) {
-      console.error('fetchLeaderboard error:', err);
+      console.warn('fetchLeaderboard note:', err?.message || err);
     }
   };
 
@@ -928,7 +928,12 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const computedPlaybooks = useMemo(() => {
     return playbooks.map(pb => {
-      const pbTrades = trades.filter(t => t.playbookId === pb.id && t.status === 'CLOSED');
+      const pbTrades = trades.filter(t => {
+        if (t.status !== 'CLOSED') return false;
+        if (t.playbookId === pb.id) return true;
+        if (t.setupType && pb.name && t.setupType.trim().toLowerCase() === pb.name.trim().toLowerCase()) return true;
+        return false;
+      });
       const metrics = calculatePlaybookMetrics(pbTrades);
 
       return {
@@ -943,6 +948,26 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
       };
     });
   }, [playbooks, trades]);
+
+  const computedStrategies = useMemo(() => {
+    return strategies.map(strat => {
+      const stratTrades = trades.filter(t => {
+        if (t.status !== 'CLOSED') return false;
+        if (t.strategyId === strat.id) return true;
+        if (t.setupType && strat.name && t.setupType.trim().toLowerCase() === strat.name.trim().toLowerCase()) return true;
+        return false;
+      });
+      const metrics = calculatePlaybookMetrics(stratTrades);
+
+      return {
+        ...strat,
+        totalTrades: metrics.totalTrades,
+        winRate: metrics.winRate,
+        netPnl: metrics.netPnl,
+        profitFactor: metrics.profitFactor,
+      };
+    });
+  }, [strategies, trades]);
 
   // Trade CRUD
   const addTrade = (tradeData: Omit<Trade, 'id'>) => {
@@ -1368,7 +1393,7 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
         addPlaybook,
         updatePlaybook,
         deletePlaybook,
-        strategies,
+        strategies: computedStrategies,
         addStrategy,
         notes,
         folders,

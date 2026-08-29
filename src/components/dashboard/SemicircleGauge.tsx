@@ -60,7 +60,7 @@ export const MultiSegmentSemicircleGauge: React.FC<MultiSegmentSemicircleProps> 
         <path
           d={pathData}
           fill="none"
-          stroke={isLight ? '#e4e4e7' : '#27272a'}
+          stroke={isLight ? '#E5E7EB' : '#20283A'}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
         />
@@ -70,7 +70,7 @@ export const MultiSegmentSemicircleGauge: React.FC<MultiSegmentSemicircleProps> 
           <path
             d={pathData}
             fill="none"
-            stroke={isLight ? '#059669' : '#10b981'} // Emerald / Teal green
+            stroke={isLight ? '#059669' : '#00D6A3'}
             strokeWidth={strokeWidth}
             strokeDasharray={`${winLen} ${arcLength}`}
             strokeDashoffset="0"
@@ -84,7 +84,7 @@ export const MultiSegmentSemicircleGauge: React.FC<MultiSegmentSemicircleProps> 
           <path
             d={pathData}
             fill="none"
-            stroke={isLight ? '#2563eb' : '#3b82f6'} // Blue
+            stroke={isLight ? '#2563FF' : '#4C7DFF'}
             strokeWidth={strokeWidth}
             strokeDasharray={`${beLen} ${arcLength}`}
             strokeDashoffset={-winLen}
@@ -97,7 +97,7 @@ export const MultiSegmentSemicircleGauge: React.FC<MultiSegmentSemicircleProps> 
           <path
             d={pathData}
             fill="none"
-            stroke={isLight ? '#e11d48' : '#ef4444'} // Rose / Red
+            stroke={isLight ? '#DC2626' : '#FF3D6E'}
             strokeWidth={strokeWidth}
             strokeDasharray={`${lossLen} ${arcLength}`}
             strokeDashoffset={-(winLen + beLen)}
@@ -141,7 +141,7 @@ export const ProfitFactorDonut: React.FC<ProfitFactorDonutProps> = ({
             cy={cy}
             r={r}
             fill="none"
-            stroke={isLight ? '#e4e4e7' : '#27272a'}
+            stroke={isLight ? '#E5E7EB' : '#20283A'}
             strokeWidth={strokeWidth}
           />
         </svg>
@@ -164,7 +164,7 @@ export const ProfitFactorDonut: React.FC<ProfitFactorDonutProps> = ({
           cy={cy}
           r={r}
           fill="none"
-          stroke={isLight ? '#e4e4e7' : '#27272a'}
+          stroke={isLight ? '#E5E7EB' : '#20283A'}
           strokeWidth={strokeWidth}
         />
 
@@ -175,7 +175,7 @@ export const ProfitFactorDonut: React.FC<ProfitFactorDonutProps> = ({
             cy={cy}
             r={r}
             fill="none"
-            stroke={isLight ? '#059669' : '#10b981'}
+            stroke={isLight ? '#059669' : '#00D6A3'}
             strokeWidth={strokeWidth}
             strokeDasharray={`${profitLen} ${circumference}`}
             strokeDashoffset="0"
@@ -190,7 +190,7 @@ export const ProfitFactorDonut: React.FC<ProfitFactorDonutProps> = ({
             cy={cy}
             r={r}
             fill="none"
-            stroke={isLight ? '#e11d48' : '#ef4444'}
+            stroke={isLight ? '#DC2626' : '#FF3D6E'}
             strokeWidth={strokeWidth}
             strokeDasharray={`${lossLen} ${circumference}`}
             strokeDashoffset={-profitLen}
@@ -227,7 +227,7 @@ export const SemicircleGauge: React.FC<{
     fraction = Math.min(1, Math.max(0, value / 100));
   }
 
-  const strokeColor = color || (value >= 50 || (isProfitFactor && value >= 1.5) ? (isLight ? '#059669' : '#10b981') : (isLight ? '#e11d48' : '#ef4444'));
+  const strokeColor = color || (value >= 50 || (isProfitFactor && value >= 1.5) ? (isLight ? '#059669' : '#00D6A3') : (isLight ? '#DC2626' : '#FF3D6E'));
   const width = size;
   const height = size / 2 + strokeWidth + 2;
   const cx = width / 2;
@@ -243,7 +243,7 @@ export const SemicircleGauge: React.FC<{
         <path
           d={pathData}
           fill="none"
-          stroke={isLight ? '#e4e4e7' : '#27272a'}
+          stroke={isLight ? '#E5E7EB' : '#20283A'}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
         />
