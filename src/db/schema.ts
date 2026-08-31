@@ -3,7 +3,7 @@ import { pgTable, serial, text, timestamp, doublePrecision, integer, boolean, js
 // Users table
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
-  uid: text('uid').notNull().unique(), // Firebase Auth UID or dev user identifier
+  uid: text('uid').notNull().unique(), // Auth UID or dev user identifier
   name: text('name').notNull(),
   email: text('email').notNull(),
   accountCode: text('account_code').notNull().unique(),
@@ -13,6 +13,18 @@ export const users = pgTable('users', {
   isPublic: boolean('is_public').notNull().default(true),
   avatar: text('avatar').notNull().default('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80'),
   createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Profiles table (Supabase auth.users profile linkage)
+export const profiles = pgTable('profiles', {
+  id: text('id').primaryKey(), // Matches auth.users.id (UUID)
+  fullName: text('full_name').notNull().default(''),
+  email: text('email').notNull().default(''),
+  accountCode: text('account_code'),
+  experienceLevel: text('experience_level').default('Intermediate'),
+  avatarUrl: text('avatar_url').default(''),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 // Trading Accounts table
@@ -36,6 +48,13 @@ export const trades = pgTable('trades', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull(),
   accountId: text('account_id').notNull(),
+  connectionId: text('connection_id'),
+  externalTradeId: text('external_trade_id'),
+  platform: text('platform'),
+  broker: text('broker'),
+  source: text('source').notNull().default('manual'),
+  orderId: text('order_id'),
+  positionId: text('position_id'),
   symbol: text('symbol').notNull(),
   market: text('market').notNull(),
   direction: text('direction').notNull(),
@@ -57,7 +76,16 @@ export const trades = pgTable('trades', {
   session: text('session').notNull(),
   strategyId: text('strategy_id'),
   playbookId: text('playbook_id'),
+  setupId: text('setup_id'),
   setupType: text('setup_type').notNull(),
+  setupGrade: text('setup_grade'),
+  autoGrade: text('auto_grade'),
+  ruleCompliancePercent: doublePrecision('rule_compliance_percent'),
+  checkedRuleIds: jsonb('checked_rule_ids').notNull().default([]),
+  brokenRuleIds: jsonb('broken_rule_ids').notNull().default([]),
+  mistakeCategory: text('mistake_category'),
+  mistakeDescription: text('mistake_description'),
+  mistakeSeverity: text('mistake_severity'),
   rating: integer('rating').notNull().default(3),
   notes: text('notes').notNull().default(''),
   tags: jsonb('tags').notNull().default([]),
@@ -145,7 +173,8 @@ export const journalFolders = pgTable('journal_folders', {
 // Risk & Goals Settings table
 export const riskGoals = pgTable('risk_goals', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().unique(),
+  userId: text('user_id').notNull(),
+  tradingAccountId: text('trading_account_id'),
   dailyProfitTarget: doublePrecision('daily_profit_target'),
   weeklyProfitTarget: doublePrecision('weekly_profit_target'),
   monthlyProfitTarget: doublePrecision('monthly_profit_target'),
@@ -155,11 +184,17 @@ export const riskGoals = pgTable('risk_goals', {
   maxDrawdown: doublePrecision('max_drawdown'),
   maxDrawdownLimit: doublePrecision('max_drawdown_limit'),
   maxRiskPerTradePercent: doublePrecision('max_risk_per_trade_percent'),
+  maxRiskPerTradeAmount: doublePrecision('max_risk_per_trade_amount'),
   maxTradesPerDay: integer('max_trades_per_day'),
   maxConsecutiveLosses: integer('max_consecutive_losses'),
   maxContractsPerTrade: integer('max_contracts_per_trade'),
+  maxDailyLossStreak: integer('max_daily_loss_streak'),
+  minRMultiple: doublePrecision('min_r_multiple'),
+  maxPositionSize: doublePrecision('max_position_size'),
+  maxOpenPositions: integer('max_open_positions'),
   enforceCircuitBreaker: boolean('enforce_circuit_breaker').default(false),
   circuitBreakerTriggered: boolean('circuit_breaker_triggered').default(false),
+  circuitBreakerState: text('circuit_breaker_state').default('DISARMED'),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
@@ -249,6 +284,34 @@ export const mentorStudents = pgTable('mentor_students', {
   joinedDate: text('joined_date'),
   riskBreached: boolean('risk_breached').default(false),
   createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Mentor Student Relationships table
+export const mentorStudentRelationships = pgTable('mentor_student_relationships', {
+  id: text('id').primaryKey(),
+  mentorUserId: text('mentor_user_id').notNull(),
+  studentUserId: text('student_user_id').notNull(),
+  status: text('status').notNull().default('PENDING'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Student Sharing Permissions table
+export const studentSharingPermissions = pgTable('student_sharing_permissions', {
+  id: text('id').primaryKey(),
+  studentUserId: text('student_user_id').notNull(),
+  mentorUserId: text('mentor_user_id').notNull(),
+  sharedAccountIds: jsonb('shared_account_ids').notNull().default([]),
+  canViewAccountOverview: boolean('can_view_account_overview').notNull().default(true),
+  canViewTrades: boolean('can_view_trades').notNull().default(true),
+  canViewAnalytics: boolean('can_view_analytics').notNull().default(true),
+  canViewEquityCurve: boolean('can_view_equity_curve').notNull().default(true),
+  canViewDrawdown: boolean('can_view_drawdown').notNull().default(true),
+  canViewPlaybooks: boolean('can_view_playbooks').notNull().default(false),
+  canViewNotes: boolean('can_view_notes').notNull().default(false),
+  canViewRiskControls: boolean('can_view_risk_controls').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 // Mentor Directives table
@@ -368,4 +431,311 @@ export const chartTemplates = pgTable('chart_templates', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
+
+// Trading Account Connections table (Auto-Sync Broker/Platform Connections)
+export const tradingAccountConnections = pgTable('trading_account_connections', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  accountId: text('account_id').notNull(),
+  platform: text('platform').notNull(), // 'MT5' | 'CTRADER' | 'DXTRADE' | 'MATCH_TRADER' | 'BROKER_API' | 'CSV'
+  broker: text('broker').notNull(),
+  server: text('server'),
+  accountNumber: text('account_number').notNull(),
+  accountName: text('account_name'),
+  currency: text('currency').notNull().default('USD'),
+  accountType: text('account_type').notNull().default('LIVE'), // 'LIVE' | 'DEMO' | 'PROP_FIRM'
+  encryptedCredentials: text('encrypted_credentials').notNull(), // AES-256-GCM encrypted JSON payload
+  connectionStatus: text('connection_status').notNull().default('CONNECTED'), // 'CONNECTED' | 'SYNCING' | 'SYNCED' | 'DISCONNECTED' | 'ERROR' | 'REAUTH_REQUIRED'
+  syncEnabled: boolean('sync_enabled').notNull().default(true),
+  autoSyncIntervalMins: integer('auto_sync_interval_mins').notNull().default(5),
+  importScope: text('import_scope').notNull().default('ALL'), // 'ALL' | 'DATE'
+  importStartDate: text('import_start_date'),
+  lastSyncAt: text('last_sync_at'),
+  lastSyncError: text('last_sync_error'),
+  lastSyncTradesCount: integer('last_sync_trades_count').notNull().default(0),
+  balance: doublePrecision('balance').default(0),
+  equity: doublePrecision('equity').default(0),
+  leverage: integer('leverage').default(100),
+  metadata: jsonb('metadata').notNull().default({}),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Connection Sync Logs table (Audit trail for auto-sync events)
+export const connectionSyncLogs = pgTable('connection_sync_logs', {
+  id: text('id').primaryKey(),
+  connectionId: text('connection_id').notNull(),
+  userId: text('user_id').notNull(),
+  status: text('status').notNull(), // 'SUCCESS' | 'FAILED' | 'PARTIAL' | 'SYNCING'
+  tradesImported: integer('trades_imported').notNull().default(0),
+  tradesUpdated: integer('trades_updated').notNull().default(0),
+  errorMessage: text('error_message'),
+  details: jsonb('details'),
+  startedAt: text('started_at').notNull(),
+  completedAt: text('completed_at'),
+  durationMs: integer('duration_ms').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// ========================================================
+// SELF IMPROVEMENT SYSTEM TABLES
+// ========================================================
+
+export const selfHabits = pgTable('self_habits', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  name: text('name').notNull(),
+  category: text('category').notNull(),
+  target: text('target').notNull(),
+  frequency: text('frequency').notNull().default('daily'),
+  reminderTime: text('reminder_time'),
+  difficulty: text('difficulty').notNull().default('medium'),
+  weight: integer('weight').notNull().default(1),
+  active: boolean('active').notNull().default(true),
+  icon: text('icon'),
+  color: text('color'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const selfHabitCompletions = pgTable('self_habit_completions', {
+  id: text('id').primaryKey(),
+  habitId: text('habit_id').notNull(),
+  userId: text('user_id').notNull(),
+  date: text('date').notNull(), // YYYY-MM-DD
+  completed: boolean('completed').notNull().default(false),
+  value: doublePrecision('value'),
+  notes: text('notes'),
+  completedAt: text('completed_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const selfTasks = pgTable('self_tasks', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  title: text('title').notNull(),
+  description: text('description').default(''),
+  category: text('category').notNull().default('General'),
+  priority: text('priority').notNull().default('Medium'),
+  dueDate: text('due_date').notNull(),
+  dueTime: text('due_time'),
+  estimatedDurationMins: integer('estimated_duration_mins').default(30),
+  status: text('status').notNull().default('Pending'),
+  scoreContribution: integer('score_contribution').default(10),
+  completedAt: text('completed_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const selfCheckins = pgTable('self_checkins', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  date: text('date').notNull(), // YYYY-MM-DD
+  mood: integer('mood').notNull().default(7),
+  energy: integer('energy').notNull().default(7),
+  focus: integer('focus').notNull().default(7),
+  stress: integer('stress').notNull().default(3),
+  motivation: integer('motivation').notNull().default(7),
+  productivity: integer('productivity').notNull().default(7),
+  notes: text('notes').default(''),
+  gratitudes: jsonb('gratitudes').notNull().default([]),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const selfMorningCheckins = pgTable('self_morning_checkins', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  date: text('date').notNull(),
+  sleepQuality: integer('sleep_quality').notNull().default(8),
+  energyLevel: integer('energy_level').notNull().default(8),
+  mainGoal: text('main_goal').notNull().default(''),
+  topPriorities: jsonb('top_priorities').notNull().default([]),
+  workoutPlanned: boolean('workout_planned').default(true),
+  tradingPlanned: boolean('trading_planned').default(true),
+  personalGoal: text('personal_goal').default(''),
+  avoidToday: text('avoid_today').default(''),
+  generatedMission: text('generated_mission').default(''),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const selfNightlyReviews = pgTable('self_nightly_reviews', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  date: text('date').notNull(),
+  wentWell: text('went_well').default(''),
+  wentWrong: text('went_wrong').default(''),
+  learned: text('learned').default(''),
+  improveTomorrow: text('improve_tomorrow').default(''),
+  followedPlan: boolean('followed_plan').default(true),
+  wastedTime: boolean('wasted_time').default(false),
+  maintainedDiscipline: boolean('maintained_discipline').default(true),
+  reflectionScore: integer('reflection_score').default(85),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const selfRoutines = pgTable('self_routines', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  name: text('name').notNull(),
+  category: text('category').notNull().default('Morning'),
+  active: boolean('active').notNull().default(true),
+  items: jsonb('items').notNull().default([]),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const selfRoutineCompletions = pgTable('self_routine_completions', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  routineId: text('routine_id').notNull(),
+  itemId: text('item_id').notNull(),
+  date: text('date').notNull(),
+  completed: boolean('completed').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const selfSleepLogs = pgTable('self_sleep_logs', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  date: text('date').notNull(),
+  bedtime: text('bedtime').notNull().default('22:30'),
+  wakeTime: text('wake_time').notNull().default('06:30'),
+  durationHours: doublePrecision('duration_hours').notNull().default(8.0),
+  quality: integer('quality').notNull().default(8),
+  targetHours: doublePrecision('target_hours').notNull().default(8.0),
+  notes: text('notes').default(''),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const selfExerciseLogs = pgTable('self_exercise_logs', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  date: text('date').notNull(),
+  type: text('type').notNull().default('Strength'),
+  durationMins: integer('duration_mins').notNull().default(45),
+  steps: integer('steps').default(8000),
+  completed: boolean('completed').notNull().default(true),
+  intensity: text('intensity').default('Moderate'),
+  notes: text('notes').default(''),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const selfLearningLogs = pgTable('self_learning_logs', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  date: text('date').notNull(),
+  title: text('title').notNull(),
+  category: text('category').notNull().default('Trading'),
+  durationMins: integer('duration_mins').notNull().default(30),
+  pagesRead: integer('pages_read').default(15),
+  notes: text('notes').default(''),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const selfDeepWorkSessions = pgTable('self_deep_work_sessions', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  date: text('date').notNull(),
+  startTime: text('start_time').notNull(),
+  endTime: text('end_time'),
+  durationMins: integer('duration_mins').notNull().default(60),
+  category: text('category').notNull().default('Deep Work'),
+  taskName: text('task_name').notNull().default('Focus Session'),
+  distractionCount: integer('distraction_count').notNull().default(0),
+  focusRating: integer('focus_rating').notNull().default(8),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const selfDistractionLogs = pgTable('self_distraction_logs', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  date: text('date').notNull(),
+  socialMediaMins: integer('social_media_mins').default(0),
+  youtubeMins: integer('youtube_mins').default(0),
+  gamingMins: integer('gaming_mins').default(0),
+  entertainmentMins: integer('entertainment_mins').default(0),
+  randomBrowsingMins: integer('random_browsing_mins').default(0),
+  notes: text('notes').default(''),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const selfDisciplineStreaks = pgTable('self_discipline_streaks', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  trackerName: text('tracker_name').notNull().default('Digital & Purity Discipline'),
+  currentStreakDays: integer('current_streak_days').notNull().default(0),
+  bestStreakDays: integer('best_streak_days').notNull().default(0),
+  totalSuccessfulDays: integer('total_successful_days').notNull().default(0),
+  startDate: text('start_date').notNull(),
+  lastCheckinDate: text('last_checkin_date').notNull(),
+  historyLogs: jsonb('history_logs').notNull().default([]),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const selfGoals = pgTable('self_goals', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  title: text('title').notNull(),
+  description: text('description').default(''),
+  category: text('category').notNull().default('Discipline'),
+  timeframe: text('timeframe').notNull().default('SHORT_TERM'),
+  targetValue: doublePrecision('target_value').notNull().default(100),
+  currentValue: doublePrecision('current_value').notNull().default(0),
+  unit: text('unit').notNull().default('%'),
+  deadline: text('deadline').notNull(),
+  status: text('status').notNull().default('IN_PROGRESS'),
+  milestones: jsonb('milestones').notNull().default([]),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const selfRules = pgTable('self_rules', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  text: text('text').notNull(),
+  category: text('category').notNull().default('TRADING'),
+  active: boolean('active').notNull().default(true),
+  order: integer('order').notNull().default(0),
+  verifiedDates: jsonb('verified_dates').notNull().default([]),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const selfGrowthScores = pgTable('self_growth_scores', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  date: text('date').notNull(),
+  score: integer('score').notNull().default(0),
+  discipline: integer('discipline').notNull().default(0),
+  productivity: integer('productivity').notNull().default(0),
+  physical: integer('physical').notNull().default(0),
+  mental: integer('mental').notNull().default(0),
+  recovery: integer('recovery').notNull().default(0),
+  learning: integer('learning').notNull().default(0),
+  trading: integer('trading').notNull().default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const selfAchievements = pgTable('self_achievements', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  achievementId: text('achievement_id').notNull(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  icon: text('icon').notNull(),
+  category: text('category').notNull(),
+  xpReward: integer('xp_reward').notNull().default(50),
+  unlocked: boolean('unlocked').notNull().default(false),
+  unlockedAt: text('unlocked_at'),
+  progress: integer('progress').notNull().default(0),
+  maxProgress: integer('max_progress').notNull().default(1),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const selfUserXp = pgTable('self_user_xp', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().unique(),
+  level: integer('level').notNull().default(1),
+  currentXp: integer('current_xp').notNull().default(0),
+  nextLevelXp: integer('next_level_xp').notNull().default(500),
+  title: text('title').notNull().default('Initiate Trader'),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+
 

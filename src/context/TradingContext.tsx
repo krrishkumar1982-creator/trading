@@ -18,8 +18,46 @@ import {
   PropFirmAccount,
   PropFirmViolation,
   PropFirmPayoutRecord,
+  TradingAccountConnection,
+  SelfHabit,
+  HabitCompletion,
+  DailyTask,
+  DailyCheckin,
+  MorningCheckin,
+  NightlyReview,
+  DailyRoutine,
+  RoutineCompletion,
+  SleepLog,
+  ExerciseLog,
+  LearningLog,
+  DeepWorkSession,
+  DistractionLog,
+  DisciplineStreakRecord,
+  PersonalGoal,
+  PersonalRule,
+  GrowthScoreBreakdown,
+  GrowthAchievement,
+  UserGrowthLevel,
 } from '../types';
 import { calculatePlaybookMetrics } from '../lib/metrics';
+import {
+  calculateDailyGrowthScore,
+  calculateGrowthLevelAndXp,
+  DEFAULT_ACHIEVEMENTS,
+} from '../lib/selfImprovementEngine';
+import {
+  INITIAL_HABITS,
+  INITIAL_TASKS,
+  INITIAL_ROUTINES,
+  INITIAL_DISCIPLINE_STREAK,
+  INITIAL_GOALS,
+  INITIAL_RULES,
+  INITIAL_SLEEP_LOGS,
+  INITIAL_EXERCISE_LOGS,
+  INITIAL_LEARNING_LOGS,
+  INITIAL_DEEP_WORK_SESSIONS,
+  INITIAL_CHECKINS,
+} from '../data/selfImprovementData';
 import {
   INITIAL_ACCOUNTS,
   INITIAL_PLAYBOOKS,
@@ -67,10 +105,13 @@ import {
   acknowledgeDirectiveApi,
   fetchLeaderboardApi,
   updateUserPointsAdminApi,
-  updateUserRoleAdminApi
+  updateUserRoleAdminApi,
+  fetchUserProfileApi,
+  updateUserProfileApi
 } from '../services/apiClient';
 import { io } from 'socket.io-client';
-import { auth, onAuthStateChanged, signOutUser, User } from '../lib/firebase';
+import { onAuthStateChange, signOutUser, getSession, getUser } from '../services/supabaseAuth';
+import { User, Session } from '@supabase/supabase-js';
 
 export type ActiveView = 
   | 'dashboard'
@@ -84,8 +125,10 @@ export type ActiveView =
   | 'mentor-mode'
   | 'goals'
   | 'calendar'
+  | 'news'
   | 'ai-coach'
   | 'tools'
+  | 'self-improvement'
   | 'lounge'
   | 'integrations'
   | 'settings'
@@ -115,11 +158,16 @@ interface TradingContextType {
   updateAccount: (account: TradingAccount) => void;
   deleteAccount: (id: string) => void;
 
+  // Auto-Sync Trading Account Connections
+  connections: TradingAccountConnection[];
+  setConnections: React.Dispatch<React.SetStateAction<TradingAccountConnection[]>>;
+  refreshState: () => Promise<void>;
+
   // Prop Firm Accounts & Rule Engine
   propFirmAccounts: PropFirmAccount[];
   selectedPropFirmAccountId: string;
   setSelectedPropFirmAccountId: (id: string) => void;
-  addPropFirmAccount: (account: Omit<PropFirmAccount, 'id' | 'createdAt'>) => void;
+  addPropFirmAccount: (account: Omit<PropFirmAccount, 'id' | 'createdAt'> | PropFirmAccount) => void;
   updatePropFirmAccount: (account: PropFirmAccount) => void;
   deletePropFirmAccount: (id: string) => void;
   addPropFirmViolation: (accountId: string, violation: Omit<PropFirmViolation, 'id' | 'timestamp'>) => void;
@@ -153,6 +201,8 @@ interface TradingContextType {
   addPlaybook: (pb: Omit<Playbook, 'id'>) => void;
   updatePlaybook: (pb: Playbook) => void;
   deletePlaybook: (id: string) => void;
+  duplicatePlaybook: (id: string) => void;
+  archivePlaybook: (id: string, newStatus?: 'Active' | 'Paused' | 'Archived') => void;
   strategies: Strategy[];
   addStrategy: (strat: Omit<Strategy, 'id'>) => void;
   
@@ -203,7 +253,58 @@ interface TradingContextType {
   dispatchMentorDirective: (studentCode: string, content: string, type?: string) => Promise<void>;
   acknowledgeMentorDirective: (id: string) => Promise<void>;
   
-  // Community Lounge
+  // Self Improvement System
+  habits: SelfHabit[];
+  habitCompletions: HabitCompletion[];
+  tasks: DailyTask[];
+  checkins: DailyCheckin[];
+  morningCheckin: MorningCheckin | null;
+  nightlyReview: NightlyReview | null;
+  routines: DailyRoutine[];
+  routineCompletions: RoutineCompletion[];
+  sleepLogs: SleepLog[];
+  exerciseLogs: ExerciseLog[];
+  learningLogs: LearningLog[];
+  deepWorkSessions: DeepWorkSession[];
+  distractionLogs: DistractionLog[];
+  disciplineStreak: DisciplineStreakRecord;
+  goals: PersonalGoal[];
+  rules: PersonalRule[];
+  achievements: GrowthAchievement[];
+  userGrowthLevel: UserGrowthLevel;
+  selectedImprovementDate: string;
+  setSelectedImprovementDate: (date: string) => void;
+  currentGrowthScore: GrowthScoreBreakdown;
+  toggleHabit: (habitId: string, date?: string) => void;
+  addHabit: (habit: Omit<SelfHabit, 'id' | 'createdAt' | 'userId'>) => void;
+  updateHabit: (habit: SelfHabit) => void;
+  deleteHabit: (id: string) => void;
+  toggleTask: (taskId: string) => void;
+  addTask: (task: Omit<DailyTask, 'id' | 'createdAt' | 'userId'>) => void;
+  updateTask: (task: DailyTask) => void;
+  deleteTask: (id: string) => void;
+  saveDailyCheckin: (checkin: Omit<DailyCheckin, 'id' | 'createdAt' | 'userId'>) => void;
+  saveMorningCheckin: (checkin: Omit<MorningCheckin, 'id' | 'createdAt' | 'userId'>) => void;
+  saveNightlyReview: (review: Omit<NightlyReview, 'id' | 'createdAt' | 'userId'>) => void;
+  toggleRoutineItem: (routineId: string, itemId: string, date?: string) => void;
+  addRoutine: (routine: Omit<DailyRoutine, 'id' | 'createdAt' | 'userId'>) => void;
+  updateRoutine: (routine: DailyRoutine) => void;
+  deleteRoutine: (id: string) => void;
+  logSleep: (log: Omit<SleepLog, 'id' | 'userId'>) => void;
+  logExercise: (log: Omit<ExerciseLog, 'id' | 'userId'>) => void;
+  logLearning: (log: Omit<LearningLog, 'id' | 'userId'>) => void;
+  logDeepWorkSession: (session: Omit<DeepWorkSession, 'id' | 'userId'>) => void;
+  logDistraction: (log: Omit<DistractionLog, 'id' | 'userId'>) => void;
+  updateDisciplineStreak: (status: 'CLEAN' | 'RELAPSE', note?: string) => void;
+  addGoal: (goal: Omit<PersonalGoal, 'id' | 'createdAt' | 'userId'>) => void;
+  updateGoal: (goal: PersonalGoal) => void;
+  deleteGoal: (id: string) => void;
+  toggleGoalMilestone: (goalId: string, milestoneId: string) => void;
+  addRule: (rule: { text: string; category: 'TRADING' | 'LIFESTYLE' | 'DISCIPLINE' | 'HEALTH' }) => void;
+  toggleRuleVerification: (ruleId: string, date?: string) => void;
+  deleteRule: (id: string) => void;
+
+  // Community Lounge (Preserved for compatibility)
   communityPosts: CommunityPost[];
   currentUserId: string;
   toggleLikePost: (id: string) => Promise<void>;
@@ -231,6 +332,8 @@ interface TradingContextType {
 
   // Real Authentication
   authUser: User | null;
+  isAuthenticated: boolean;
+  setIsAuthenticated: (auth: boolean) => void;
   isAuthModalOpen: boolean;
   setIsAuthModalOpen: (open: boolean) => void;
   logout: () => Promise<void>;
@@ -255,9 +358,11 @@ const getViewFromUrl = (): ActiveView => {
     if (path.includes('/prop-firm') || hash.includes('prop-firm') || path.includes('/propfirm') || hash.includes('propfirm') || path.includes('/backtesting') || hash.includes('backtesting')) return 'prop-firm';
     if (path.includes('/goals') || hash.includes('goals')) return 'goals';
     if (path.includes('/calendar') || hash.includes('calendar')) return 'calendar';
+    if (path.includes('/news') || hash.includes('news')) return 'news';
     if (path.includes('/coach') || hash.includes('coach')) return 'ai-coach';
     if (path.includes('/tools') || hash.includes('tools')) return 'tools';
-    if (path.includes('/lounge') || hash.includes('lounge')) return 'lounge';
+    if (path.includes('/self-improvement') || hash.includes('self-improvement') || path.includes('/improvement') || hash.includes('improvement')) return 'self-improvement';
+    if (path.includes('/lounge') || hash.includes('lounge')) return 'self-improvement';
     if (path.includes('/settings') || hash.includes('settings')) return 'settings';
   } catch {
     // ignore
@@ -278,48 +383,47 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
     return 'dark';
   });
 
-  const [accounts, setAccounts] = useState<TradingAccount[]>(INITIAL_ACCOUNTS);
+  const [accounts, setAccounts] = useState<TradingAccount[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('all');
+  const [connections, setConnections] = useState<TradingAccountConnection[]>([]);
   
-  // Prop Firm Accounts state with LocalStorage persistence
-  const [propFirmAccounts, setPropFirmAccounts] = useState<PropFirmAccount[]>(() => {
-    try {
-      const saved = localStorage.getItem('tf_prop_firm_accounts');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {
-      // ignore
-    }
-    return INITIAL_PROP_FIRM_ACCOUNTS;
-  });
-  const [selectedPropFirmAccountId, setSelectedPropFirmAccountId] = useState<string>(
-    INITIAL_PROP_FIRM_ACCOUNTS[0]?.id || 'pf-ftmo-100k'
-  );
+  // Prop Firm Accounts state scoped per user
+  const [propFirmAccounts, setPropFirmAccounts] = useState<PropFirmAccount[]>([]);
+  const [selectedPropFirmAccountId, setSelectedPropFirmAccountId] = useState<string>('');
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('tf_prop_firm_accounts', JSON.stringify(propFirmAccounts));
-    } catch {
-      // ignore
-    }
-  }, [propFirmAccounts]);
-
-  const addPropFirmAccount = (newAcc: Omit<PropFirmAccount, 'id' | 'createdAt'>) => {
+  // Prop Firm Accounts helpers (user-scoped)
+  const addPropFirmAccount = (newAcc: Omit<PropFirmAccount, 'id' | 'createdAt'> | PropFirmAccount) => {
     const created: PropFirmAccount = {
       ...newAcc,
-      id: `pf-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      createdAt: new Date().toISOString(),
+      id: 'id' in newAcc && newAcc.id ? newAcc.id : `pf-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      createdAt: 'createdAt' in newAcc && newAcc.createdAt ? newAcc.createdAt : new Date().toISOString(),
     };
-    setPropFirmAccounts((prev) => [created, ...prev]);
+    setPropFirmAccounts((prev) => {
+      const next = [created, ...prev.filter((a) => a.id !== created.id)];
+      if (authUser?.uid) {
+        try {
+          localStorage.setItem(`tf_prop_firm_accounts_${authUser.uid}`, JSON.stringify(next));
+        } catch {
+          // ignore
+        }
+      }
+      return next;
+    });
     setSelectedPropFirmAccountId(created.id);
   };
 
   const updatePropFirmAccount = (updated: PropFirmAccount) => {
-    setPropFirmAccounts((prev) =>
-      prev.map((acc) => (acc.id === updated.id ? { ...updated, updatedAt: new Date().toISOString() } : acc))
-    );
+    setPropFirmAccounts((prev) => {
+      const next = prev.map((acc) => (acc.id === updated.id ? { ...updated, updatedAt: new Date().toISOString() } : acc));
+      if (authUser?.uid) {
+        try {
+          localStorage.setItem(`tf_prop_firm_accounts_${authUser.uid}`, JSON.stringify(next));
+        } catch {
+          // ignore
+        }
+      }
+      return next;
+    });
   };
 
   const deletePropFirmAccount = (id: string) => {
@@ -327,6 +431,15 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
       const next = prev.filter((acc) => acc.id !== id);
       if (selectedPropFirmAccountId === id && next.length > 0) {
         setSelectedPropFirmAccountId(next[0].id);
+      } else if (selectedPropFirmAccountId === id) {
+        setSelectedPropFirmAccountId('');
+      }
+      if (authUser?.uid) {
+        try {
+          localStorage.setItem(`tf_prop_firm_accounts_${authUser.uid}`, JSON.stringify(next));
+        } catch {
+          // ignore
+        }
       }
       return next;
     });
@@ -341,13 +454,21 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
       id: `viol-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       timestamp: new Date().toISOString(),
     };
-    setPropFirmAccounts((prev) =>
-      prev.map((acc) =>
+    setPropFirmAccounts((prev) => {
+      const next = prev.map((acc) =>
         acc.id === accountId
           ? { ...acc, violations: [newViol, ...acc.violations], riskState: newViol.severity === 'BREACH' ? 'BREACHED' : 'CRITICAL' }
           : acc
-      )
-    );
+      );
+      if (authUser?.uid) {
+        try {
+          localStorage.setItem(`tf_prop_firm_accounts_${authUser.uid}`, JSON.stringify(next));
+        } catch {
+          // ignore
+        }
+      }
+      return next;
+    });
   };
 
   const recordPropFirmPayout = (
@@ -358,8 +479,8 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
       ...payout,
       id: `pay-${Date.now()}`,
     };
-    setPropFirmAccounts((prev) =>
-      prev.map((acc) => {
+    setPropFirmAccounts((prev) => {
+      const next = prev.map((acc) => {
         if (acc.id !== accountId) return acc;
         const currentPayoutInfo = acc.payoutInfo || {
           minTradingDaysRequired: 10,
@@ -376,41 +497,39 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
             payoutHistory: [record, ...currentPayoutInfo.payoutHistory],
           },
         };
-      })
-    );
+      });
+      if (authUser?.uid) {
+        try {
+          localStorage.setItem(`tf_prop_firm_accounts_${authUser.uid}`, JSON.stringify(next));
+        } catch {
+          // ignore
+        }
+      }
+      return next;
+    });
   };
-  const [trades, setTrades] = useState<Trade[]>(INITIAL_TRADES);
+  const [trades, setTrades] = useState<Trade[]>([]);
   const [deletedTradesStack, setDeletedTradesStack] = useState<Trade[]>([]);
-  const [playbooks, setPlaybooks] = useState<Playbook[]>(INITIAL_PLAYBOOKS);
-  const [strategies, setStrategies] = useState<Strategy[]>(INITIAL_STRATEGIES);
-  const [notes, setNotes] = useState<JournalNote[]>(INITIAL_NOTES);
-  const [folders, setFolders] = useState<JournalFolder[]>(INITIAL_FOLDERS);
-  const [selectedNote, setSelectedNote] = useState<JournalNote | null>(INITIAL_NOTES[0] || null);
+  const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
+  const [strategies, setStrategies] = useState<Strategy[]>([]);
+  const [notes, setNotes] = useState<JournalNote[]>([]);
+  const [folders, setFolders] = useState<JournalFolder[]>([]);
+  const [selectedNote, setSelectedNote] = useState<JournalNote | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<string>('f-all');
-  const [riskGoals, setRiskGoals] = useState<RiskGoalSettings>(INITIAL_RISK_GOALS);
+  const [riskGoals, setRiskGoals] = useState<RiskGoalSettings>({});
   
   const [userProfile, setUserProfile] = useState<UserProfile>({
-    id: 'user-me',
-    name: 'Alex River',
-    email: 'alex.river@duskflow.trade',
-    accountCode: 'TFB-7XK9-MP42',
-    experienceLevel: 'Full-Time Prop & Futures Trader (4+ Years)',
+    id: '',
+    name: 'Trader',
+    email: '',
+    accountCode: '',
+    experienceLevel: 'Futures & Equities Trader',
   });
 
-  const [mentorStudents, setMentorStudents] = useState<MentorStudent[]>(INITIAL_MENTOR_STUDENTS);
+  const [mentorStudents, setMentorStudents] = useState<MentorStudent[]>([]);
   const [mentorDirectivesSent, setMentorDirectivesSent] = useState<any[]>([]);
   const [mentorDirectivesReceived, setMentorDirectivesReceived] = useState<any[]>([]);
-  const [mentorRequests, setMentorRequests] = useState<MentorConnectionRequest[]>([
-    {
-      id: 'req-1',
-      studentCode: 'TFB-7XK9-MP42',
-      studentName: 'Alex River (You)',
-      studentEmail: 'alex.river@duskflow.trade',
-      mentorName: 'Pro Mentor Sarah Connor',
-      status: 'PENDING',
-      createdAt: '1 hour ago',
-    }
-  ]);
+  const [mentorRequests, setMentorRequests] = useState<MentorConnectionRequest[]>([]);
 
   const [activeStudentImpersonation, setActiveStudentImpersonation] = useState<MentorStudent | null>(null);
   const [calendarEvents, setCalendarEvents] = useState<EconomicEvent[]>(INITIAL_ECONOMIC_EVENTS);
@@ -428,10 +547,606 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
   });
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [authUser, setAuthUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('tradeforge_authenticated') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [apiAuthToken, setApiAuthTokenState] = useState<string | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  const currentUserId = authUser?.uid || 'default_user_1';
+  // ==========================================
+  // SELF IMPROVEMENT STATE
+  // ==========================================
+  const [habits, setHabits] = useState<SelfHabit[]>(() => {
+    try {
+      const saved = localStorage.getItem('tf_self_habits');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_HABITS;
+  });
+
+  const [habitCompletions, setHabitCompletions] = useState<HabitCompletion[]>(() => {
+    try {
+      const saved = localStorage.getItem('tf_self_habit_completions');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [
+      { id: 'hc-1', habitId: 'h-1', userId: 'default', date: new Date().toISOString().split('T')[0], completed: true },
+      { id: 'hc-2', habitId: 'h-2', userId: 'default', date: new Date().toISOString().split('T')[0], completed: true },
+      { id: 'hc-3', habitId: 'h-3', userId: 'default', date: new Date().toISOString().split('T')[0], completed: true },
+      { id: 'hc-4', habitId: 'h-4', userId: 'default', date: new Date().toISOString().split('T')[0], completed: true },
+    ];
+  });
+
+  const [tasks, setTasks] = useState<DailyTask[]>(() => {
+    try {
+      const saved = localStorage.getItem('tf_self_tasks');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_TASKS;
+  });
+
+  const [checkins, setCheckins] = useState<DailyCheckin[]>(() => {
+    try {
+      const saved = localStorage.getItem('tf_self_checkins');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_CHECKINS;
+  });
+
+  const [morningCheckin, setMorningCheckin] = useState<MorningCheckin | null>(() => {
+    try {
+      const saved = localStorage.getItem('tf_self_morning_checkin');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {
+      id: 'mc-today',
+      userId: 'default',
+      date: new Date().toISOString().split('T')[0],
+      sleepQuality: 9,
+      energyLevel: 9,
+      mainGoal: 'Flawless execution on E-mini setups and full adherence to risk limits.',
+      topPriorities: [
+        'Wait for liquidity sweep before taking any order',
+        'Stop after 3 trades max',
+        'Complete afternoon upper body workout',
+      ],
+      workoutPlanned: true,
+      tradingPlanned: true,
+      personalGoal: 'Remain completely calm in any market volatility.',
+      avoidToday: 'Revenge trading, over-leveraging, and social media distraction.',
+      generatedMission: 'Execute with supreme patience, manage risk like an institutional fund manager, and maintain physical power.',
+      createdAt: new Date().toISOString(),
+    };
+  });
+
+  const [nightlyReview, setNightlyReview] = useState<NightlyReview | null>(() => {
+    try {
+      const saved = localStorage.getItem('tf_self_nightly_review');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return null;
+  });
+
+  const [routines, setRoutines] = useState<DailyRoutine[]>(() => {
+    try {
+      const saved = localStorage.getItem('tf_self_routines');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_ROUTINES;
+  });
+
+  const [routineCompletions, setRoutineCompletions] = useState<RoutineCompletion[]>(() => {
+    try {
+      const saved = localStorage.getItem('tf_self_routine_completions');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    const today = new Date().toISOString().split('T')[0];
+    return [
+      { id: 'rc-1', userId: 'default', routineId: 'rt-morning', itemId: 'rmi-1', date: today, completed: true },
+      { id: 'rc-2', userId: 'default', routineId: 'rt-morning', itemId: 'rmi-2', date: today, completed: true },
+      { id: 'rc-3', userId: 'default', routineId: 'rt-morning', itemId: 'rmi-3', date: today, completed: true },
+      { id: 'rc-4', userId: 'default', routineId: 'rt-morning', itemId: 'rmi-4', date: today, completed: true },
+      { id: 'rc-5', userId: 'default', routineId: 'rt-morning', itemId: 'rmi-5', date: today, completed: true },
+      { id: 'rc-6', userId: 'default', routineId: 'rt-trading', itemId: 'rti-1', date: today, completed: true },
+      { id: 'rc-7', userId: 'default', routineId: 'rt-trading', itemId: 'rti-2', date: today, completed: true },
+    ];
+  });
+
+  const [sleepLogs, setSleepLogs] = useState<SleepLog[]>(() => {
+    try {
+      const saved = localStorage.getItem('tf_self_sleep_logs');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_SLEEP_LOGS;
+  });
+
+  const [exerciseLogs, setExerciseLogs] = useState<ExerciseLog[]>(() => {
+    try {
+      const saved = localStorage.getItem('tf_self_exercise_logs');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_EXERCISE_LOGS;
+  });
+
+  const [learningLogs, setLearningLogs] = useState<LearningLog[]>(() => {
+    try {
+      const saved = localStorage.getItem('tf_self_learning_logs');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_LEARNING_LOGS;
+  });
+
+  const [deepWorkSessions, setDeepWorkSessions] = useState<DeepWorkSession[]>(() => {
+    try {
+      const saved = localStorage.getItem('tf_self_deep_work');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_DEEP_WORK_SESSIONS;
+  });
+
+  const [distractionLogs, setDistractionLogs] = useState<DistractionLog[]>(() => {
+    try {
+      const saved = localStorage.getItem('tf_self_distraction');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [
+      { id: 'dl-1', userId: 'default', date: new Date().toISOString().split('T')[0], socialMediaMins: 15, youtubeMins: 20, gamingMins: 0, entertainmentMins: 0, randomBrowsingMins: 10 },
+    ];
+  });
+
+  const [disciplineStreak, setDisciplineStreak] = useState<DisciplineStreakRecord>(() => {
+    try {
+      const saved = localStorage.getItem('tf_self_discipline_streak');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_DISCIPLINE_STREAK;
+  });
+
+  const [goals, setGoals] = useState<PersonalGoal[]>(() => {
+    try {
+      const saved = localStorage.getItem('tf_self_goals');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_GOALS;
+  });
+
+  const [rules, setRules] = useState<PersonalRule[]>(() => {
+    try {
+      const saved = localStorage.getItem('tf_self_rules');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_RULES;
+  });
+
+  const [achievements, setAchievements] = useState<GrowthAchievement[]>(() => {
+    try {
+      const saved = localStorage.getItem('tf_self_achievements');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return DEFAULT_ACHIEVEMENTS;
+  });
+
+  const [selectedImprovementDate, setSelectedImprovementDate] = useState<string>(() => {
+    return new Date().toISOString().split('T')[0];
+  });
+
+  // Persist Self Improvement state to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('tf_self_habits', JSON.stringify(habits));
+      localStorage.setItem('tf_self_habit_completions', JSON.stringify(habitCompletions));
+      localStorage.setItem('tf_self_tasks', JSON.stringify(tasks));
+      localStorage.setItem('tf_self_checkins', JSON.stringify(checkins));
+      localStorage.setItem('tf_self_routines', JSON.stringify(routines));
+      localStorage.setItem('tf_self_routine_completions', JSON.stringify(routineCompletions));
+      localStorage.setItem('tf_self_sleep_logs', JSON.stringify(sleepLogs));
+      localStorage.setItem('tf_self_exercise_logs', JSON.stringify(exerciseLogs));
+      localStorage.setItem('tf_self_learning_logs', JSON.stringify(learningLogs));
+      localStorage.setItem('tf_self_deep_work', JSON.stringify(deepWorkSessions));
+      localStorage.setItem('tf_self_distraction', JSON.stringify(distractionLogs));
+      localStorage.setItem('tf_self_discipline_streak', JSON.stringify(disciplineStreak));
+      localStorage.setItem('tf_self_goals', JSON.stringify(goals));
+      localStorage.setItem('tf_self_rules', JSON.stringify(rules));
+      localStorage.setItem('tf_self_achievements', JSON.stringify(achievements));
+      if (morningCheckin) localStorage.setItem('tf_self_morning_checkin', JSON.stringify(morningCheckin));
+      if (nightlyReview) localStorage.setItem('tf_self_nightly_review', JSON.stringify(nightlyReview));
+    } catch {}
+  }, [
+    habits, habitCompletions, tasks, checkins, routines, routineCompletions,
+    sleepLogs, exerciseLogs, learningLogs, deepWorkSessions, distractionLogs,
+    disciplineStreak, goals, rules, achievements, morningCheckin, nightlyReview,
+  ]);
+
+  // Dynamic Growth Score calculation for selected date
+  const currentGrowthScore = useMemo(() => {
+    const todayCheckin = checkins.find(c => c.date === selectedImprovementDate);
+    const todaySleep = sleepLogs.find(s => s.date === selectedImprovementDate);
+    const todayExercise = exerciseLogs.find(e => e.date === selectedImprovementDate);
+    const todayLearning = learningLogs.find(l => l.date === selectedImprovementDate);
+    const todayDistraction = distractionLogs.find(d => d.date === selectedImprovementDate);
+
+    const breakdown = calculateDailyGrowthScore({
+      date: selectedImprovementDate,
+      habits,
+      habitCompletions,
+      tasks,
+      checkin: todayCheckin,
+      morningCheckin: morningCheckin?.date === selectedImprovementDate ? morningCheckin : undefined,
+      nightlyReview: nightlyReview?.date === selectedImprovementDate ? nightlyReview : undefined,
+      routines,
+      routineCompletions,
+      sleepLog: todaySleep,
+      exerciseLog: todayExercise,
+      learningLog: todayLearning,
+      deepWorkSessions,
+      distractionLog: todayDistraction,
+      disciplineStreak,
+      trades,
+      rules,
+    });
+
+    // Calculate streak days (count consecutive days with activity/score)
+    breakdown.streakDays = disciplineStreak.currentStreakDays || 7;
+    return breakdown;
+  }, [
+    selectedImprovementDate, habits, habitCompletions, tasks, checkins,
+    morningCheckin, nightlyReview, routines, routineCompletions,
+    sleepLogs, exerciseLogs, learningLogs, deepWorkSessions, distractionLogs,
+    disciplineStreak, trades, rules,
+  ]);
+
+  // Dynamic User XP & Growth Level calculation
+  const userGrowthLevel = useMemo(() => {
+    const totalDeepWorkHours = deepWorkSessions.reduce((acc, s) => acc + s.durationMins, 0) / 60;
+    const completedHabits = habitCompletions.filter(c => c.completed).length;
+    const completedTasks = tasks.filter(t => t.status === 'Completed').length;
+    const completedRoutines = routineCompletions.filter(c => c.completed).length;
+    const disciplinedTrades = trades.filter(t => t.rulesFollowed).length;
+
+    return calculateGrowthLevelAndXp({
+      completedHabitsCount: completedHabits,
+      completedTasksCount: completedTasks,
+      completedRoutinesCount: completedRoutines,
+      checkinsCount: checkins.length,
+      sleepLogsCount: sleepLogs.length,
+      exerciseLogsCount: exerciseLogs.length,
+      learningLogsCount: learningLogs.length,
+      deepWorkHoursTotal: totalDeepWorkHours,
+      disciplinedTradesCount: disciplinedTrades,
+    });
+  }, [habitCompletions, tasks, routineCompletions, checkins, sleepLogs, exerciseLogs, learningLogs, deepWorkSessions, trades]);
+
+  // SELF IMPROVEMENT HANDLERS
+  const toggleHabit = (habitId: string, targetDate?: string) => {
+    const date = targetDate || selectedImprovementDate;
+    setHabitCompletions(prev => {
+      const existingIdx = prev.findIndex(c => c.habitId === habitId && c.date === date);
+      if (existingIdx >= 0) {
+        const next = [...prev];
+        const wasCompleted = next[existingIdx].completed;
+        next[existingIdx] = {
+          ...next[existingIdx],
+          completed: !wasCompleted,
+          completedAt: !wasCompleted ? new Date().toISOString() : undefined,
+        };
+        return next;
+      } else {
+        return [
+          ...prev,
+          {
+            id: `hc-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            habitId,
+            userId: authUser?.id || 'default',
+            date,
+            completed: true,
+            completedAt: new Date().toISOString(),
+          },
+        ];
+      }
+    });
+  };
+
+  const addHabit = (newHabit: Omit<SelfHabit, 'id' | 'createdAt' | 'userId'>) => {
+    const habit: SelfHabit = {
+      ...newHabit,
+      id: `h-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      userId: authUser?.id || 'default',
+      createdAt: new Date().toISOString(),
+    };
+    setHabits(prev => [...prev, habit]);
+    addToast('Habit Created', `"${habit.name}" added to daily routine`, 'success');
+  };
+
+  const updateHabit = (updated: SelfHabit) => {
+    setHabits(prev => prev.map(h => (h.id === updated.id ? updated : h)));
+    addToast('Habit Updated', `Updated "${updated.name}"`, 'info');
+  };
+
+  const deleteHabit = (id: string) => {
+    setHabits(prev => prev.filter(h => h.id !== id));
+    setHabitCompletions(prev => prev.filter(c => c.habitId !== id));
+    addToast('Habit Deleted', 'Habit removed', 'info');
+  };
+
+  const toggleTask = (taskId: string) => {
+    setTasks(prev =>
+      prev.map(t => {
+        if (t.id === taskId) {
+          const nextStatus = t.status === 'Completed' ? 'Pending' : 'Completed';
+          if (nextStatus === 'Completed') {
+            try {
+              confetti({ particleCount: 40, spread: 60, origin: { y: 0.85 } });
+            } catch {}
+          }
+          return {
+            ...t,
+            status: nextStatus,
+            completedAt: nextStatus === 'Completed' ? new Date().toISOString() : undefined,
+          };
+        }
+        return t;
+      })
+    );
+  };
+
+  const addTask = (newTask: Omit<DailyTask, 'id' | 'createdAt' | 'userId'>) => {
+    const task: DailyTask = {
+      ...newTask,
+      id: `t-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      userId: authUser?.id || 'default',
+      createdAt: new Date().toISOString(),
+    };
+    setTasks(prev => [task, ...prev]);
+    addToast('Task Scheduled', `"${task.title}" added to planner`, 'success');
+  };
+
+  const updateTask = (updated: DailyTask) => {
+    setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
+    addToast('Task Updated', `Updated "${updated.title}"`, 'info');
+  };
+
+  const deleteTask = (id: string) => {
+    setTasks(prev => prev.filter(t => t.id !== id));
+    addToast('Task Removed', 'Task deleted', 'info');
+  };
+
+  const saveDailyCheckin = (checkinData: Omit<DailyCheckin, 'id' | 'createdAt' | 'userId'>) => {
+    const checkin: DailyCheckin = {
+      ...checkinData,
+      id: `ci-${Date.now()}`,
+      userId: authUser?.id || 'default',
+      createdAt: new Date().toISOString(),
+    };
+    setCheckins(prev => [checkin, ...prev.filter(c => c.date !== checkin.date)]);
+    addToast('Check-in Saved', 'Mind & Wellbeing assessment recorded', 'success');
+  };
+
+  const saveMorningCheckin = (morningData: Omit<MorningCheckin, 'id' | 'createdAt' | 'userId'>) => {
+    const morning: MorningCheckin = {
+      ...morningData,
+      id: `mc-${Date.now()}`,
+      userId: authUser?.id || 'default',
+      createdAt: new Date().toISOString(),
+    };
+    setMorningCheckin(morning);
+    addToast('Morning Mission Locked', 'Daily priorities and focus set', 'success');
+  };
+
+  const saveNightlyReview = (reviewData: Omit<NightlyReview, 'id' | 'createdAt' | 'userId'>) => {
+    const review: NightlyReview = {
+      ...reviewData,
+      id: `nr-${Date.now()}`,
+      userId: authUser?.id || 'default',
+      createdAt: new Date().toISOString(),
+    };
+    setNightlyReview(review);
+    addToast('Nightly Review Saved', 'Daily reflection recorded', 'success');
+  };
+
+  const toggleRoutineItem = (routineId: string, itemId: string, targetDate?: string) => {
+    const date = targetDate || selectedImprovementDate;
+    setRoutineCompletions(prev => {
+      const idx = prev.findIndex(c => c.routineId === routineId && c.itemId === itemId && c.date === date);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], completed: !next[idx].completed };
+        return next;
+      } else {
+        return [
+          ...prev,
+          {
+            id: `rc-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            userId: authUser?.id || 'default',
+            routineId,
+            itemId,
+            date,
+            completed: true,
+          },
+        ];
+      }
+    });
+  };
+
+  const addRoutine = (newRoutine: Omit<DailyRoutine, 'id' | 'createdAt' | 'userId'>) => {
+    const routine: DailyRoutine = {
+      ...newRoutine,
+      id: `rt-${Date.now()}`,
+      userId: authUser?.id || 'default',
+      createdAt: new Date().toISOString(),
+    };
+    setRoutines(prev => [...prev, routine]);
+    addToast('Routine Created', `"${routine.name}" configured`, 'success');
+  };
+
+  const updateRoutine = (updated: DailyRoutine) => {
+    setRoutines(prev => prev.map(r => (r.id === updated.id ? updated : r)));
+    addToast('Routine Updated', `Updated "${updated.name}"`, 'info');
+  };
+
+  const deleteRoutine = (id: string) => {
+    setRoutines(prev => prev.filter(r => r.id !== id));
+    setRoutineCompletions(prev => prev.filter(c => c.routineId !== id));
+    addToast('Routine Removed', 'Routine deleted', 'info');
+  };
+
+  const logSleep = (logData: Omit<SleepLog, 'id' | 'userId'>) => {
+    const log: SleepLog = {
+      ...logData,
+      id: `sl-${Date.now()}`,
+      userId: authUser?.id || 'default',
+    };
+    setSleepLogs(prev => [log, ...prev.filter(s => s.date !== log.date)]);
+    addToast('Sleep Logged', `${log.durationHours}h of sleep recorded (${log.quality}/10 quality)`, 'success');
+  };
+
+  const logExercise = (logData: Omit<ExerciseLog, 'id' | 'userId'>) => {
+    const log: ExerciseLog = {
+      ...logData,
+      id: `el-${Date.now()}`,
+      userId: authUser?.id || 'default',
+    };
+    setExerciseLogs(prev => [log, ...prev.filter(e => e.date !== log.date)]);
+    addToast('Workout Logged', `${log.durationMins}m ${log.type} session recorded`, 'success');
+  };
+
+  const logLearning = (logData: Omit<LearningLog, 'id' | 'userId'>) => {
+    const log: LearningLog = {
+      ...logData,
+      id: `ll-${Date.now()}`,
+      userId: authUser?.id || 'default',
+    };
+    setLearningLogs(prev => [log, ...prev.filter(l => l.date !== log.date)]);
+    addToast('Learning Logged', `Recorded "${log.title}"`, 'success');
+  };
+
+  const logDeepWorkSession = (sessionData: Omit<DeepWorkSession, 'id' | 'userId'>) => {
+    const session: DeepWorkSession = {
+      ...sessionData,
+      id: `dw-${Date.now()}`,
+      userId: authUser?.id || 'default',
+    };
+    setDeepWorkSessions(prev => [session, ...prev]);
+    addToast('Deep Work Completed', `${session.durationMins}m uninterrupted session logged`, 'success');
+  };
+
+  const logDistraction = (logData: Omit<DistractionLog, 'id' | 'userId'>) => {
+    const log: DistractionLog = {
+      ...logData,
+      id: `dl-${Date.now()}`,
+      userId: authUser?.id || 'default',
+    };
+    setDistractionLogs(prev => [log, ...prev.filter(d => d.date !== log.date)]);
+    addToast('Distraction Logged', 'Digital screen usage updated', 'info');
+  };
+
+  const updateDisciplineStreak = (status: 'CLEAN' | 'RELAPSE', note?: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    setDisciplineStreak(prev => {
+      const nextDays = status === 'CLEAN' ? prev.currentStreakDays + 1 : 0;
+      const nextBest = Math.max(prev.bestStreakDays, nextDays);
+      const nextTotal = status === 'CLEAN' ? prev.totalSuccessfulDays + 1 : prev.totalSuccessfulDays;
+      const newLog = { date: today, status, note, streakAtTime: nextDays };
+      const updatedLogs = [newLog, ...prev.historyLogs.filter(h => h.date !== today)];
+
+      return {
+        ...prev,
+        currentStreakDays: nextDays,
+        bestStreakDays: nextBest,
+        totalSuccessfulDays: nextTotal,
+        lastCheckinDate: today,
+        historyLogs: updatedLogs,
+      };
+    });
+
+    if (status === 'CLEAN') {
+      addToast('Discipline Streak Extended', 'Clean day confirmed. Unbreakable focus maintained.', 'success');
+    } else {
+      addToast('Streak Reset', 'Discipline reset. Acknowledge the trigger, learn, and rebuild instantly.', 'warning');
+    }
+  };
+
+  const addGoal = (newGoal: Omit<PersonalGoal, 'id' | 'createdAt' | 'userId'>) => {
+    const goal: PersonalGoal = {
+      ...newGoal,
+      id: `g-${Date.now()}`,
+      userId: authUser?.id || 'default',
+      createdAt: new Date().toISOString(),
+    };
+    setGoals(prev => [...prev, goal]);
+    addToast('Goal Created', `"${goal.title}" added to milestones`, 'success');
+  };
+
+  const updateGoal = (updated: PersonalGoal) => {
+    setGoals(prev => prev.map(g => (g.id === updated.id ? updated : g)));
+    addToast('Goal Updated', `Updated "${updated.title}"`, 'info');
+  };
+
+  const deleteGoal = (id: string) => {
+    setGoals(prev => prev.filter(g => g.id !== id));
+    addToast('Goal Deleted', 'Goal removed', 'info');
+  };
+
+  const toggleGoalMilestone = (goalId: string, milestoneId: string) => {
+    setGoals(prev =>
+      prev.map(g => {
+        if (g.id === goalId) {
+          const milestones = g.milestones.map(m =>
+            m.id === milestoneId ? { ...m, completed: !m.completed } : m
+          );
+          const completedCount = milestones.filter(m => m.completed).length;
+          const pct = milestones.length > 0 ? (completedCount / milestones.length) * 100 : g.currentValue;
+          return {
+            ...g,
+            milestones,
+            currentValue: Math.round(pct),
+            status: pct >= 100 ? 'COMPLETED' : 'IN_PROGRESS',
+          };
+        }
+        return g;
+      })
+    );
+  };
+
+  const addRule = (newRule: { text: string; category: 'TRADING' | 'LIFESTYLE' | 'DISCIPLINE' | 'HEALTH' }) => {
+    const rule: PersonalRule = {
+      id: `rule-${Date.now()}`,
+      userId: authUser?.id || 'default',
+      text: newRule.text,
+      category: newRule.category,
+      active: true,
+      order: rules.length + 1,
+      verifiedDates: [selectedImprovementDate],
+    };
+    setRules(prev => [...prev, rule]);
+    addToast('Personal Rule Added', 'Rule enshrined in personal code', 'success');
+  };
+
+  const toggleRuleVerification = (ruleId: string, targetDate?: string) => {
+    const date = targetDate || selectedImprovementDate;
+    setRules(prev =>
+      prev.map(r => {
+        if (r.id === ruleId) {
+          const verified = r.verifiedDates || [];
+          const nextDates = verified.includes(date)
+            ? verified.filter(d => d !== date)
+            : [...verified, date];
+          return { ...r, verifiedDates: nextDates };
+        }
+        return r;
+      })
+    );
+  };
+
+  const deleteRule = (id: string) => {
+    setRules(prev => prev.filter(r => r.id !== id));
+    addToast('Rule Removed', 'Personal rule deleted', 'info');
+  };
+
+  const currentUserId = authUser?.id || (authUser as any)?.uid || 'default_user_1';
   const currentUserIdRef = useRef(currentUserId);
   const userAccountCodeRef = useRef(userProfile.accountCode);
 
@@ -585,89 +1300,158 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [apiAuthToken]);
 
   const logout = async () => {
+    try {
+      localStorage.removeItem('tradeforge_authenticated');
+    } catch {
+      // ignore
+    }
+    setIsAuthenticated(false);
     setApiAuthToken(null);
     setApiAuthTokenState(null);
     setAuthUser(null);
     setAccounts([]);
+    setConnections([]);
     setTrades([]);
     setPlaybooks([]);
     setStrategies([]);
     setNotes([]);
     setFolders([]);
     setSelectedNote(null);
+    setPropFirmAccounts([]);
+    setSelectedPropFirmAccountId('');
     setMentorStudents([]);
     setMentorDirectivesSent([]);
     setMentorDirectivesReceived([]);
+    setRiskGoals({});
+    setUserProfile({
+      id: '',
+      name: 'Trader',
+      email: '',
+      accountCode: '',
+      experienceLevel: 'Trader',
+    });
+    try {
+      localStorage.removeItem('tradeforge_authenticated');
+    } catch {}
     await signOutUser();
     addToast('Signed Out', 'You have been signed out', 'info');
   };
 
-  // Listen to Firebase Auth state changes and load user-isolated data
+  // Listen to Supabase Auth state changes and load user-isolated data
   useEffect(() => {
     let isMounted = true;
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+
+    const { data: { subscription } } = onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
 
-      // Reset state for clean user switching / logout
+      // Reset state completely for clean user switching / logout
       setAccounts([]);
+      setConnections([]);
       setTrades([]);
       setPlaybooks([]);
       setStrategies([]);
       setNotes([]);
       setFolders([]);
       setSelectedNote(null);
+      setPropFirmAccounts([]);
+      setSelectedPropFirmAccountId('');
       setMentorStudents([]);
       setMentorDirectivesSent([]);
       setMentorDirectivesReceived([]);
+      setRiskGoals({});
 
-      if (firebaseUser) {
+      if (session?.user) {
+        const user = session.user;
+        const token = session.access_token;
+        setApiAuthToken(token);
+        setApiAuthTokenState(token);
+        setAuthUser(user);
+        setIsAuthenticated(true);
+
         try {
-          const token = await firebaseUser.getIdToken();
-          setApiAuthToken(token);
-          setApiAuthTokenState(token);
-          setAuthUser(firebaseUser);
+          localStorage.setItem('tradeforge_authenticated', 'true');
+          // Load user-scoped prop firm accounts
+          const userPropKey = `tf_prop_firm_accounts_${user.id}`;
+          const savedProps = localStorage.getItem(userPropKey);
+          if (savedProps) {
+            const parsed = JSON.parse(savedProps);
+            if (Array.isArray(parsed)) {
+              setPropFirmAccounts(parsed);
+              if (parsed.length > 0) setSelectedPropFirmAccountId(parsed[0].id);
+            }
+          }
+        } catch {
+          // ignore
+        }
+
+        const initialName =
+          user.user_metadata?.full_name ||
+          user.user_metadata?.name ||
+          user.email?.split('@')[0] ||
+          'Trader';
+
+        setUserProfile({
+          id: user.id,
+          name: initialName,
+          email: user.email || '',
+          accountCode: '',
+          experienceLevel: 'Intermediate',
+        });
+
+        const data = await fetchInitialState();
+        if (!isMounted || !data || !data.success) return;
+
+        if (data.profile) {
           setUserProfile((prev) => ({
             ...prev,
-            name: firebaseUser.displayName || prev.name || 'Trader',
-            email: firebaseUser.email || prev.email || '',
+            id: data.profile.id || user.id,
+            name: data.profile.name || initialName,
+            email: data.profile.email || user.email || '',
+            accountCode: data.profile.accountCode || '',
+            experienceLevel: data.profile.experienceLevel || prev.experienceLevel,
+            avatarUrl: data.profile.avatarUrl,
           }));
-        } catch (err) {
-          console.error('Failed to get user ID token:', err);
         }
+
+        if (Array.isArray(data.accounts)) setAccounts(data.accounts);
+        if (Array.isArray(data.connections)) setConnections(data.connections);
+        if (Array.isArray(data.trades)) setTrades(data.trades);
+        if (Array.isArray(data.playbooks)) setPlaybooks(data.playbooks);
+        if (Array.isArray(data.strategies)) setStrategies(data.strategies);
+        if (Array.isArray(data.notes)) {
+          setNotes(data.notes);
+          if (data.notes.length > 0) setSelectedNote(data.notes[0]);
+        }
+        if (Array.isArray(data.folders)) setFolders(data.folders);
+        if (data.riskGoals && typeof data.riskGoals === 'object') {
+          setRiskGoals((prev) => ({ ...prev, ...data.riskGoals }));
+        }
+        if (Array.isArray(data.notifications)) setNotifications(data.notifications);
+        if (Array.isArray(data.communityPosts)) setCommunityPosts(data.communityPosts);
+        if (Array.isArray(data.mentorStudents)) setMentorStudents(data.mentorStudents);
+        if (Array.isArray(data.mentorDirectivesSent)) setMentorDirectivesSent(data.mentorDirectivesSent);
+        if (Array.isArray(data.mentorDirectivesReceived)) setMentorDirectivesReceived(data.mentorDirectivesReceived);
+        
+        // Load leaderboard from real persistent database
+        fetchLeaderboard();
       } else {
         setApiAuthToken(null);
         setApiAuthTokenState(null);
         setAuthUser(null);
+        setIsAuthenticated(false);
+        setUserProfile({
+          id: '',
+          name: 'Trader',
+          email: '',
+          accountCode: '',
+          experienceLevel: 'Trader',
+        });
       }
-
-      const data = await fetchInitialState();
-      if (!isMounted || !data || !data.success) return;
-
-      if (Array.isArray(data.accounts)) setAccounts(data.accounts);
-      if (Array.isArray(data.trades)) setTrades(data.trades);
-      if (Array.isArray(data.playbooks)) setPlaybooks(data.playbooks);
-      if (Array.isArray(data.strategies)) setStrategies(data.strategies);
-      if (Array.isArray(data.notes)) {
-        setNotes(data.notes);
-        if (data.notes.length > 0) setSelectedNote(data.notes[0]);
-      }
-      if (Array.isArray(data.folders)) setFolders(data.folders);
-      if (data.riskGoals && typeof data.riskGoals === 'object') {
-        setRiskGoals((prev) => ({ ...prev, ...data.riskGoals }));
-      }
-      if (Array.isArray(data.notifications)) setNotifications(data.notifications);
-      if (Array.isArray(data.communityPosts)) setCommunityPosts(data.communityPosts);
-      if (Array.isArray(data.mentorStudents)) setMentorStudents(data.mentorStudents);
-      if (Array.isArray(data.mentorDirectivesSent)) setMentorDirectivesSent(data.mentorDirectivesSent);
-      if (Array.isArray(data.mentorDirectivesReceived)) setMentorDirectivesReceived(data.mentorDirectivesReceived);
-      
-      // Load leaderboard from real persistent database
-      fetchLeaderboard();
     });
 
     return () => {
       isMounted = false;
-      unsubscribe();
+      subscription?.unsubscribe?.();
     };
   }, []);
 
@@ -703,6 +1487,7 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
       else if (activeView === 'mentor-mode') targetPath = '/mentor';
       else if (activeView === 'goals') targetPath = '/goals';
       else if (activeView === 'calendar') targetPath = '/calendar';
+      else if (activeView === 'news') targetPath = '/news';
       else if (activeView === 'ai-coach') targetPath = '/coach';
       else if (activeView === 'tools') targetPath = '/tools';
       else if (activeView === 'lounge') targetPath = '/lounge';
@@ -750,21 +1535,25 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const updateUserProfile = (profile: Partial<UserProfile>) => {
-    setUserProfile(prev => ({ ...prev, ...profile }));
+  const updateUserProfile = async (profile: Partial<UserProfile>) => {
+    setUserProfile(prev => {
+      const merged = { ...prev, ...profile };
+      updateUserProfileApi({
+        fullName: merged.name,
+        name: merged.name,
+        email: merged.email,
+        accountCode: merged.accountCode || undefined,
+        experienceLevel: merged.experienceLevel,
+        avatarUrl: merged.avatarUrl,
+      }).catch(e => console.warn('Failed to sync profile update to database:', e));
+      return merged;
+    });
     addToast('Profile Updated', 'User profile settings saved', 'success');
   };
 
   const regenerateAccountCode = (): string => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = 'TFB-';
-    for (let i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-    code += '-';
-    for (let i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-    
-    setUserProfile(prev => ({ ...prev, accountCode: code }));
-    addToast('New Code Generated', `Your new mentor code is ${code}`, 'success');
-    return code;
+    addToast('Feature Disabled', 'Regenerating mentor code is disabled to ensure code stability', 'warning');
+    return userProfile.accountCode;
   };
 
   const connectStudentByCode = (rawCode: string): boolean => {
@@ -1094,6 +1883,39 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
     addToast('Playbook Deleted', '', 'info');
   };
 
+  const duplicatePlaybook = (id: string) => {
+    const source = playbooks.find(p => p.id === id);
+    if (!source) return;
+    const duplicated: Playbook = {
+      ...source,
+      id: 'pb-' + Date.now(),
+      name: `${source.name} (Copy)`,
+      totalTrades: 0,
+      winRate: 0,
+      netPnl: 0,
+      profitFactor: 0,
+      avgWinner: 0,
+      avgLoser: 0,
+      expectancy: 0,
+      createdAt: new Date().toISOString(),
+    };
+    setPlaybooks(prev => [...prev, duplicated]);
+    savePlaybookApi(duplicated);
+    addToast('Playbook Duplicated', `Created "${duplicated.name}"`, 'success');
+  };
+
+  const archivePlaybook = (id: string, newStatus: 'Active' | 'Paused' | 'Archived' = 'Archived') => {
+    setPlaybooks(prev => prev.map(p => {
+      if (p.id === id) {
+        const updated: Playbook = { ...p, status: newStatus as any };
+        savePlaybookApi(updated);
+        return updated;
+      }
+      return p;
+    }));
+    addToast('Status Updated', `Playbook status set to ${newStatus}`, 'info');
+  };
+
   // Strategy CRUD
   const addStrategy = (strat: Omit<Strategy, 'id'>) => {
     const newStrat: Strategy = { ...strat, id: 'strat-' + Date.now() };
@@ -1347,6 +2169,21 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
     addToast('Cleared All Trades', 'Trade history wiped clean', 'warning');
   };
 
+  const refreshState = async () => {
+    try {
+      const data = await fetchInitialState();
+      if (data && data.success) {
+        if (Array.isArray(data.accounts)) setAccounts(data.accounts);
+        if (Array.isArray(data.connections)) setConnections(data.connections);
+        if (Array.isArray(data.trades)) setTrades(data.trades);
+        if (Array.isArray(data.playbooks)) setPlaybooks(data.playbooks);
+        if (Array.isArray(data.strategies)) setStrategies(data.strategies);
+      }
+    } catch (e) {
+      console.warn('refreshState failed:', e);
+    }
+  };
+
   return (
     <TradingContext.Provider
       value={{
@@ -1362,6 +2199,9 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
         addAccount,
         updateAccount,
         deleteAccount,
+        connections,
+        setConnections,
+        refreshState,
         propFirmAccounts,
         selectedPropFirmAccountId,
         setSelectedPropFirmAccountId,
@@ -1393,6 +2233,8 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
         addPlaybook,
         updatePlaybook,
         deletePlaybook,
+        duplicatePlaybook,
+        archivePlaybook,
         strategies: computedStrategies,
         addStrategy,
         notes,
@@ -1441,6 +2283,57 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
         fetchLeaderboard,
         updateUserPointsAdmin,
         updateUserRoleAdmin,
+        // Self Improvement System
+        habits,
+        habitCompletions,
+        tasks,
+        checkins,
+        morningCheckin,
+        nightlyReview,
+        routines,
+        routineCompletions,
+        sleepLogs,
+        exerciseLogs,
+        learningLogs,
+        deepWorkSessions,
+        distractionLogs,
+        disciplineStreak,
+        goals,
+        rules,
+        achievements,
+        userGrowthLevel,
+        selectedImprovementDate,
+        setSelectedImprovementDate,
+        currentGrowthScore,
+        toggleHabit,
+        addHabit,
+        updateHabit,
+        deleteHabit,
+        toggleTask,
+        addTask,
+        updateTask,
+        deleteTask,
+        saveDailyCheckin,
+        saveMorningCheckin,
+        saveNightlyReview,
+        toggleRoutineItem,
+        addRoutine,
+        updateRoutine,
+        deleteRoutine,
+        logSleep,
+        logExercise,
+        logLearning,
+        logDeepWorkSession,
+        logDistraction,
+        updateDisciplineStreak,
+        addGoal,
+        updateGoal,
+        deleteGoal,
+        toggleGoalMilestone,
+        addRule,
+        toggleRuleVerification,
+        deleteRule,
+
         toasts,
         addToast,
         removeToast,
@@ -1449,6 +2342,8 @@ export const TradingProvider: React.FC<{ children: ReactNode }> = ({ children })
         resetToSampleData,
         clearAllTradesData,
         authUser,
+        isAuthenticated,
+        setIsAuthenticated,
         isAuthModalOpen,
         setIsAuthModalOpen,
         logout,

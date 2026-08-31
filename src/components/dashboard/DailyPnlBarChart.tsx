@@ -22,7 +22,7 @@ export const DailyPnlBarChart: React.FC<DailyPnlBarChartProps> = ({ trades, form
 
   const isLight = theme === 'light';
 
-  // Group trades by date
+  // Group trades by date (Hooks must always run before any conditional returns)
   const bars: BarData[] = useMemo(() => {
     const closed = trades.filter(t => t.status === 'CLOSED');
     if (closed.length === 0) return [];
@@ -45,7 +45,8 @@ export const DailyPnlBarChart: React.FC<DailyPnlBarChartProps> = ({ trades, form
       (a, b) => new Date(a).getTime() - new Date(b).getTime()
     );
 
-    return sortedDates.map(d => {
+    // Keep the most recent 18 trading days so bars fit cleanly without overflowing or squeezing
+    return sortedDates.slice(-18).map(d => {
       const dateObj = new Date(map[d].rawDate);
       return {
         dateKey: d,
@@ -57,6 +58,15 @@ export const DailyPnlBarChart: React.FC<DailyPnlBarChartProps> = ({ trades, form
       };
     });
   }, [trades]);
+
+  // Decide how often to show labels based on total count to prevent overlapping
+  const labelInterval = useMemo(() => {
+    const total = bars.length;
+    if (total > 20) return 4;
+    if (total > 14) return 3;
+    if (total > 8) return 2;
+    return 1;
+  }, [bars]);
 
   if (bars.length === 0) {
     return (
@@ -72,9 +82,11 @@ export const DailyPnlBarChart: React.FC<DailyPnlBarChartProps> = ({ trades, form
   const maxAbs = Math.max(150, ...bars.map(b => Math.abs(b.pnl)));
 
   return (
-    <div className="relative w-full h-[220px] flex flex-col justify-between select-none">
+    <div className="relative w-full h-[220px] flex flex-col justify-between select-none overflow-hidden max-w-full">
       {/* Bars Container */}
-      <div className="flex-1 flex items-center justify-between gap-1.5 px-3 pt-4 pb-2">
+      <div className={`flex-1 flex items-center justify-between px-3 pt-4 pb-2 w-full overflow-hidden ${
+        bars.length > 15 ? 'gap-0.5' : bars.length > 8 ? 'gap-1' : 'gap-1.5'
+      }`}>
         {bars.map((bar, idx) => {
           const isPos = bar.pnl >= 0;
           const heightPercent = Math.max(8, (Math.abs(bar.pnl) / maxAbs) * 85);
@@ -82,7 +94,7 @@ export const DailyPnlBarChart: React.FC<DailyPnlBarChartProps> = ({ trades, form
           return (
             <div
               key={idx}
-              className="flex-1 flex flex-col items-center justify-center h-full relative group cursor-pointer"
+              className="flex-1 flex flex-col items-center justify-center h-full relative group cursor-pointer min-w-0"
               onMouseEnter={() => setHoveredBar(bar)}
               onMouseLeave={() => setHoveredBar(null)}
             >
@@ -117,9 +129,13 @@ export const DailyPnlBarChart: React.FC<DailyPnlBarChartProps> = ({ trades, form
               </div>
 
               {/* Date label */}
-              <span className={`text-[9px] mt-1 font-mono ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>
-                {bar.displayDate}
-              </span>
+              {idx % labelInterval === 0 ? (
+                <span className={`text-[9px] mt-1 font-mono whitespace-nowrap ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>
+                  {bar.displayDate}
+                </span>
+              ) : (
+                <span className="text-[9px] mt-1 font-mono h-3" />
+              )}
             </div>
           );
         })}

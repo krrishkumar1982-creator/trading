@@ -16,8 +16,9 @@ import {
   Sparkles,
   UserCheck,
   User,
-  LogIn,
-  LogOut
+  Settings,
+  Shield,
+  LogOut,
 } from 'lucide-react';
 import { useTrading } from '../../context/TradingContext';
 import { CurrencyDisplayMode } from '../../types';
@@ -49,6 +50,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     dateRange,
     setDateRange,
     authUser,
+    userProfile,
+    setActiveView,
     setIsAuthModalOpen,
     logout,
   } = useTrading();
@@ -60,10 +63,43 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [isDateRangeOpen, setIsDateRangeOpen] = useState(false);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const currencyRef = useRef<HTMLDivElement>(null);
   const accountRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  // Derive profile info and avatar URL from profile state
+  const avatarUrl =
+    userProfile?.avatarUrl ||
+    userProfile?.avatar ||
+    authUser?.user_metadata?.avatar_url ||
+    authUser?.user_metadata?.picture ||
+    '';
+
+  const accountName =
+    userProfile?.name?.trim() ||
+    authUser?.user_metadata?.full_name?.trim() ||
+    authUser?.user_metadata?.name?.trim() ||
+    (authUser as any)?.displayName?.trim() ||
+    (authUser?.email ? authUser.email.split('@')[0] : '') ||
+    'Trader';
+
+  const userInitials =
+    accountName
+      .split(' ')
+      .filter(Boolean)
+      .map((w: string) => w[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || 'TR';
+
+  // Reset image error state whenever avatar URL changes
+  useEffect(() => {
+    setImageError(false);
+  }, [avatarUrl]);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -76,6 +112,9 @@ export const Navbar: React.FC<NavbarProps> = ({
       }
       if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
         setIsFilterDropdownOpen(false);
+      }
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setIsProfileMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -112,10 +151,10 @@ export const Navbar: React.FC<NavbarProps> = ({
         : 'border-[#26262B] bg-[#09090B] text-[#F4F4F5]'
     }`}>
       {/* Zone 1: Impersonation Alert & Live Market Clock */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 shrink-0">
         {/* Impersonation Banner if Mentor Reviewing Student */}
         {activeStudentImpersonation && (
-          <div className="flex items-center gap-2 bg-[rgba(245,184,46,0.12)] border border-[rgba(245,184,46,0.30)] text-[#F5B82E] px-3 py-1 rounded-full text-xs font-semibold animate-pulse">
+          <div className="flex items-center gap-2 bg-[rgba(245,184,46,0.12)] border border-[rgba(245,184,46,0.30)] text-[#F5B82E] px-3 py-1 rounded-full text-xs font-semibold animate-pulse shrink-0">
             <UserCheck className="w-3.5 h-3.5" />
             <span>Viewing as: <strong>{activeStudentImpersonation.name}</strong></span>
             <button
@@ -128,17 +167,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         )}
 
         {/* Live Market Status & Clock */}
-        <div className={`flex items-center gap-2.5 text-xs px-3 py-1.5 rounded-lg border ${
+        <div className={`flex items-center gap-2 text-xs px-2.5 sm:px-3 py-1.5 rounded-lg border shrink-0 whitespace-nowrap ${
           isLight ? 'bg-[#F8FAFC] border-[#E5E7EB] text-[#4B5563]' : 'bg-[#121215] border-[#26262B] text-[#A1A1AA]'
         }`}>
-          <span className="relative flex h-2 w-2">
+          <span className="relative flex h-2 w-2 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D6A3] opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00D6A3]"></span>
           </span>
-          <span className="text-[10px] font-bold tracking-wider uppercase text-[#00D6A3]">
+          <span className="text-[10px] font-bold tracking-wider uppercase text-[#00D6A3] hidden xs:inline">
             MARKET LIVE
           </span>
-          <span className={isLight ? 'text-[#D1D5DB]' : 'text-[#26262B]'}>|</span>
+          <span className={`hidden xs:inline ${isLight ? 'text-[#D1D5DB]' : 'text-[#26262B]'}`}>|</span>
           <span className={`font-mono text-[11px] ${isLight ? 'text-[#111827] font-medium' : 'text-[#F4F4F5]'}`}>
             {currentTime || 'Syncing...'}
           </span>
@@ -408,41 +447,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
         </button>
 
-        {/* User Auth Profile / Sign In Button */}
-        {authUser ? (
-          <div className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs transition ${
-            isLight
-              ? 'border-[#E5E7EB] bg-white text-[#111827]'
-              : 'border-[#26262B] bg-[#121215] text-[#F4F4F5]'
-          }`}>
-            <div className="w-5 h-5 rounded-full bg-[rgba(37,99,255,0.15)] text-[#2563FF] font-bold flex items-center justify-center text-[10px] uppercase border border-[rgba(37,99,255,0.30)]">
-              {(authUser.displayName || authUser.email || 'U')[0]}
-            </div>
-            <span className="hidden md:inline font-semibold max-w-[100px] truncate">
-              {authUser.displayName || authUser.email?.split('@')[0]}
-            </span>
-            <button
-              onClick={() => logout()}
-              className="p-1 text-[#A1A1AA] hover:text-[#FF3D6E] transition"
-              title="Sign Out"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setIsAuthModalOpen(true)}
-            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
-              isLight
-                ? 'border-[rgba(37,99,255,0.20)] bg-[rgba(37,99,255,0.08)] hover:bg-[rgba(37,99,255,0.15)] text-[#1D4ED8]'
-                : 'border-[rgba(37,99,255,0.25)] bg-[rgba(37,99,255,0.10)] hover:bg-[rgba(37,99,255,0.18)] text-[#4C7DFF]'
-            }`}
-          >
-            <LogIn className="w-3.5 h-3.5" />
-            <span>Sign In</span>
-          </button>
-        )}
-
         {/* Notification Bell */}
         <button
           onClick={onOpenNotifications}
@@ -460,6 +464,157 @@ export const Navbar: React.FC<NavbarProps> = ({
             </span>
           )}
         </button>
+
+        {/* User Profile Avatar Display with Fallback to Initials */}
+        <div className="relative" ref={profileMenuRef}>
+          <button
+            onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+            className={`group flex items-center gap-2 rounded-full p-1 sm:px-2 sm:py-1 border transition-all duration-150 active:scale-[0.98] ${
+              isLight
+                ? 'border-[#E5E7EB] bg-white hover:border-[#D1D5DB] hover:bg-[#F9FAFB]'
+                : 'border-[#26262B] bg-[#121215] hover:border-[#36363D] hover:bg-[#18181C]'
+            }`}
+            title={`${accountName} (${userProfile?.accountCode || 'Profile'})`}
+            aria-label="User Profile Menu"
+          >
+            <div className="relative flex items-center justify-center">
+              {avatarUrl && !imageError ? (
+                <img
+                  src={avatarUrl}
+                  alt={accountName}
+                  referrerPolicy="no-referrer"
+                  onError={() => setImageError(true)}
+                  className="w-7 h-7 rounded-full object-cover ring-1 ring-[#2563FF]/30 shadow-sm"
+                />
+              ) : (
+                <div
+                  className={`w-7 h-7 rounded-full font-semibold text-xs flex items-center justify-center select-none shadow-sm ${
+                    isLight
+                      ? 'bg-[rgba(37,99,255,0.12)] text-[#1D4ED8] border border-[rgba(37,99,255,0.25)]'
+                      : 'bg-[rgba(37,99,255,0.15)] text-[#4C7DFF] border border-[rgba(37,99,255,0.30)]'
+                  }`}
+                >
+                  {userInitials}
+                </div>
+              )}
+              <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#00D6A3] ring-2 ring-[#09090B]" />
+            </div>
+
+            <span className={`hidden md:inline text-xs font-semibold max-w-[110px] truncate ${
+              isLight ? 'text-[#111827]' : 'text-[#F4F4F5]'
+            }`}>
+              {accountName}
+            </span>
+            <ChevronDown className={`hidden sm:block w-3.5 h-3.5 text-[#A1A1AA] transition-transform duration-200 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* Profile Dropdown Menu */}
+          {isProfileMenuOpen && (
+            <div
+              className={`absolute right-0 mt-2 w-64 rounded-xl border p-2 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100 ${
+                isLight
+                  ? 'bg-white border-[#E5E7EB] text-[#111827] shadow-[0_10px_30px_rgba(0,0,0,0.08)]'
+                  : 'bg-[#121215] border-[#26262B] text-[#F4F4F5] shadow-[0_10px_30px_rgba(0,0,0,0.5)]'
+              }`}
+            >
+              {/* User Header */}
+              <div className={`p-3 rounded-lg border mb-2 flex items-center gap-3 ${
+                isLight ? 'bg-[#F9FAFB] border-[#E5E7EB]' : 'bg-[#18181C] border-[#26262B]'
+              }`}>
+                <div className="relative shrink-0">
+                  {avatarUrl && !imageError ? (
+                    <img
+                      src={avatarUrl}
+                      alt={accountName}
+                      referrerPolicy="no-referrer"
+                      onError={() => setImageError(true)}
+                      className="w-10 h-10 rounded-full object-cover ring-2 ring-[#2563FF]/40"
+                    />
+                  ) : (
+                    <div
+                      className={`w-10 h-10 rounded-full font-bold text-sm flex items-center justify-center select-none ${
+                        isLight
+                          ? 'bg-[rgba(37,99,255,0.12)] text-[#1D4ED8] border border-[rgba(37,99,255,0.25)]'
+                          : 'bg-[rgba(37,99,255,0.15)] text-[#4C7DFF] border border-[rgba(37,99,255,0.30)]'
+                      }`}
+                    >
+                      {userInitials}
+                    </div>
+                  )}
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#00D6A3] ring-2 ring-[#121215]" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-semibold text-xs truncate max-w-[130px]" title={accountName}>
+                      {accountName}
+                    </span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-[rgba(37,99,255,0.15)] text-[#4C7DFF] font-medium border border-[rgba(37,99,255,0.25)] shrink-0">
+                      {userProfile?.experienceLevel || 'PRO'}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-[#A1A1AA] truncate font-mono">
+                    {authUser?.email || userProfile?.email || 'Authenticated'}
+                  </span>
+                  {userProfile?.accountCode && (
+                    <span className="text-[10px] text-[#2563FF] font-mono mt-0.5 font-medium">
+                      ID: {userProfile.accountCode}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Menu Actions */}
+              <div className="space-y-1">
+                <button
+                  onClick={() => {
+                    setActiveView('settings');
+                    setIsProfileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-lg transition text-left ${
+                    isLight
+                      ? 'hover:bg-[#F3F4F6] text-[#374151]'
+                      : 'hover:bg-[#1C1C21] text-[#D4D4D8]'
+                  }`}
+                >
+                  <Settings className="w-3.5 h-3.5 text-[#A1A1AA]" />
+                  <span>Account Settings & Profile</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveView('mentor-mode');
+                    setIsProfileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-lg transition text-left ${
+                    isLight
+                      ? 'hover:bg-[#F3F4F6] text-[#374151]'
+                      : 'hover:bg-[#1C1C21] text-[#D4D4D8]'
+                  }`}
+                >
+                  <Shield className="w-3.5 h-3.5 text-[#A1A1AA]" />
+                  <span>Mentor Hub & Code</span>
+                </button>
+
+                <div className={`my-1 border-t ${isLight ? 'border-[#E5E7EB]' : 'border-[#26262B]'}`} />
+
+                <button
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    logout();
+                  }}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-lg transition text-left font-medium ${
+                    isLight
+                      ? 'text-[#DC2626] hover:bg-[#FEE2E2]'
+                      : 'text-[#FF3D6E] hover:bg-[rgba(255,61,110,0.12)]'
+                  }`}
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Quick Add Trade CTA Button */}
         <button

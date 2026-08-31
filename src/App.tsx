@@ -19,13 +19,14 @@ import { GoalsRiskView } from './components/goals/GoalsRiskView';
 import { EconomicCalendarView } from './components/calendar/EconomicCalendarView';
 import { AiTradingCoachView } from './components/ai/AiTradingCoachView';
 import { TradingToolsView } from './components/tools/TradingToolsView';
-import { TradersLoungeView } from './components/lounge/TradersLoungeView';
+import { SelfImprovementView } from './components/self-improvement/SelfImprovementView';
 import { SettingsSyncView } from './components/settings/SettingsSyncView';
 
 import { AddEditTradeModal } from './components/trades/AddEditTradeModal';
 import { TradeDetailDrawer } from './components/trades/TradeDetailDrawer';
 import { ImportTradesModal } from './components/trades/ImportTradesModal';
 import { AuthModal } from './components/auth/AuthModal';
+import { LoginPage } from './components/auth/LoginPage';
 import { Trade } from './types';
 import { BookOpen, Sparkles, ExternalLink } from 'lucide-react';
 
@@ -39,6 +40,9 @@ const MainLayout: React.FC = () => {
     setIsAddTradeOpen,
     isAuthModalOpen,
     setIsAuthModalOpen,
+    authUser,
+    isAuthenticated,
+    setIsAuthenticated,
   } = useTrading();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -50,6 +54,16 @@ const MainLayout: React.FC = () => {
     setTradeToEdit(trade);
     setIsAddTradeOpen(true);
   };
+
+  // If user is not authenticated, show the full-screen TradeForge Login Page
+  if (!isAuthenticated && !authUser) {
+    return (
+      <LoginPage
+        onSuccess={() => setIsAuthenticated(true)}
+        onContinueAsGuest={() => setIsAuthenticated(true)}
+      />
+    );
+  }
 
   return (
     <div
@@ -114,11 +128,13 @@ const MainLayout: React.FC = () => {
 
           {activeView === 'calendar' && <EconomicCalendarView />}
 
+          {activeView === 'news' && <EconomicCalendarView defaultTab="intelligence" />}
+
           {activeView === 'ai-coach' && <AiTradingCoachView />}
 
           {activeView === 'tools' && <TradingToolsView />}
 
-          {activeView === 'lounge' && <TradersLoungeView />}
+          {(activeView === 'self-improvement' || activeView === 'lounge') && <SelfImprovementView />}
 
           {(activeView === 'integrations' || activeView === 'settings') && (
             <SettingsSyncView onOpenImport={() => setIsImportOpen(true)} />

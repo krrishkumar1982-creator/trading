@@ -614,27 +614,35 @@ export const AdvancedAnalyticsView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-mono">
-                  {instrumentData.map(sym => (
-                    <tr key={sym.symbol} className="hover:bg-slate-800/50 transition">
-                      <td className="p-3 font-bold text-white text-sm">{sym.symbol}</td>
-                      <td className="p-3 text-slate-400 uppercase text-[11px]">{sym.market}</td>
-                      <td className="p-3 text-center text-slate-300">{sym.count}</td>
-                      <td className="p-3 text-center font-bold">
-                        <span className={sym.winRate >= 50 ? 'text-emerald-400' : 'text-rose-400'}>
-                          {sym.winRate}%
-                        </span>
+                  {instrumentData.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="p-8 text-center text-slate-400 font-sans text-xs">
+                        No closed trades found matching the selected account and date filters.
                       </td>
-                      <td className={`p-3 text-right font-bold text-sm ${sym.netPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {sym.netPnl >= 0 ? '+' : ''}${Math.round(sym.netPnl).toLocaleString()}
-                      </td>
-                      <td className="p-3 text-right text-slate-200 font-bold">
-                        {sym.profitFactor > 0 ? sym.profitFactor.toFixed(2) : '0.00'}
-                      </td>
-                      <td className="p-3 text-right text-emerald-400">+${Math.round(sym.avgWin)}</td>
-                      <td className="p-3 text-right text-rose-400">-${Math.round(sym.avgLoss)}</td>
-                      <td className="p-3 text-right text-indigo-300 font-bold">{formatRMultiple(sym.avgR)}</td>
                     </tr>
-                  ))}
+                  ) : (
+                    instrumentData.map(sym => (
+                      <tr key={sym.symbol} className="hover:bg-slate-800/50 transition">
+                        <td className="p-3 font-bold text-white text-sm">{sym.symbol}</td>
+                        <td className="p-3 text-slate-400 uppercase text-[11px]">{sym.market}</td>
+                        <td className="p-3 text-center text-slate-300">{sym.count}</td>
+                        <td className="p-3 text-center font-bold">
+                          <span className={sym.winRate >= 50 ? 'text-emerald-400' : 'text-rose-400'}>
+                            {sym.winRate}%
+                          </span>
+                        </td>
+                        <td className={`p-3 text-right font-bold text-sm ${sym.netPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {sym.netPnl >= 0 ? '+' : ''}${Math.round(sym.netPnl).toLocaleString()}
+                        </td>
+                        <td className="p-3 text-right text-slate-200 font-bold">
+                          {sym.profitFactor > 0 ? sym.profitFactor.toFixed(2) : '0.00'}
+                        </td>
+                        <td className="p-3 text-right text-emerald-400">+${Math.round(sym.avgWin)}</td>
+                        <td className="p-3 text-right text-rose-400">-${Math.round(sym.avgLoss)}</td>
+                        <td className="p-3 text-right text-indigo-300 font-bold">{formatRMultiple(sym.avgR)}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -692,27 +700,35 @@ export const AdvancedAnalyticsView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-mono">
-                  {strategyData.map(st => (
-                    <tr key={st.name} className="hover:bg-slate-800/50 transition">
-                      <td className="p-3 font-bold text-white text-sm font-sans">{st.name}</td>
-                      <td className="p-3 text-center text-slate-300">{st.count}</td>
-                      <td className="p-3 text-center font-bold">
-                        <span className={st.winRate >= 50 ? 'text-emerald-400' : 'text-rose-400'}>
-                          {st.winRate}%
-                        </span>
-                      </td>
-                      <td className={`p-3 text-right font-bold ${st.netPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {st.netPnl >= 0 ? '+' : ''}${Math.round(st.netPnl).toLocaleString()}
-                      </td>
-                      <td className="p-3 text-right text-slate-200 font-bold">{st.profitFactor.toFixed(2)}</td>
-                      <td className="p-3 text-right text-indigo-300 font-bold">{formatRMultiple(st.avgR)}</td>
-                      <td className="p-3 text-center">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${st.complianceRate >= 80 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>
-                          {st.complianceRate}%
-                        </span>
+                  {strategyData.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="p-8 text-center text-slate-400 font-sans text-xs">
+                        No strategy setup data recorded for closed trades matching current filters.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    strategyData.map(st => (
+                      <tr key={st.name} className="hover:bg-slate-800/50 transition">
+                        <td className="p-3 font-bold text-white text-sm font-sans">{st.name}</td>
+                        <td className="p-3 text-center text-slate-300">{st.count}</td>
+                        <td className="p-3 text-center font-bold">
+                          <span className={st.winRate >= 50 ? 'text-emerald-400' : 'text-rose-400'}>
+                            {st.winRate}%
+                          </span>
+                        </td>
+                        <td className={`p-3 text-right font-bold ${st.netPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {st.netPnl >= 0 ? '+' : ''}${Math.round(st.netPnl).toLocaleString()}
+                        </td>
+                        <td className="p-3 text-right text-slate-200 font-bold">{st.profitFactor.toFixed(2)}</td>
+                        <td className="p-3 text-right text-indigo-300 font-bold">{formatRMultiple(st.avgR)}</td>
+                        <td className="p-3 text-center">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${st.complianceRate >= 80 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>
+                            {st.complianceRate}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

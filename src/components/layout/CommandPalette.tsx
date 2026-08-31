@@ -14,6 +14,8 @@ import {
   FileSpreadsheet,
   Zap,
   RotateCcw,
+  Globe,
+  Newspaper,
   Sparkles
 } from 'lucide-react';
 import { useTrading, ActiveView } from '../../context/TradingContext';
@@ -105,6 +107,16 @@ export const CommandPalette: React.FC = () => {
       },
     },
     {
+      id: 'nav-self-improvement',
+      label: 'Self Improvement & Discipline Hub',
+      desc: 'Habits, routines, daily missions, sleep, deep work & growth score',
+      icon: Zap,
+      action: () => {
+        setIsCommandPaletteOpen(false);
+        setActiveView('self-improvement');
+      },
+    },
+    {
       id: 'nav-ai',
       label: 'Ask AI Trading Coach',
       desc: 'Analyze mistakes, FOMO, and get actionable review',
@@ -112,6 +124,16 @@ export const CommandPalette: React.FC = () => {
       action: () => {
         setIsCommandPaletteOpen(false);
         setActiveView('ai-coach');
+      },
+    },
+    {
+      id: 'nav-news',
+      label: 'Market Intelligence & External Resources',
+      desc: 'Essential resources for Forex, Crypto, Macro events & Financial news',
+      icon: Globe,
+      action: () => {
+        setIsCommandPaletteOpen(false);
+        setActiveView('news');
       },
     },
     {

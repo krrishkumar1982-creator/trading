@@ -1,6 +1,7 @@
 import { db, ensureLoungeTables } from './index.ts';
 import {
   users,
+  profiles,
   tradingAccounts,
   trades,
   playbooks,
@@ -13,6 +14,8 @@ import {
   postLikes,
   postComments,
   mentorStudents,
+  mentorStudentRelationships,
+  studentSharingPermissions,
   mentorDirectives,
   notifications,
   brokerIntegrations,
@@ -20,13 +23,17 @@ import {
   dailyChecklistStates,
   adminAuditLogs,
   backtestDrawings,
-  chartTemplates
+  chartTemplates,
+  tradingAccountConnections,
+  connectionSyncLogs
 } from './schema.ts';
-import { eq, and, inArray, desc, sql, not, lte } from 'drizzle-orm';
+import { eq, and, inArray, desc, sql, not, lte, ilike, or } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import {
   Trade,
   TradingAccount,
+  TradingAccountConnection,
+  ConnectionSyncLog,
   Playbook,
   Strategy,
   JournalNote,
@@ -37,11 +44,199 @@ import {
   AppNotification,
   MarketType,
   SessionType,
-  TradeDirection
+  TradeDirection,
+  TradeSource
 } from '../types/index.ts';
 import { calculatePlaybookMetrics } from '../lib/metrics.ts';
 
-// User
+// Mentor Code Generator Helpers
+export function isValidMentorCode(code?: string | null): boolean {
+  if (!code) return false;
+  return /^TF-MTR-[A-Z0-9]{6}$/i.test(code.trim());
+}
+
+export async function generateUniqueMentorCode(): Promise<string> {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  for (let attempt = 0; attempt < 100; attempt++) {
+    let rand = '';
+    for (let i = 0; i < 6; i++) {
+      rand += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const candidate = `TF-MTR-${rand}`;
+    const pCheck = await db.select({ id: profiles.id }).from(profiles).where(eq(profiles.accountCode, candidate)).limit(1);
+    if (pCheck.length > 0) continue;
+    const uCheck = await db.select({ id: users.id }).from(users).where(eq(users.accountCode, candidate)).limit(1);
+    if (uCheck.length > 0) continue;
+    return candidate;
+  }
+  return `TF-MTR-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+}
+
+// User & Profile
+export async function getUserProfile(userId: string) {
+  try {
+    let profile: any = null;
+    const profileRows = await db.select().from(profiles).where(eq(profiles.id, userId));
+    const userRows = await db.select().from(users).where(eq(users.uid, userId));
+
+    if (profileRows.length > 0) {
+      profile = profileRows[0];
+    } else if (userRows.length > 0) {
+      const u = userRows[0];
+      profile = {
+        id: u.uid,
+        fullName: u.name,
+        email: u.email,
+        accountCode: u.accountCode,
+        experienceLevel: u.experienceLevel,
+        avatarUrl: u.avatar,
+      };
+    }
+
+    // Determine if we already have a valid TF-MTR-XXXXXX code in profiles or users
+    let existingValidCode: string | null = null;
+    if (profile && isValidMentorCode(profile.accountCode)) {
+      existingValidCode = profile.accountCode;
+    } else if (userRows.length > 0 && isValidMentorCode(userRows[0].accountCode)) {
+      existingValidCode = userRows[0].accountCode;
+    }
+
+    const now = new Date();
+
+    // If profile row doesn't exist yet in profiles table, insert it
+    if (profileRows.length === 0) {
+      const finalCode = existingValidCode || (await generateUniqueMentorCode());
+      console.log(`[MENTOR CODE] Creating new profile for ${userId}. Code: ${finalCode}. Generation triggered: ${!existingValidCode}`);
+
+      const [created] = await db
+        .insert(profiles)
+        .values({
+          id: userId,
+          fullName: userRows.length > 0 ? userRows[0].name : 'Trader',
+          email: userRows.length > 0 ? userRows[0].email : '',
+          accountCode: finalCode,
+          experienceLevel: 'Intermediate',
+          avatarUrl: userRows.length > 0 ? userRows[0].avatar : '',
+          createdAt: now,
+          updatedAt: now,
+        })
+        .onConflictDoNothing()
+        .returning();
+
+      // Ensure users table also has this code
+      if (userRows.length > 0 && userRows[0].accountCode !== finalCode) {
+        await db.update(users).set({ accountCode: finalCode }).where(eq(users.uid, userId));
+      }
+
+      if (created) return created;
+      const reFetch = await db.select().from(profiles).where(eq(profiles.id, userId));
+      if (reFetch.length > 0) return reFetch[0];
+    }
+
+    // Profile row exists. Guarantee a valid, permanent TF-MTR-XXXXXX code
+    if (!existingValidCode) {
+      // Genuine NULL or invalid code: generate ONCE and persist
+      const newCode = await generateUniqueMentorCode();
+      console.log(`[MENTOR CODE] Generating code for existing profile without valid code for ${userId}: ${newCode}`);
+      await db.update(profiles).set({ accountCode: newCode, updatedAt: now }).where(eq(profiles.id, userId));
+      if (userRows.length > 0) {
+        await db.update(users).set({ accountCode: newCode }).where(eq(users.uid, userId));
+      }
+      profile.accountCode = newCode;
+    } else {
+      console.log(`[MENTOR CODE] Existing code found for ${userId}: ${existingValidCode}. Generation skipped.`);
+      profile.accountCode = existingValidCode;
+
+      // Ensure profiles and users tables are in sync
+      if (profileRows.length > 0 && profileRows[0].accountCode !== existingValidCode) {
+        await db.update(profiles).set({ accountCode: existingValidCode, updatedAt: now }).where(eq(profiles.id, userId));
+      }
+      if (userRows.length > 0 && userRows[0].accountCode !== existingValidCode) {
+        await db.update(users).set({ accountCode: existingValidCode }).where(eq(users.uid, userId));
+      }
+    }
+
+    return profile;
+  } catch (error) {
+    console.error('getUserProfile error:', error);
+    return null;
+  }
+}
+
+export async function upsertUserProfile(
+  userId: string,
+  data: {
+    fullName?: string;
+    email?: string;
+    accountCode?: string;
+    experienceLevel?: string;
+    avatarUrl?: string;
+  }
+) {
+  try {
+    const existingProfiles = await db.select().from(profiles).where(eq(profiles.id, userId));
+    const existingUsers = await db.select().from(users).where(eq(users.uid, userId));
+    const now = new Date();
+
+    // Determine permanent code: if an existing valid code exists in profiles OR users, KEEP IT PERMANENTLY.
+    let permanentCode: string | null = null;
+    if (existingProfiles.length > 0 && isValidMentorCode(existingProfiles[0].accountCode)) {
+      permanentCode = existingProfiles[0].accountCode;
+    } else if (existingUsers.length > 0 && isValidMentorCode(existingUsers[0].accountCode)) {
+      permanentCode = existingUsers[0].accountCode;
+    } else if (isValidMentorCode(data.accountCode)) {
+      permanentCode = data.accountCode!;
+    } else {
+      permanentCode = await generateUniqueMentorCode();
+      console.log(`[MENTOR CODE] Generated new code in upsertUserProfile for ${userId}: ${permanentCode}`);
+    }
+
+    if (existingProfiles.length > 0) {
+      const [updated] = await db
+        .update(profiles)
+        .set({
+          fullName: data.fullName !== undefined ? data.fullName : existingProfiles[0].fullName,
+          email: data.email !== undefined ? data.email : existingProfiles[0].email,
+          accountCode: permanentCode,
+          experienceLevel: data.experienceLevel !== undefined ? data.experienceLevel : existingProfiles[0].experienceLevel,
+          avatarUrl: data.avatarUrl !== undefined ? data.avatarUrl : existingProfiles[0].avatarUrl,
+          updatedAt: now,
+        })
+        .where(eq(profiles.id, userId))
+        .returning();
+
+      if (existingUsers.length > 0 && existingUsers[0].accountCode !== permanentCode) {
+        await db.update(users).set({ accountCode: permanentCode }).where(eq(users.uid, userId));
+      }
+
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(profiles)
+        .values({
+          id: userId,
+          fullName: data.fullName || 'Trader',
+          email: data.email || '',
+          accountCode: permanentCode,
+          experienceLevel: data.experienceLevel || 'Intermediate',
+          avatarUrl: data.avatarUrl || '',
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+
+      if (existingUsers.length > 0 && existingUsers[0].accountCode !== permanentCode) {
+        await db.update(users).set({ accountCode: permanentCode }).where(eq(users.uid, userId));
+      }
+
+      return created;
+    }
+  } catch (error) {
+    console.error('upsertUserProfile error:', error);
+    return null;
+  }
+}
+
 export async function getOrCreateUser(
   uid: string,
   email = 'user@duskflow.io',
@@ -49,13 +244,17 @@ export async function getOrCreateUser(
   accountCode?: string
 ) {
   try {
-    const existing = await db.select().from(users).where(eq(users.uid, uid));
-    if (existing.length > 0) {
-      return existing[0];
+    const profile = await getUserProfile(uid);
+    const validCode = profile?.accountCode || (isValidMentorCode(accountCode) ? accountCode! : await generateUniqueMentorCode());
+
+    const existingUsers = await db.select().from(users).where(eq(users.uid, uid));
+    if (existingUsers.length > 0) {
+      if (existingUsers[0].accountCode !== validCode) {
+        await db.update(users).set({ accountCode: validCode }).where(eq(users.uid, uid));
+        existingUsers[0].accountCode = validCode;
+      }
+      return existingUsers[0];
     }
-    const generatedCode =
-      accountCode ||
-      `DF-${Math.floor(1000 + Math.random() * 9000)}-${uid.slice(0, 4).toUpperCase()}`;
 
     const [newUser] = await db
       .insert(users)
@@ -63,7 +262,7 @@ export async function getOrCreateUser(
         uid,
         email,
         name,
-        accountCode: generatedCode,
+        accountCode: validCode,
         experienceLevel: 'Intermediate',
       })
       .onConflictDoNothing()
@@ -176,6 +375,13 @@ export async function getTrades(userId: string): Promise<Trade[]> {
     return rows.map((r) => ({
       id: r.id,
       accountId: r.accountId,
+      connectionId: r.connectionId || undefined,
+      externalTradeId: r.externalTradeId || undefined,
+      platform: r.platform || undefined,
+      broker: r.broker || undefined,
+      source: (r.source as Trade['source']) || 'manual',
+      orderId: r.orderId || undefined,
+      positionId: r.positionId || undefined,
       symbol: r.symbol,
       market: r.market as Trade['market'],
       direction: r.direction as Trade['direction'],
@@ -197,7 +403,16 @@ export async function getTrades(userId: string): Promise<Trade[]> {
       session: r.session as Trade['session'],
       strategyId: r.strategyId || undefined,
       playbookId: r.playbookId || undefined,
+      setupId: r.setupId || undefined,
       setupType: r.setupType,
+      setupGrade: (r.setupGrade as Trade['setupGrade']) || undefined,
+      autoGrade: (r.autoGrade as Trade['autoGrade']) || undefined,
+      ruleCompliancePercent: r.ruleCompliancePercent !== null && r.ruleCompliancePercent !== undefined ? r.ruleCompliancePercent : undefined,
+      checkedRuleIds: Array.isArray(r.checkedRuleIds) ? (r.checkedRuleIds as string[]) : undefined,
+      brokenRuleIds: Array.isArray(r.brokenRuleIds) ? (r.brokenRuleIds as string[]) : undefined,
+      mistakeCategory: r.mistakeCategory || undefined,
+      mistakeDescription: r.mistakeDescription || undefined,
+      mistakeSeverity: (r.mistakeSeverity as Trade['mistakeSeverity']) || undefined,
       rating: r.rating,
       notes: r.notes,
       tags: Array.isArray(r.tags) ? (r.tags as string[]) : [],
@@ -229,6 +444,13 @@ export async function saveTrade(userId: string, trade: Trade) {
         .update(trades)
         .set({
           accountId: trade.accountId,
+          connectionId: trade.connectionId || null,
+          externalTradeId: trade.externalTradeId || null,
+          platform: trade.platform || null,
+          broker: trade.broker || null,
+          source: trade.source || 'manual',
+          orderId: trade.orderId || null,
+          positionId: trade.positionId || null,
           symbol: trade.symbol,
           market: trade.market,
           direction: trade.direction,
@@ -250,7 +472,16 @@ export async function saveTrade(userId: string, trade: Trade) {
           session: trade.session,
           strategyId: trade.strategyId || null,
           playbookId: trade.playbookId || null,
+          setupId: trade.setupId || null,
           setupType: trade.setupType,
+          setupGrade: trade.setupGrade || null,
+          autoGrade: trade.autoGrade || null,
+          ruleCompliancePercent: trade.ruleCompliancePercent !== undefined ? trade.ruleCompliancePercent : null,
+          checkedRuleIds: trade.checkedRuleIds || [],
+          brokenRuleIds: trade.brokenRuleIds || [],
+          mistakeCategory: trade.mistakeCategory || null,
+          mistakeDescription: trade.mistakeDescription || null,
+          mistakeSeverity: trade.mistakeSeverity || null,
           rating: trade.rating,
           notes: trade.notes,
           tags: trade.tags || [],
@@ -267,6 +498,13 @@ export async function saveTrade(userId: string, trade: Trade) {
         id: trade.id,
         userId,
         accountId: trade.accountId,
+        connectionId: trade.connectionId || null,
+        externalTradeId: trade.externalTradeId || null,
+        platform: trade.platform || null,
+        broker: trade.broker || null,
+        source: trade.source || 'manual',
+        orderId: trade.orderId || null,
+        positionId: trade.positionId || null,
         symbol: trade.symbol,
         market: trade.market,
         direction: trade.direction,
@@ -288,7 +526,16 @@ export async function saveTrade(userId: string, trade: Trade) {
         session: trade.session,
         strategyId: trade.strategyId || null,
         playbookId: trade.playbookId || null,
+        setupId: trade.setupId || null,
         setupType: trade.setupType,
+        setupGrade: trade.setupGrade || null,
+        autoGrade: trade.autoGrade || null,
+        ruleCompliancePercent: trade.ruleCompliancePercent !== undefined ? trade.ruleCompliancePercent : null,
+        checkedRuleIds: trade.checkedRuleIds || [],
+        brokenRuleIds: trade.brokenRuleIds || [],
+        mistakeCategory: trade.mistakeCategory || null,
+        mistakeDescription: trade.mistakeDescription || null,
+        mistakeSeverity: trade.mistakeSeverity || null,
         rating: trade.rating,
         notes: trade.notes,
         tags: trade.tags || [],
@@ -727,26 +974,44 @@ export async function deleteJournalFolder(userId: string, id: string) {
 }
 
 // Risk & Goals Settings
-export async function getRiskGoals(userId: string): Promise<RiskGoalSettings> {
+export async function getRiskGoals(userId: string, tradingAccountId?: string): Promise<RiskGoalSettings> {
   try {
-    const rows = await db.select().from(riskGoals).where(eq(riskGoals.userId, userId));
+    let rows: any[] = [];
+    if (tradingAccountId && tradingAccountId !== 'all') {
+      rows = await db
+        .select()
+        .from(riskGoals)
+        .where(and(eq(riskGoals.userId, userId), eq(riskGoals.tradingAccountId, tradingAccountId)));
+    }
+    if (!rows || rows.length === 0) {
+      rows = await db.select().from(riskGoals).where(eq(riskGoals.userId, userId));
+    }
     if (rows.length === 0) return {};
     const r = rows[0];
     return {
+      id: r.id,
+      userId: r.userId,
+      tradingAccountId: r.tradingAccountId || undefined,
       dailyProfitTarget: r.dailyProfitTarget || undefined,
       weeklyProfitTarget: r.weeklyProfitTarget || undefined,
       monthlyProfitTarget: r.monthlyProfitTarget || undefined,
-      maxDailyLoss: r.maxDailyLoss || undefined,
-      dailyMaxLoss: r.dailyMaxLoss || undefined,
+      maxDailyLoss: r.maxDailyLoss || r.dailyMaxLoss || undefined,
+      dailyMaxLoss: r.dailyMaxLoss || r.maxDailyLoss || undefined,
       maxWeeklyLoss: r.maxWeeklyLoss || undefined,
-      maxDrawdown: r.maxDrawdown || undefined,
-      maxDrawdownLimit: r.maxDrawdownLimit || undefined,
+      maxDrawdown: r.maxDrawdown || r.maxDrawdownLimit || undefined,
+      maxDrawdownLimit: r.maxDrawdownLimit || r.maxDrawdown || undefined,
       maxRiskPerTradePercent: r.maxRiskPerTradePercent || undefined,
+      maxRiskPerTradeAmount: r.maxRiskPerTradeAmount || undefined,
       maxTradesPerDay: r.maxTradesPerDay || undefined,
       maxConsecutiveLosses: r.maxConsecutiveLosses || undefined,
       maxContractsPerTrade: r.maxContractsPerTrade || undefined,
+      maxDailyLossStreak: r.maxDailyLossStreak || undefined,
+      minRMultiple: r.minRMultiple || undefined,
+      maxPositionSize: r.maxPositionSize || undefined,
+      maxOpenPositions: r.maxOpenPositions || undefined,
       enforceCircuitBreaker: r.enforceCircuitBreaker || false,
       circuitBreakerTriggered: r.circuitBreakerTriggered || false,
+      circuitBreakerState: (r.circuitBreakerState as any) || 'DISARMED',
     };
   } catch (error) {
     console.error('getRiskGoals error:', error);
@@ -754,45 +1019,63 @@ export async function getRiskGoals(userId: string): Promise<RiskGoalSettings> {
   }
 }
 
-export async function saveRiskGoals(userId: string, goals: RiskGoalSettings) {
+export async function saveRiskGoals(userId: string, goals: RiskGoalSettings, tradingAccountId?: string) {
   try {
+    const accId = tradingAccountId || goals.tradingAccountId;
+    const recordId = accId && accId !== 'all' ? `rg_${userId}_${accId}` : `rg_${userId}`;
+
     await db
       .insert(riskGoals)
       .values({
-        id: `rg_${userId}`,
+        id: recordId,
         userId,
+        tradingAccountId: accId && accId !== 'all' ? accId : null,
         dailyProfitTarget: goals.dailyProfitTarget || null,
         weeklyProfitTarget: goals.weeklyProfitTarget || null,
         monthlyProfitTarget: goals.monthlyProfitTarget || null,
-        maxDailyLoss: goals.maxDailyLoss || null,
-        dailyMaxLoss: goals.dailyMaxLoss || null,
+        maxDailyLoss: goals.dailyMaxLoss || goals.maxDailyLoss || null,
+        dailyMaxLoss: goals.dailyMaxLoss || goals.maxDailyLoss || null,
         maxWeeklyLoss: goals.maxWeeklyLoss || null,
-        maxDrawdown: goals.maxDrawdown || null,
-        maxDrawdownLimit: goals.maxDrawdownLimit || null,
+        maxDrawdown: goals.maxDrawdown || goals.maxDrawdownLimit || null,
+        maxDrawdownLimit: goals.maxDrawdown || goals.maxDrawdownLimit || null,
         maxRiskPerTradePercent: goals.maxRiskPerTradePercent || null,
+        maxRiskPerTradeAmount: goals.maxRiskPerTradeAmount || null,
         maxTradesPerDay: goals.maxTradesPerDay || null,
         maxConsecutiveLosses: goals.maxConsecutiveLosses || null,
         maxContractsPerTrade: goals.maxContractsPerTrade || null,
+        maxDailyLossStreak: goals.maxDailyLossStreak || null,
+        minRMultiple: goals.minRMultiple || null,
+        maxPositionSize: goals.maxPositionSize || null,
+        maxOpenPositions: goals.maxOpenPositions || null,
         enforceCircuitBreaker: goals.enforceCircuitBreaker || false,
         circuitBreakerTriggered: goals.circuitBreakerTriggered || false,
+        circuitBreakerState: goals.circuitBreakerState || 'DISARMED',
       })
       .onConflictDoUpdate({
-        target: riskGoals.userId,
+        target: riskGoals.id,
         set: {
+          tradingAccountId: accId && accId !== 'all' ? accId : null,
           dailyProfitTarget: goals.dailyProfitTarget || null,
           weeklyProfitTarget: goals.weeklyProfitTarget || null,
           monthlyProfitTarget: goals.monthlyProfitTarget || null,
-          maxDailyLoss: goals.maxDailyLoss || null,
-          dailyMaxLoss: goals.dailyMaxLoss || null,
+          maxDailyLoss: goals.dailyMaxLoss || goals.maxDailyLoss || null,
+          dailyMaxLoss: goals.dailyMaxLoss || goals.maxDailyLoss || null,
           maxWeeklyLoss: goals.maxWeeklyLoss || null,
-          maxDrawdown: goals.maxDrawdown || null,
-          maxDrawdownLimit: goals.maxDrawdownLimit || null,
+          maxDrawdown: goals.maxDrawdown || goals.maxDrawdownLimit || null,
+          maxDrawdownLimit: goals.maxDrawdown || goals.maxDrawdownLimit || null,
           maxRiskPerTradePercent: goals.maxRiskPerTradePercent || null,
+          maxRiskPerTradeAmount: goals.maxRiskPerTradeAmount || null,
           maxTradesPerDay: goals.maxTradesPerDay || null,
           maxConsecutiveLosses: goals.maxConsecutiveLosses || null,
           maxContractsPerTrade: goals.maxContractsPerTrade || null,
+          maxDailyLossStreak: goals.maxDailyLossStreak || null,
+          minRMultiple: goals.minRMultiple || null,
+          maxPositionSize: goals.maxPositionSize || null,
+          maxOpenPositions: goals.maxOpenPositions || null,
           enforceCircuitBreaker: goals.enforceCircuitBreaker || false,
           circuitBreakerTriggered: goals.circuitBreakerTriggered || false,
+          circuitBreakerState: goals.circuitBreakerState || 'DISARMED',
+          updatedAt: new Date(),
         },
       });
   } catch (error) {
@@ -2145,11 +2428,16 @@ export async function upsertBrokerTrade(
 
       const existingTags = Array.isArray(existingTrade.tags) ? existingTrade.tags : [];
       const updatedTradeData: Trade = {
-        ...existingTrade,
+        ...(existingTrade as Trade),
+        source: (existingTrade.source as TradeSource) || 'manual',
         market: (existingTrade.market || 'Futures') as MarketType,
         session: (existingTrade.session || 'New York') as SessionType,
         direction: (existingTrade.direction || 'BUY') as TradeDirection,
         emotionalState: (existingTrade.emotionalState || 'Disciplined') as any,
+        setupGrade: (existingTrade.setupGrade as any) || undefined,
+        autoGrade: (existingTrade.autoGrade as any) || undefined,
+        checkedRuleIds: Array.isArray(existingTrade.checkedRuleIds) ? existingTrade.checkedRuleIds : [],
+        brokenRuleIds: Array.isArray(existingTrade.brokenRuleIds) ? existingTrade.brokenRuleIds : [],
         mistakes: Array.isArray(existingTrade.mistakes) ? (existingTrade.mistakes as string[]) : [],
         exitPrice: exitP ?? existingTrade.exitPrice,
         exitDate: eventPayload.exitDate || nowIso,
@@ -2812,6 +3100,1141 @@ export async function deleteChartTemplate(userId: string, templateId: string) {
     throw error;
   }
 }
+
+// ==========================================
+// Auto-Sync Trading Account Connections
+// ==========================================
+
+export async function getTradingAccountConnections(userId: string): Promise<TradingAccountConnection[]> {
+  try {
+    const rows = await db
+      .select()
+      .from(tradingAccountConnections)
+      .where(eq(tradingAccountConnections.userId, userId));
+
+    return rows.map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      accountId: r.accountId,
+      platform: r.platform as TradingAccountConnection['platform'],
+      broker: r.broker,
+      server: r.server || undefined,
+      accountNumber: r.accountNumber,
+      accountName: r.accountName || undefined,
+      currency: r.currency,
+      accountType: (r.accountType as TradingAccountConnection['accountType']) || 'LIVE',
+      connectionStatus: (r.connectionStatus as TradingAccountConnection['connectionStatus']) || 'CONNECTED',
+      syncEnabled: r.syncEnabled,
+      autoSyncIntervalMins: r.autoSyncIntervalMins,
+      importScope: (r.importScope as 'ALL' | 'DATE') || 'ALL',
+      importStartDate: r.importStartDate || undefined,
+      lastSyncAt: r.lastSyncAt || undefined,
+      lastSyncError: r.lastSyncError || undefined,
+      lastSyncTradesCount: r.lastSyncTradesCount || 0,
+      balance: r.balance || 0,
+      equity: r.equity || 0,
+      leverage: r.leverage || 100,
+      metadata: (r.metadata as Record<string, any>) || {},
+      createdAt: r.createdAt ? r.createdAt.toISOString() : undefined,
+      updatedAt: r.updatedAt ? r.updatedAt.toISOString() : undefined,
+    }));
+  } catch (error) {
+    console.error('getTradingAccountConnections error:', error);
+    return [];
+  }
+}
+
+export async function getTradingAccountConnectionById(userId: string, id: string) {
+  try {
+    const rows = await db
+      .select()
+      .from(tradingAccountConnections)
+      .where(and(eq(tradingAccountConnections.id, id), eq(tradingAccountConnections.userId, userId)));
+    return rows.length > 0 ? rows[0] : null;
+  } catch (error) {
+    console.error('getTradingAccountConnectionById error:', error);
+    return null;
+  }
+}
+
+export async function saveTradingAccountConnection(
+  userId: string,
+  connection: {
+    id: string;
+    accountId: string;
+    platform: string;
+    broker: string;
+    server?: string;
+    accountNumber: string;
+    accountName?: string;
+    currency?: string;
+    accountType?: string;
+    encryptedCredentials?: string;
+    connectionStatus?: string;
+    syncEnabled?: boolean;
+    autoSyncIntervalMins?: number;
+    importScope?: string;
+    importStartDate?: string;
+    lastSyncAt?: string;
+    lastSyncError?: string;
+    lastSyncTradesCount?: number;
+    balance?: number;
+    equity?: number;
+    leverage?: number;
+    metadata?: Record<string, any>;
+  }
+) {
+  try {
+    const existing = await db
+      .select({ id: tradingAccountConnections.id, owner: tradingAccountConnections.userId })
+      .from(tradingAccountConnections)
+      .where(eq(tradingAccountConnections.id, connection.id));
+
+    if (existing.length > 0) {
+      if (existing[0].owner !== userId) {
+        throw new Error('Forbidden: Connection belongs to another user');
+      }
+
+      const updatePayload: Record<string, any> = {
+        updatedAt: new Date(),
+      };
+      if (connection.broker !== undefined) updatePayload.broker = connection.broker;
+      if (connection.server !== undefined) updatePayload.server = connection.server;
+      if (connection.accountNumber !== undefined) updatePayload.accountNumber = connection.accountNumber;
+      if (connection.accountName !== undefined) updatePayload.accountName = connection.accountName;
+      if (connection.currency !== undefined) updatePayload.currency = connection.currency;
+      if (connection.accountType !== undefined) updatePayload.accountType = connection.accountType;
+      if (connection.encryptedCredentials !== undefined) updatePayload.encryptedCredentials = connection.encryptedCredentials;
+      if (connection.connectionStatus !== undefined) updatePayload.connectionStatus = connection.connectionStatus;
+      if (connection.syncEnabled !== undefined) updatePayload.syncEnabled = connection.syncEnabled;
+      if (connection.autoSyncIntervalMins !== undefined) updatePayload.autoSyncIntervalMins = connection.autoSyncIntervalMins;
+      if (connection.importScope !== undefined) updatePayload.importScope = connection.importScope;
+      if (connection.importStartDate !== undefined) updatePayload.importStartDate = connection.importStartDate;
+      if (connection.lastSyncAt !== undefined) updatePayload.lastSyncAt = connection.lastSyncAt;
+      if (connection.lastSyncError !== undefined) updatePayload.lastSyncError = connection.lastSyncError;
+      if (connection.lastSyncTradesCount !== undefined) updatePayload.lastSyncTradesCount = connection.lastSyncTradesCount;
+      if (connection.balance !== undefined) updatePayload.balance = connection.balance;
+      if (connection.equity !== undefined) updatePayload.equity = connection.equity;
+      if (connection.leverage !== undefined) updatePayload.leverage = connection.leverage;
+      if (connection.metadata !== undefined) updatePayload.metadata = connection.metadata;
+
+      await db
+        .update(tradingAccountConnections)
+        .set(updatePayload)
+        .where(and(eq(tradingAccountConnections.id, connection.id), eq(tradingAccountConnections.userId, userId)));
+    } else {
+      await db.insert(tradingAccountConnections).values({
+        id: connection.id,
+        userId,
+        accountId: connection.accountId,
+        platform: connection.platform,
+        broker: connection.broker,
+        server: connection.server || null,
+        accountNumber: connection.accountNumber,
+        accountName: connection.accountName || null,
+        currency: connection.currency || 'USD',
+        accountType: connection.accountType || 'LIVE',
+        encryptedCredentials: connection.encryptedCredentials || '',
+        connectionStatus: connection.connectionStatus || 'CONNECTED',
+        syncEnabled: connection.syncEnabled !== undefined ? connection.syncEnabled : true,
+        autoSyncIntervalMins: connection.autoSyncIntervalMins || 5,
+        importScope: connection.importScope || 'ALL',
+        importStartDate: connection.importStartDate || null,
+        lastSyncAt: connection.lastSyncAt || null,
+        lastSyncError: connection.lastSyncError || null,
+        lastSyncTradesCount: connection.lastSyncTradesCount || 0,
+        balance: connection.balance || 0,
+        equity: connection.equity || 0,
+        leverage: connection.leverage || 100,
+        metadata: connection.metadata || {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+  } catch (error) {
+    console.error('saveTradingAccountConnection error:', error);
+    throw error;
+  }
+}
+
+export async function deleteTradingAccountConnection(userId: string, id: string) {
+  try {
+    const existing = await db
+      .select({ owner: tradingAccountConnections.userId })
+      .from(tradingAccountConnections)
+      .where(eq(tradingAccountConnections.id, id));
+
+    if (existing.length > 0 && existing[0].owner !== userId) {
+      throw new Error('Forbidden: Connection belongs to another user');
+    }
+
+    await db
+      .delete(tradingAccountConnections)
+      .where(and(eq(tradingAccountConnections.id, id), eq(tradingAccountConnections.userId, userId)));
+
+    // Clean up associated sync logs
+    await db
+      .delete(connectionSyncLogs)
+      .where(and(eq(connectionSyncLogs.connectionId, id), eq(connectionSyncLogs.userId, userId)));
+  } catch (error) {
+    console.error('deleteTradingAccountConnection error:', error);
+    throw error;
+  }
+}
+
+export async function getConnectionSyncLogs(userId: string, connectionId?: string, limit = 50): Promise<ConnectionSyncLog[]> {
+  try {
+    let query = db
+      .select()
+      .from(connectionSyncLogs)
+      .where(
+        connectionId
+          ? and(eq(connectionSyncLogs.userId, userId), eq(connectionSyncLogs.connectionId, connectionId))
+          : eq(connectionSyncLogs.userId, userId)
+      )
+      .orderBy(desc(connectionSyncLogs.createdAt))
+      .limit(limit);
+
+    const rows = await query;
+    return rows.map((r) => ({
+      id: r.id,
+      connectionId: r.connectionId,
+      userId: r.userId,
+      status: r.status as ConnectionSyncLog['status'],
+      tradesImported: r.tradesImported,
+      tradesUpdated: r.tradesUpdated,
+      errorMessage: r.errorMessage || undefined,
+      details: (r.details as Record<string, any>) || undefined,
+      startedAt: r.startedAt,
+      completedAt: r.completedAt || undefined,
+      durationMs: r.durationMs || 0,
+      createdAt: r.createdAt ? r.createdAt.toISOString() : undefined,
+    }));
+  } catch (error) {
+    console.error('getConnectionSyncLogs error:', error);
+    return [];
+  }
+}
+
+export async function createConnectionSyncLog(userId: string, log: Omit<ConnectionSyncLog, 'userId' | 'createdAt'>) {
+  try {
+    await db.insert(connectionSyncLogs).values({
+      id: log.id,
+      connectionId: log.connectionId,
+      userId,
+      status: log.status,
+      tradesImported: log.tradesImported,
+      tradesUpdated: log.tradesUpdated,
+      errorMessage: log.errorMessage || null,
+      details: log.details || null,
+      startedAt: log.startedAt,
+      completedAt: log.completedAt || null,
+      durationMs: log.durationMs || 0,
+      createdAt: new Date(),
+    });
+  } catch (error) {
+    console.error('createConnectionSyncLog error:', error);
+  }
+}
+
+/**
+ * Idempotent upsert of an auto-synced normalized trade.
+ * CRITICAL RULE: If trade already exists (identified by externalTradeId + userId or id),
+ * updates execution data (exitPrice, exitDate, pnl, etc.) WITHOUT overwriting
+ * the user's manual notes, tags, playbook, strategy, rating, or mistakes!
+ */
+export async function upsertSyncedTrade(
+  userId: string,
+  accountId: string,
+  connectionId: string,
+  trade: {
+    externalTradeId: string;
+    platform: string;
+    broker: string;
+    symbol: string;
+    market: Trade['market'];
+    direction: Trade['direction'];
+    status: Trade['status'];
+    entryDate: string;
+    exitDate?: string;
+    entryPrice: number;
+    exitPrice?: number;
+    stopLoss?: number;
+    takeProfit?: number;
+    quantity: number;
+    grossPnl: number;
+    netPnl: number;
+    commission?: number;
+    swap?: number;
+    fees?: number;
+    rMultiple?: number;
+    roiPercent?: number;
+    session?: Trade['session'];
+    setupType?: string;
+    orderId?: string;
+    positionId?: string;
+    notes?: string;
+  }
+): Promise<{ isNew: boolean; id: string }> {
+  try {
+    const existing = await db
+      .select()
+      .from(trades)
+      .where(and(eq(trades.userId, userId), eq(trades.externalTradeId, trade.externalTradeId)));
+
+    if (existing.length > 0) {
+      const current = existing[0];
+      // Update only financial/execution metrics while preserving user's journaled annotations
+      await db
+        .update(trades)
+        .set({
+          accountId,
+          connectionId,
+          platform: trade.platform,
+          broker: trade.broker,
+          source: trade.platform.toLowerCase() as Trade['source'],
+          orderId: trade.orderId || current.orderId,
+          positionId: trade.positionId || current.positionId,
+          status: trade.status,
+          exitDate: trade.exitDate || current.exitDate,
+          exitPrice: trade.exitPrice !== undefined ? trade.exitPrice : current.exitPrice,
+          stopLoss: trade.stopLoss !== undefined ? trade.stopLoss : current.stopLoss,
+          takeProfit: trade.takeProfit !== undefined ? trade.takeProfit : current.takeProfit,
+          quantity: trade.quantity,
+          grossPnl: trade.grossPnl,
+          netPnl: trade.netPnl,
+          commission: trade.commission !== undefined ? trade.commission : current.commission,
+          swap: trade.swap !== undefined ? trade.swap : current.swap,
+          fees: trade.fees !== undefined ? trade.fees : current.fees,
+          rMultiple: trade.rMultiple !== undefined ? trade.rMultiple : current.rMultiple,
+          roiPercent: trade.roiPercent !== undefined ? trade.roiPercent : current.roiPercent,
+        })
+        .where(eq(trades.id, current.id));
+
+      return { isNew: false, id: current.id };
+    } else {
+      const newId = `sync_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      await db.insert(trades).values({
+        id: newId,
+        userId,
+        accountId,
+        connectionId,
+        externalTradeId: trade.externalTradeId,
+        platform: trade.platform,
+        broker: trade.broker,
+        source: trade.platform.toLowerCase() as Trade['source'],
+        orderId: trade.orderId || null,
+        positionId: trade.positionId || null,
+        symbol: trade.symbol,
+        market: trade.market,
+        direction: trade.direction,
+        status: trade.status,
+        entryDate: trade.entryDate,
+        exitDate: trade.exitDate || null,
+        entryPrice: trade.entryPrice,
+        exitPrice: trade.exitPrice || null,
+        stopLoss: trade.stopLoss || null,
+        takeProfit: trade.takeProfit || null,
+        quantity: trade.quantity,
+        grossPnl: trade.grossPnl,
+        netPnl: trade.netPnl,
+        commission: trade.commission || 0,
+        swap: trade.swap || 0,
+        fees: trade.fees || 0,
+        rMultiple: trade.rMultiple || 0,
+        roiPercent: trade.roiPercent || 0,
+        session: trade.session || 'New York',
+        strategyId: null,
+        playbookId: null,
+        setupType: trade.setupType || 'Auto-Synced Execution',
+        rating: 3,
+        notes: trade.notes || '',
+        tags: [],
+        mistakes: [],
+        rulesFollowed: true,
+        screenshotUrl: null,
+        afterScreenshotUrl: null,
+        durationMinutes: 0,
+        emotionalState: 'Disciplined',
+      });
+
+      return { isNew: true, id: newId };
+    }
+  } catch (error) {
+    console.error('upsertSyncedTrade error:', error);
+    throw error;
+  }
+}
+
+// ==========================================
+// MENTOR HUB & ACCOUNT SHARING REPOSITORY
+// ==========================================
+
+export async function searchAccountsForMentorship(currentUserId: string, rawQuery: string) {
+  const query = rawQuery.trim();
+  if (!query) return [];
+
+  const formattedCode = query.toUpperCase();
+
+  // Query profiles matching name or accountCode (STRICTLY NO EMAIL)
+  const matches = await db
+    .select({
+      id: profiles.id,
+      fullName: profiles.fullName,
+      accountCode: profiles.accountCode,
+      avatarUrl: profiles.avatarUrl,
+    })
+    .from(profiles)
+    .where(
+      and(
+        not(eq(profiles.id, currentUserId)),
+        or(
+          ilike(profiles.fullName, `%${query}%`),
+          eq(profiles.accountCode, formattedCode),
+          ilike(profiles.accountCode, `%${query}%`)
+        )
+      )
+    )
+    .limit(20);
+
+  if (matches.length > 0) {
+    return matches.map((p) => ({
+      id: p.id,
+      displayName: p.fullName || 'TradeForge Trader',
+      accountCode: p.accountCode || 'TF-MTR-UNKNOWN',
+      avatarUrl: p.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+      role: 'Mentor / Student',
+    }));
+  }
+
+  // Fallback to users table if profiles doesn't have it
+  const userMatches = await db
+    .select({
+      id: users.uid,
+      name: users.name,
+      accountCode: users.accountCode,
+      avatar: users.avatar,
+    })
+    .from(users)
+    .where(
+      and(
+        not(eq(users.uid, currentUserId)),
+        or(
+          ilike(users.name, `%${query}%`),
+          eq(users.accountCode, formattedCode),
+          ilike(users.accountCode, `%${query}%`)
+        )
+      )
+    )
+    .limit(20);
+
+  return userMatches.map((u) => ({
+    id: u.id,
+    displayName: u.name || 'TradeForge Trader',
+    accountCode: u.accountCode || 'TF-MTR-UNKNOWN',
+    avatarUrl: u.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+    role: 'Mentor / Student',
+  }));
+}
+
+export async function connectMentorByCode(studentUserId: string, inputCodeOrId: string) {
+  const clean = inputCodeOrId.trim();
+  if (!clean) {
+    throw new Error('Unique Mentor Code is required.');
+  }
+  const cleanUpper = clean.toUpperCase();
+
+  // Find mentor profile
+  let mentorUser: { id: string; name: string; accountCode: string; avatarUrl: string } | null = null;
+
+  const profileRows = await db
+    .select({
+      id: profiles.id,
+      name: profiles.fullName,
+      accountCode: profiles.accountCode,
+      avatarUrl: profiles.avatarUrl,
+    })
+    .from(profiles)
+    .where(or(eq(profiles.accountCode, cleanUpper), eq(profiles.id, clean)))
+    .limit(1);
+
+  if (profileRows.length > 0) {
+    mentorUser = {
+      id: profileRows[0].id,
+      name: profileRows[0].name || 'Trader',
+      accountCode: profileRows[0].accountCode || 'TF-MTR-UNKNOWN',
+      avatarUrl: profileRows[0].avatarUrl || '',
+    };
+  } else {
+    const userRows = await db
+      .select({
+        id: users.uid,
+        name: users.name,
+        accountCode: users.accountCode,
+        avatar: users.avatar,
+      })
+      .from(users)
+      .where(or(eq(users.accountCode, cleanUpper), eq(users.uid, clean)))
+      .limit(1);
+
+    if (userRows.length > 0) {
+      mentorUser = {
+        id: userRows[0].id,
+        name: userRows[0].name || 'Trader',
+        accountCode: userRows[0].accountCode || 'TF-MTR-UNKNOWN',
+        avatarUrl: userRows[0].avatar || '',
+      };
+    }
+  }
+
+  if (!mentorUser) {
+    throw new Error('No TradeForge account found with that Unique Mentor Code.');
+  }
+
+  if (mentorUser.id === studentUserId) {
+    throw new Error('You cannot connect with your own Mentor Code.');
+  }
+
+  // Check existing relationship
+  const existingRel = await db
+    .select()
+    .from(mentorStudentRelationships)
+    .where(
+      and(
+        eq(mentorStudentRelationships.mentorUserId, mentorUser.id),
+        eq(mentorStudentRelationships.studentUserId, studentUserId)
+      )
+    )
+    .limit(1);
+
+  if (existingRel.length > 0) {
+    const status = existingRel[0].status;
+    if (status === 'APPROVED' || status === 'ACTIVE') {
+      throw new Error('You are already connected.');
+    } else if (status === 'PENDING') {
+      throw new Error('Request already pending.');
+    }
+  }
+
+  const relId = `rel_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const now = new Date();
+
+  // Create relationship record
+  if (existingRel.length > 0) {
+    await db
+      .update(mentorStudentRelationships)
+      .set({ status: 'APPROVED', updatedAt: now })
+      .where(eq(mentorStudentRelationships.id, existingRel[0].id));
+  } else {
+    await db.insert(mentorStudentRelationships).values({
+      id: relId,
+      mentorUserId: mentorUser.id,
+      studentUserId: studentUserId,
+      status: 'APPROVED',
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  // Ensure default student_sharing_permissions record
+  const existingPerms = await db
+    .select()
+    .from(studentSharingPermissions)
+    .where(
+      and(
+        eq(studentSharingPermissions.studentUserId, studentUserId),
+        eq(studentSharingPermissions.mentorUserId, mentorUser.id)
+      )
+    )
+    .limit(1);
+
+  if (existingPerms.length === 0) {
+    await db.insert(studentSharingPermissions).values({
+      id: `perm_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      studentUserId,
+      mentorUserId: mentorUser.id,
+      sharedAccountIds: [],
+      canViewAccountOverview: true,
+      canViewTrades: true,
+      canViewAnalytics: true,
+      canViewEquityCurve: true,
+      canViewDrawdown: true,
+      canViewPlaybooks: false,
+      canViewNotes: false,
+      canViewRiskControls: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  // Sync to legacy mentorStudents table for backwards compatibility
+  const studentProfile = await getUserProfile(studentUserId);
+  const studentAccounts = await getTradingAccounts(studentUserId);
+  const mainAcc = studentAccounts[0];
+
+  const mentorStudentId = `ms_${mentorUser.id}_${studentUserId}`;
+  const existingMS = await db.select().from(mentorStudents).where(eq(mentorStudents.id, mentorStudentId)).limit(1);
+
+  if (existingMS.length === 0) {
+    await db.insert(mentorStudents).values({
+      id: mentorStudentId,
+      userId: mentorUser.id,
+      code: studentProfile?.accountCode || 'TF-MTR-UNKNOWN',
+      name: studentProfile?.fullName || 'Student Trader',
+      email: '', // Never expose email
+      avatar: studentProfile?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+      accountName: mainAcc?.name || 'Main Trading Account',
+      currentBalance: mainAcc?.currentBalance || 10000,
+      netPnl: 0,
+      winRate: 0,
+      profitFactor: 0,
+      zellaScore: 85,
+      totalTrades: 0,
+      status: 'ACTIVE',
+      sharedAccounts: mainAcc ? [mainAcc.id] : [],
+      unreadNotesCount: 0,
+      disciplineScore: 90,
+      joinedDate: new Date().toISOString().split('T')[0],
+      riskBreached: false,
+    });
+  }
+
+  return {
+    relationshipId: relId,
+    mentor: {
+      id: mentorUser.id,
+      displayName: mentorUser.name,
+      accountCode: mentorUser.accountCode,
+      avatarUrl: mentorUser.avatarUrl,
+      role: 'Mentor',
+    },
+  };
+}
+
+export async function connectStudentByCode(mentorUserId: string, inputCodeOrId: string) {
+  const clean = inputCodeOrId.trim();
+  if (!clean) {
+    throw new Error('Student Unique Mentor Code is required.');
+  }
+  const cleanUpper = clean.toUpperCase();
+
+  // Find student profile
+  let studentUser: { id: string; name: string; accountCode: string; avatarUrl: string } | null = null;
+
+  const profileRows = await db
+    .select({
+      id: profiles.id,
+      name: profiles.fullName,
+      accountCode: profiles.accountCode,
+      avatarUrl: profiles.avatarUrl,
+    })
+    .from(profiles)
+    .where(or(eq(profiles.accountCode, cleanUpper), eq(profiles.id, clean)))
+    .limit(1);
+
+  if (profileRows.length > 0) {
+    studentUser = {
+      id: profileRows[0].id,
+      name: profileRows[0].name || 'Student Trader',
+      accountCode: profileRows[0].accountCode || 'TF-MTR-UNKNOWN',
+      avatarUrl: profileRows[0].avatarUrl || '',
+    };
+  } else {
+    const userRows = await db
+      .select({
+        id: users.uid,
+        name: users.name,
+        accountCode: users.accountCode,
+        avatar: users.avatar,
+      })
+      .from(users)
+      .where(or(eq(users.accountCode, cleanUpper), eq(users.uid, clean)))
+      .limit(1);
+
+    if (userRows.length > 0) {
+      studentUser = {
+        id: userRows[0].id,
+        name: userRows[0].name || 'Student Trader',
+        accountCode: userRows[0].accountCode || 'TF-MTR-UNKNOWN',
+        avatarUrl: userRows[0].avatar || '',
+      };
+    }
+  }
+
+  if (!studentUser) {
+    throw new Error('Student not found. Check the Unique Mentor Code.');
+  }
+
+  if (studentUser.id === mentorUserId) {
+    throw new Error('You cannot add yourself as a student.');
+  }
+
+  // Check existing relationship
+  const existingRel = await db
+    .select()
+    .from(mentorStudentRelationships)
+    .where(
+      and(
+        eq(mentorStudentRelationships.mentorUserId, mentorUserId),
+        eq(mentorStudentRelationships.studentUserId, studentUser.id)
+      )
+    )
+    .limit(1);
+
+  if (existingRel.length > 0) {
+    const status = existingRel[0].status;
+    if (status === 'APPROVED' || status === 'ACTIVE') {
+      throw new Error('You are already connected to this student.');
+    } else if (status === 'PENDING') {
+      throw new Error('Connection request already pending.');
+    }
+  }
+
+  const relId = `rel_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const now = new Date();
+
+  if (existingRel.length > 0) {
+    await db
+      .update(mentorStudentRelationships)
+      .set({ status: 'APPROVED', updatedAt: now })
+      .where(eq(mentorStudentRelationships.id, existingRel[0].id));
+  } else {
+    await db.insert(mentorStudentRelationships).values({
+      id: relId,
+      mentorUserId: mentorUserId,
+      studentUserId: studentUser.id,
+      status: 'APPROVED',
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  // Ensure default permissions record
+  const existingPerms = await db
+    .select()
+    .from(studentSharingPermissions)
+    .where(
+      and(
+        eq(studentSharingPermissions.studentUserId, studentUser.id),
+        eq(studentSharingPermissions.mentorUserId, mentorUserId)
+      )
+    )
+    .limit(1);
+
+  if (existingPerms.length === 0) {
+    await db.insert(studentSharingPermissions).values({
+      id: `perm_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      studentUserId: studentUser.id,
+      mentorUserId: mentorUserId,
+      sharedAccountIds: [],
+      canViewAccountOverview: true,
+      canViewTrades: true,
+      canViewAnalytics: true,
+      canViewEquityCurve: true,
+      canViewDrawdown: true,
+      canViewPlaybooks: false,
+      canViewNotes: false,
+      canViewRiskControls: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  return {
+    relationshipId: relId,
+    student: {
+      id: studentUser.id,
+      displayName: studentUser.name,
+      accountCode: studentUser.accountCode,
+      avatarUrl: studentUser.avatarUrl,
+      role: 'Student',
+    },
+  };
+}
+
+export async function searchStudentByMentorCode(mentorUserId: string, code: string) {
+  const clean = code.trim().toUpperCase();
+  if (!clean) throw new Error('Student Unique Mentor Code is required.');
+
+  // Exact code matching on profiles
+  const profileMatches = await db
+    .select({
+      id: profiles.id,
+      fullName: profiles.fullName,
+      accountCode: profiles.accountCode,
+      avatarUrl: profiles.avatarUrl,
+    })
+    .from(profiles)
+    .where(eq(profiles.accountCode, clean))
+    .limit(1);
+
+  if (profileMatches.length > 0) {
+    const p = profileMatches[0];
+    if (p.id === mentorUserId) {
+      throw new Error('You cannot add yourself as a student.');
+    }
+    return {
+      id: p.id,
+      displayName: p.fullName || 'TradeForge Trader',
+      accountCode: p.accountCode,
+      avatarUrl: p.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+      role: 'Student / Mentor',
+    };
+  }
+
+  // Fallback to users table
+  const userMatches = await db
+    .select({
+      id: users.uid,
+      name: users.name,
+      accountCode: users.accountCode,
+      avatar: users.avatar,
+    })
+    .from(users)
+    .where(eq(users.accountCode, clean))
+    .limit(1);
+
+  if (userMatches.length > 0) {
+    const u = userMatches[0];
+    if (u.id === mentorUserId) {
+      throw new Error('You cannot add yourself as a student.');
+    }
+    return {
+      id: u.id,
+      displayName: u.name || 'TradeForge Trader',
+      accountCode: u.accountCode,
+      avatarUrl: u.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+      role: 'Student / Mentor',
+    };
+  }
+
+  throw new Error('Student not found. Check the Unique Mentor Code.');
+}
+
+export async function getStudentMentors(studentUserId: string) {
+  const rels = await db
+    .select()
+    .from(mentorStudentRelationships)
+    .where(
+      and(
+        eq(mentorStudentRelationships.studentUserId, studentUserId),
+        or(
+          eq(mentorStudentRelationships.status, 'APPROVED'),
+          eq(mentorStudentRelationships.status, 'ACTIVE'),
+          eq(mentorStudentRelationships.status, 'PENDING')
+        )
+      )
+    );
+
+  const mentorsList = [];
+
+  for (const rel of rels) {
+    const profile = await getUserProfile(rel.mentorUserId);
+    const perms = await getStudentSharingPermissions(studentUserId, rel.mentorUserId);
+
+    mentorsList.push({
+      relationshipId: rel.id,
+      mentorUserId: rel.mentorUserId,
+      displayName: profile?.fullName || 'TradeForge Mentor',
+      accountCode: profile?.accountCode || 'TF-MTR-UNKNOWN',
+      avatarUrl: profile?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+      status: rel.status,
+      connectedDate: rel.createdAt ? new Date(rel.createdAt).toLocaleDateString() : 'Recently',
+      permissions: perms,
+    });
+  }
+
+  return mentorsList;
+}
+
+export async function getMentorStudentsFull(mentorUserId: string) {
+  const rels = await db
+    .select()
+    .from(mentorStudentRelationships)
+    .where(
+      and(
+        eq(mentorStudentRelationships.mentorUserId, mentorUserId),
+        or(
+          eq(mentorStudentRelationships.status, 'APPROVED'),
+          eq(mentorStudentRelationships.status, 'ACTIVE')
+        )
+      )
+    );
+
+  const studentsList = [];
+
+  for (const rel of rels) {
+    const studentProfile = await getUserProfile(rel.studentUserId);
+    const studentAccounts = await getTradingAccounts(rel.studentUserId);
+    const studentTrades = await getTrades(rel.studentUserId);
+
+    const mainAccount = studentAccounts[0];
+    const totalTrades = studentTrades.length;
+    const wins = studentTrades.filter((t) => (t.netPnl || 0) > 0).length;
+    const winRate = totalTrades > 0 ? Math.round((wins / totalTrades) * 100) : 0;
+    const netPnl = studentTrades.reduce((acc, t) => acc + (t.netPnl || 0), 0);
+
+    studentsList.push({
+      id: rel.studentUserId,
+      relationshipId: rel.id,
+      code: studentProfile?.accountCode || 'TF-MTR-UNKNOWN',
+      name: studentProfile?.fullName || 'Student Trader',
+      avatar: studentProfile?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+      accountName: mainAccount?.name || 'Main Trading Account',
+      currentBalance: mainAccount?.currentBalance || 10000,
+      netPnl,
+      winRate,
+      totalTrades,
+      status: rel.status,
+      joinedDate: rel.createdAt ? new Date(rel.createdAt).toLocaleDateString() : 'Recently',
+      riskBreached: false,
+    });
+  }
+
+  return studentsList;
+}
+
+export async function getStudentSharingPermissions(studentUserId: string, mentorUserId: string) {
+  const perms = await db
+    .select()
+    .from(studentSharingPermissions)
+    .where(
+      and(
+        eq(studentSharingPermissions.studentUserId, studentUserId),
+        eq(studentSharingPermissions.mentorUserId, mentorUserId)
+      )
+    )
+    .limit(1);
+
+  if (perms.length > 0) {
+    const p = perms[0];
+    return {
+      sharedAccountIds: Array.isArray(p.sharedAccountIds) ? (p.sharedAccountIds as string[]) : [],
+      canViewAccountOverview: p.canViewAccountOverview,
+      canViewTrades: p.canViewTrades,
+      canViewAnalytics: p.canViewAnalytics,
+      canViewEquityCurve: p.canViewEquityCurve,
+      canViewDrawdown: p.canViewDrawdown,
+      canViewPlaybooks: p.canViewPlaybooks,
+      canViewNotes: p.canViewNotes,
+      canViewRiskControls: p.canViewRiskControls,
+    };
+  }
+
+  return {
+    sharedAccountIds: [],
+    canViewAccountOverview: true,
+    canViewTrades: true,
+    canViewAnalytics: true,
+    canViewEquityCurve: true,
+    canViewDrawdown: true,
+    canViewPlaybooks: false,
+    canViewNotes: false,
+    canViewRiskControls: false,
+  };
+}
+
+export async function updateStudentSharingPermissions(
+  studentUserId: string,
+  mentorUserId: string,
+  permissions: Partial<{
+    sharedAccountIds: string[];
+    canViewAccountOverview: boolean;
+    canViewTrades: boolean;
+    canViewAnalytics: boolean;
+    canViewEquityCurve: boolean;
+    canViewDrawdown: boolean;
+    canViewPlaybooks: boolean;
+    canViewNotes: boolean;
+    canViewRiskControls: boolean;
+  }>
+) {
+  const existing = await db
+    .select()
+    .from(studentSharingPermissions)
+    .where(
+      and(
+        eq(studentSharingPermissions.studentUserId, studentUserId),
+        eq(studentSharingPermissions.mentorUserId, mentorUserId)
+      )
+    )
+    .limit(1);
+
+  const now = new Date();
+
+  if (existing.length > 0) {
+    const [updated] = await db
+      .update(studentSharingPermissions)
+      .set({
+        sharedAccountIds: permissions.sharedAccountIds !== undefined ? permissions.sharedAccountIds : existing[0].sharedAccountIds,
+        canViewAccountOverview: permissions.canViewAccountOverview !== undefined ? permissions.canViewAccountOverview : existing[0].canViewAccountOverview,
+        canViewTrades: permissions.canViewTrades !== undefined ? permissions.canViewTrades : existing[0].canViewTrades,
+        canViewAnalytics: permissions.canViewAnalytics !== undefined ? permissions.canViewAnalytics : existing[0].canViewAnalytics,
+        canViewEquityCurve: permissions.canViewEquityCurve !== undefined ? permissions.canViewEquityCurve : existing[0].canViewEquityCurve,
+        canViewDrawdown: permissions.canViewDrawdown !== undefined ? permissions.canViewDrawdown : existing[0].canViewDrawdown,
+        canViewPlaybooks: permissions.canViewPlaybooks !== undefined ? permissions.canViewPlaybooks : existing[0].canViewPlaybooks,
+        canViewNotes: permissions.canViewNotes !== undefined ? permissions.canViewNotes : existing[0].canViewNotes,
+        canViewRiskControls: permissions.canViewRiskControls !== undefined ? permissions.canViewRiskControls : existing[0].canViewRiskControls,
+        updatedAt: now,
+      })
+      .where(eq(studentSharingPermissions.id, existing[0].id))
+      .returning();
+    return updated;
+  } else {
+    const [created] = await db
+      .insert(studentSharingPermissions)
+      .values({
+        id: `perm_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        studentUserId,
+        mentorUserId,
+        sharedAccountIds: permissions.sharedAccountIds || [],
+        canViewAccountOverview: permissions.canViewAccountOverview ?? true,
+        canViewTrades: permissions.canViewTrades ?? true,
+        canViewAnalytics: permissions.canViewAnalytics ?? true,
+        canViewEquityCurve: permissions.canViewEquityCurve ?? true,
+        canViewDrawdown: permissions.canViewDrawdown ?? true,
+        canViewPlaybooks: permissions.canViewPlaybooks ?? false,
+        canViewNotes: permissions.canViewNotes ?? false,
+        canViewRiskControls: permissions.canViewRiskControls ?? false,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    return created;
+  }
+}
+
+export async function getStudentDetailsForMentor(mentorUserId: string, studentUserId: string) {
+  // Check active relationship
+  const rels = await db
+    .select()
+    .from(mentorStudentRelationships)
+    .where(
+      and(
+        eq(mentorStudentRelationships.mentorUserId, mentorUserId),
+        eq(mentorStudentRelationships.studentUserId, studentUserId),
+        or(
+          eq(mentorStudentRelationships.status, 'APPROVED'),
+          eq(mentorStudentRelationships.status, 'ACTIVE')
+        )
+      )
+    )
+    .limit(1);
+
+  if (rels.length === 0) {
+    throw new Error('Unauthorized: You do not have permission to view this student\'s data.');
+  }
+
+  const perms = await getStudentSharingPermissions(studentUserId, mentorUserId);
+  const studentProfile = await getUserProfile(studentUserId);
+  const allAccounts = await getTradingAccounts(studentUserId);
+
+  // Filter accounts if student selected specific shared account IDs
+  const sharedAccounts = perms.sharedAccountIds && perms.sharedAccountIds.length > 0
+    ? allAccounts.filter((a) => perms.sharedAccountIds.includes(a.id))
+    : allAccounts;
+
+  const sharedAccountIdsSet = new Set(sharedAccounts.map((a) => a.id));
+
+  // Fetch student trades for shared accounts
+  const allTrades = await getTrades(studentUserId);
+  const filteredTrades = perms.canViewTrades
+    ? (sharedAccountIdsSet.size > 0 ? allTrades.filter((t) => sharedAccountIdsSet.has(t.accountId)) : allTrades)
+    : [];
+
+  // Overview metrics
+  let overview = null;
+  if (perms.canViewAccountOverview) {
+    const totalBalance = sharedAccounts.reduce((sum, a) => sum + (a.currentBalance || 0), 0);
+    const initialBalance = sharedAccounts.reduce((sum, a) => sum + (a.initialBalance || 10000), 0);
+    const netPnl = filteredTrades.reduce((sum, t) => sum + (t.netPnl || 0), 0);
+    const currentEquity = totalBalance + netPnl;
+
+    overview = {
+      totalBalance,
+      initialBalance,
+      currentEquity,
+      netPnl,
+      overallPnlPercent: initialBalance > 0 ? ((netPnl / initialBalance) * 100).toFixed(2) : '0.00',
+      accountCount: sharedAccounts.length,
+    };
+  }
+
+  // Performance analytics
+  let performance = null;
+  if (perms.canViewAnalytics || perms.canViewTrades) {
+    const totalTrades = filteredTrades.length;
+    const wins = filteredTrades.filter((t) => (t.netPnl || 0) > 0);
+    const losses = filteredTrades.filter((t) => (t.netPnl || 0) < 0);
+    const winRate = totalTrades > 0 ? Math.round((wins.length / totalTrades) * 100) : 0;
+
+    const totalGain = wins.reduce((sum, t) => sum + (t.netPnl || 0), 0);
+    const totalLoss = Math.abs(losses.reduce((sum, t) => sum + (t.netPnl || 0), 0));
+    const profitFactor = totalLoss > 0 ? (totalGain / totalLoss).toFixed(2) : totalGain > 0 ? '999.00' : '0.00';
+
+    const avgWin = wins.length > 0 ? totalGain / wins.length : 0;
+    const avgLoss = losses.length > 0 ? totalLoss / losses.length : 0;
+    const avgR = totalTrades > 0 ? (filteredTrades.reduce((sum, t) => sum + (t.rMultiple || 0), 0) / totalTrades).toFixed(2) : '0.00';
+
+    performance = {
+      totalTrades,
+      winningTrades: wins.length,
+      losingTrades: losses.length,
+      winRate,
+      profitFactor,
+      avgWin,
+      avgLoss,
+      avgR,
+    };
+  }
+
+  // Optional modules
+  const playbooks = perms.canViewPlaybooks ? await getPlaybooks(studentUserId) : [];
+  const notes = perms.canViewNotes ? await getJournalNotes(studentUserId) : [];
+  const riskGoals = perms.canViewRiskControls ? await getRiskGoals(studentUserId) : null;
+
+  return {
+    studentProfile: {
+      id: studentProfile?.id || studentUserId,
+      displayName: studentProfile?.fullName || 'Student Trader',
+      accountCode: studentProfile?.accountCode || 'TF-MTR-UNKNOWN',
+      avatarUrl: studentProfile?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+    },
+    permissions: perms,
+    sharedAccounts,
+    overview,
+    performance,
+    trades: filteredTrades,
+    playbooks,
+    notes,
+    riskGoals,
+  };
+}
+
+export async function disconnectMentorStudentRelationship(userId: string, targetUserId: string) {
+  await db
+    .delete(mentorStudentRelationships)
+    .where(
+      or(
+        and(
+          eq(mentorStudentRelationships.mentorUserId, userId),
+          eq(mentorStudentRelationships.studentUserId, targetUserId)
+        ),
+        and(
+          eq(mentorStudentRelationships.studentUserId, userId),
+          eq(mentorStudentRelationships.mentorUserId, targetUserId)
+        )
+      )
+    );
+
+  // Also remove from legacy mentorStudents
+  const legacyId1 = `ms_${userId}_${targetUserId}`;
+  const legacyId2 = `ms_${targetUserId}_${userId}`;
+  await db.delete(mentorStudents).where(or(eq(mentorStudents.id, legacyId1), eq(mentorStudents.id, legacyId2)));
+
+  return true;
+}
+
 
 
 

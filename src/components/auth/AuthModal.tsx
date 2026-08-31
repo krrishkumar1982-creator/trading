@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Lock, Mail, User, ShieldCheck, ArrowRight, Loader2, LogIn, UserPlus } from 'lucide-react';
-import { signInWithEmail, signUpWithEmail } from '../../lib/firebase';
+import { signInWithEmail, signUpWithEmail } from '../../services/supabaseAuth';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -41,28 +41,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
-      if (err.code === 'auth/operation-not-allowed') {
-        console.warn('Firebase Auth method disabled in console:', err?.message);
-      } else {
-        console.error('Auth error:', err);
-      }
+      console.error('Auth error:', err);
       let message = err.message || 'Authentication failed. Please try again.';
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || message.includes('Invalid email or password') || message.includes('invalid_grant')) {
         message = 'Invalid email or password.';
-      } else if (err.code === 'auth/email-already-in-use') {
+      } else if (err.code === 'auth/email-already-in-use' || message.includes('already registered')) {
         message = 'An account with this email already exists.';
       } else if (err.code === 'auth/invalid-email') {
         message = 'Please enter a valid email address.';
       } else if (err.code === 'auth/weak-password') {
         message = 'Password should be at least 6 characters.';
-      } else if (err.code === 'auth/user-not-found') {
+      } else if (err.code === 'auth/user-not-found' || message.includes('User not found')) {
         message = 'No account found with this email.';
-      } else if (err.code === 'auth/too-many-requests') {
-        message = 'Too many failed login attempts. Please wait a moment and try again.';
-      } else if (err.code === 'auth/network-request-failed') {
-        message = 'Network error. Please check your internet connection.';
-      } else if (err.code === 'auth/operation-not-allowed') {
-        message = 'Email/Password auth is currently disabled in Firebase project settings. You can continue under your workspace session.';
       }
       setError(message);
     } finally {

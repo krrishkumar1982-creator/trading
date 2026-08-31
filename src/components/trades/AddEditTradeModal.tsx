@@ -29,7 +29,8 @@ export const AddEditTradeModal: React.FC<AddEditTradeModalProps> = ({
   onClose,
   tradeToEdit,
 }) => {
-  const { addTrade, updateTrade, playbooks, accounts, selectedAccountId } = useTrading();
+  const { addTrade, updateTrade, playbooks, accounts, selectedAccountId, riskGoals, trades, addToast } = useTrading();
+  const [formError, setFormError] = useState<string>('');
 
   // Form fields
   const [accountId, setAccountId] = useState(accounts[0]?.id || 'acc-1');
@@ -44,7 +45,14 @@ export const AddEditTradeModal: React.FC<AddEditTradeModalProps> = ({
   const [quantity, setQuantity] = useState('5');
   const [commission, setCommission] = useState('12.50');
   const [session, setSession] = useState<'New York' | 'London' | 'Asian'>('New York');
+  const [playbookId, setPlaybookId] = useState<string>(playbooks[0]?.id || '');
+  const [setupId, setSetupId] = useState<string>('');
   const [setupType, setSetupType] = useState('Opening Drive');
+  const [setupGrade, setSetupGrade] = useState<'A+' | 'A' | 'B' | 'C' | 'D' | ''>('');
+  const [checkedRuleIds, setCheckedRuleIds] = useState<string[]>([]);
+  const [mistakeCategory, setMistakeCategory] = useState<string>('Entry Discipline');
+  const [mistakeDescription, setMistakeDescription] = useState<string>('');
+  const [mistakeSeverity, setMistakeSeverity] = useState<'Low' | 'Medium' | 'High'>('Medium');
   const [rulesFollowed, setRulesFollowed] = useState(true);
   const [emotionalState, setEmotionalState] = useState<'Disciplined' | 'FOMO' | 'Revenge' | 'Hesitant' | 'Greedy'>('Disciplined');
   const [entryDate, setEntryDate] = useState(() => {
@@ -90,8 +98,33 @@ export const AddEditTradeModal: React.FC<AddEditTradeModalProps> = ({
       setQuantity(tradeToEdit.quantity.toString());
       setCommission(tradeToEdit.commission.toString());
       setSession(tradeToEdit.session as any);
-      setSetupType(tradeToEdit.setupType);
+      
+      const foundPb = playbooks.find(p => p.id === tradeToEdit.playbookId)
+        || playbooks.find(p => p.name === tradeToEdit.setupType)
+        || playbooks[0];
+
+      const pbIdToSet = foundPb?.id || tradeToEdit.playbookId || '';
+      setPlaybookId(pbIdToSet);
+      setSetupType(foundPb?.name || tradeToEdit.setupType || '');
+      setSetupId(tradeToEdit.setupId || '');
+      setSetupGrade(tradeToEdit.setupGrade || '');
+
+      if (tradeToEdit.checkedRuleIds && Array.isArray(tradeToEdit.checkedRuleIds)) {
+        setCheckedRuleIds(tradeToEdit.checkedRuleIds);
+      } else if (foundPb && foundPb.rules && foundPb.rules.length > 0) {
+        if (tradeToEdit.rulesFollowed) {
+          setCheckedRuleIds(foundPb.rules.map(r => r.id));
+        } else {
+          setCheckedRuleIds([]);
+        }
+      } else {
+        setCheckedRuleIds([]);
+      }
+
       setRulesFollowed(tradeToEdit.rulesFollowed);
+      setMistakeCategory(tradeToEdit.mistakeCategory || 'Entry Discipline');
+      setMistakeDescription(tradeToEdit.mistakeDescription || '');
+      setMistakeSeverity(tradeToEdit.mistakeSeverity || 'Medium');
       setEmotionalState((tradeToEdit.emotionalState as any) || 'Disciplined');
       setScreenshotUrl(tradeToEdit.screenshotUrl || '');
       setAfterScreenshotUrl(tradeToEdit.afterScreenshotUrl || '');
@@ -106,13 +139,22 @@ export const AddEditTradeModal: React.FC<AddEditTradeModalProps> = ({
       setMistakes(tradeToEdit.mistakes || []);
     } else {
       setAccountId(selectedAccountId === 'all' ? (accounts[0]?.id || 'acc-1') : selectedAccountId);
+      const defaultPb = playbooks[0];
+      setPlaybookId(defaultPb?.id || '');
+      setSetupType(defaultPb?.name || '');
+      setSetupId('');
+      setSetupGrade('');
+      setCheckedRuleIds(defaultPb?.rules ? defaultPb.rules.map(r => r.id) : []);
+      setMistakeCategory('Entry Discipline');
+      setMistakeDescription('');
+      setMistakeSeverity('Medium');
       const now = new Date();
       const pad = (n: number) => n.toString().padStart(2, '0');
       setEntryDate(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`);
       setScreenshotUrl('');
       setAfterScreenshotUrl('');
     }
-  }, [tradeToEdit, isOpen, selectedAccountId, accounts]);
+  }, [tradeToEdit, isOpen, selectedAccountId, accounts, playbooks]);
 
   if (!isOpen) return null;
 
@@ -132,10 +174,70 @@ export const AddEditTradeModal: React.FC<AddEditTradeModalProps> = ({
   const totalRisk = riskPerUnit * numQty || 1;
   const rMultiple = parseFloat((grossPnl / totalRisk).toFixed(2));
 
+  // Determine selected playbook by exact ID first, then fallback to name match, then first playbook
+  const selectedPlaybook =
+    playbooks.find(p => p.id === playbookId) ||
+    playbooks.find(p => p.name === setupType) ||
+    playbooks[0];
+
+  const activeRules = selectedPlaybook?.rules || [];
+  const activeSetups = selectedPlaybook?.setups || [];
+
+  const totalRulesCount = activeRules.length;
+  // Calculate checked count using rules that actually belong to the currently selected playbook
+  const checkedCount = activeRules.filter(r => checkedRuleIds.includes(r.id)).length;
+  const compliancePct = totalRulesCount > 0 ? Math.round((checkedCount / totalRulesCount) * 100) : 0;
+
+  const suggestedGrade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'N/A' = (() => {
+    if (totalRulesCount === 0) return 'N/A';
+    if (compliancePct >= 90) return 'A+';
+    if (compliancePct >= 80) return 'A';
+    if (compliancePct >= 70) return 'B';
+    if (compliancePct >= 60) return 'C';
+    return 'D';
+  })();
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError('');
+
+    if (!tradeToEdit) {
+      // Risk & Circuit Breaker pre-trade entry validation
+      const todayStr = new Date().toISOString().split('T')[0];
+      const todayClosedTrades = trades.filter(t => t.entryDate && t.entryDate.startsWith(todayStr) && t.status === 'CLOSED');
+      const todayNet = todayClosedTrades.reduce((acc, t) => acc + (t.netPnl || 0), 0);
+      const todayLossAbs = todayNet < 0 ? Math.abs(todayNet) : 0;
+      const todayTradesCount = trades.filter(t => t.entryDate && t.entryDate.startsWith(todayStr)).length;
+
+      const isCircuitBreakerActive =
+        riskGoals.circuitBreakerTriggered ||
+        riskGoals.circuitBreakerState === 'TRIGGERED' ||
+        (riskGoals.dailyMaxLoss && riskGoals.dailyMaxLoss > 0 && todayLossAbs >= riskGoals.dailyMaxLoss);
+
+      if (isCircuitBreakerActive) {
+        const errorMsg = `🚨 Circuit Breaker Active: Daily loss limit reached ($${todayLossAbs.toFixed(2)} / $${riskGoals.dailyMaxLoss}). Trade entries locked.`;
+        setFormError(errorMsg);
+        addToast('Trade Entry Blocked', 'Circuit Breaker is active due to daily loss limit breach.', 'error');
+        return;
+      }
+
+      if (riskGoals.maxTradesPerDay && riskGoals.maxTradesPerDay > 0 && todayTradesCount >= riskGoals.maxTradesPerDay) {
+        const errorMsg = `🚨 Risk Limit Breached: Daily trade quota reached (${todayTradesCount} / ${riskGoals.maxTradesPerDay} trades).`;
+        setFormError(errorMsg);
+        addToast('Trade Entry Blocked', `Maximum daily trade count (${riskGoals.maxTradesPerDay}) reached.`, 'error');
+        return;
+      }
+
+      if (riskGoals.maxContractsPerTrade && riskGoals.maxContractsPerTrade > 0 && numQty > riskGoals.maxContractsPerTrade) {
+        const errorMsg = `🚨 Position Size Error: Position size (${numQty}) exceeds maximum allowed limit of ${riskGoals.maxContractsPerTrade} contracts.`;
+        setFormError(errorMsg);
+        addToast('Trade Entry Blocked', `Position size exceeds max allowed limit of ${riskGoals.maxContractsPerTrade} contracts.`, 'error');
+        return;
+      }
+    }
 
     const isoEntryDate = new Date(entryDate).toISOString();
+    const finalGrade = setupGrade || (suggestedGrade !== 'N/A' ? suggestedGrade : 'A+');
 
     const tradeData = {
       accountId,
@@ -158,14 +260,23 @@ export const AddEditTradeModal: React.FC<AddEditTradeModalProps> = ({
       rMultiple,
       roiPercent: parseFloat(((netPnl / (numEntry * numQty)) * 100).toFixed(2)),
       rating: 5,
-      setupType,
+      playbookId: selectedPlaybook?.id || playbookId,
+      setupId: setupId || undefined,
+      setupType: selectedPlaybook?.name || setupType || 'General',
+      setupGrade: finalGrade as any,
+      autoGrade: suggestedGrade !== 'N/A' ? (suggestedGrade as any) : undefined,
+      ruleCompliancePercent: totalRulesCount > 0 ? compliancePct : undefined,
+      checkedRuleIds,
+      mistakeCategory: totalRulesCount > 0 && compliancePct < 100 ? mistakeCategory : undefined,
+      mistakeDescription: totalRulesCount > 0 && compliancePct < 100 ? mistakeDescription : undefined,
+      mistakeSeverity: totalRulesCount > 0 && compliancePct < 100 ? mistakeSeverity : undefined,
       session,
-      rulesFollowed,
-      mistakes,
+      rulesFollowed: totalRulesCount > 0 ? compliancePct === 100 : true,
+      mistakes: totalRulesCount > 0 && compliancePct < 100 && mistakeDescription ? [...mistakes, mistakeDescription] : mistakes,
       emotionalState,
       notes,
       durationMinutes: 35,
-      tags: [market, setupType],
+      tags: [market, selectedPlaybook?.name || setupType || 'General'],
       screenshotUrl: screenshotUrl || undefined,
       afterScreenshotUrl: afterScreenshotUrl || undefined,
     };
@@ -192,6 +303,18 @@ export const AddEditTradeModal: React.FC<AddEditTradeModalProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {formError && (
+          <div className="p-3 bg-rose-950/90 border border-rose-600 rounded-xl text-xs font-bold text-rose-200 flex items-center justify-between shadow-lg">
+            <span className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+              {formError}
+            </span>
+            <button type="button" onClick={() => setFormError('')} className="text-rose-400 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Real-time Calculation Header Card */}
@@ -368,36 +491,190 @@ export const AddEditTradeModal: React.FC<AddEditTradeModalProps> = ({
             </div>
 
             <div>
-              <label className="text-xs text-slate-400 mb-1 block">Playbook Setup</label>
+              <label className="text-xs text-slate-400 mb-1 block">Strategy Playbook</label>
               <select
-                value={setupType}
-                onChange={e => setSetupType(e.target.value)}
+                value={selectedPlaybook?.id || playbookId}
+                onChange={e => {
+                  const pid = e.target.value;
+                  setPlaybookId(pid);
+                  const found = playbooks.find(p => p.id === pid);
+                  if (found) {
+                    setSetupType(found.name);
+                    setSetupId('');
+                    setSetupGrade('');
+                    setCheckedRuleIds(found.rules ? found.rules.map(r => r.id) : []);
+                  } else {
+                    setSetupType('');
+                    setSetupId('');
+                    setSetupGrade('');
+                    setCheckedRuleIds([]);
+                  }
+                }}
                 className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-2 text-xs font-semibold text-blue-400 focus:outline-none focus:border-blue-500"
               >
                 {playbooks.map(pb => (
-                  <option key={pb.id} value={pb.name}>
-                    {pb.name}
+                  <option key={pb.id} value={pb.id}>
+                    {pb.icon || '📘'} {pb.name} ({pb.market || 'All'})
                   </option>
                 ))}
               </select>
             </div>
           </div>
 
-          {/* Row 4: Rules Followed & Emotional Baseline */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800">
-              <div>
-                <span className="text-xs font-semibold text-slate-200 block">Followed Playbook Rules?</span>
-                <span className="text-[10px] text-slate-500">Track your adherence to trade edge</span>
-              </div>
-              <input
-                type="checkbox"
-                checked={rulesFollowed}
-                onChange={e => setRulesFollowed(e.target.checked)}
-                className="h-5 w-5 rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500"
-              />
-            </div>
+          {/* Playbook Rules Checklist & Setup Details Card */}
+          {selectedPlaybook && (
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                <div className="flex items-center gap-2">
+                  <BookmarkCheck className="w-4 h-4 text-blue-400" />
+                  <span className="text-xs font-bold text-slate-200">Playbook Rules Checklist & Grading</span>
+                </div>
 
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-slate-400">Compliance:</span>
+                  <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-md ${
+                    totalRulesCount === 0
+                      ? 'bg-slate-800/80 text-slate-400 border border-slate-700/50'
+                      : compliancePct === 100
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                  }`}>
+                    {totalRulesCount > 0 ? `${checkedCount} / ${totalRulesCount} (${compliancePct}%)` : '0 / 0 (N/A)'}
+                  </span>
+                  <span className="text-[11px] text-slate-400 ml-1">Auto Grade:</span>
+                  <span className="text-xs font-mono font-bold text-blue-400 bg-blue-500/20 px-2 py-0.5 rounded border border-blue-500/30">
+                    {suggestedGrade}
+                  </span>
+                </div>
+              </div>
+
+              {/* Sub Setups & Manual Grade Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {activeSetups.length > 0 && (
+                  <div>
+                    <label className="text-[11px] text-slate-400 mb-1 block">A+ Specific Setup Variation</label>
+                    <select
+                      value={setupId}
+                      onChange={e => setSetupId(e.target.value)}
+                      className="w-full rounded-xl bg-slate-900 border border-slate-800 px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="">Default Strategy Setup</option>
+                      {activeSetups.map(st => (
+                        <option key={st.id} value={st.id}>{st.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-[11px] text-slate-400 mb-1 block">Override Final Grade (Optional)</label>
+                  <select
+                    value={setupGrade}
+                    onChange={e => setSetupGrade(e.target.value as any)}
+                    className="w-full rounded-xl bg-slate-900 border border-slate-800 px-3 py-1.5 text-xs font-bold text-slate-100 focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="">Auto Grade ({totalRulesCount > 0 ? suggestedGrade : 'N/A'})</option>
+                    <option value="A+">Grade A+ (Flawless Execution)</option>
+                    <option value="A">Grade A (Great Execution)</option>
+                    <option value="B">Grade B (Minor Deviation)</option>
+                    <option value="C">Grade C (Sub-optimal)</option>
+                    <option value="D">Grade D (Rule Violation)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Interactive Rule Checkboxes */}
+              {activeRules.length > 0 ? (
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">Verify Rule Conditions:</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {activeRules.map(rule => {
+                      const isChecked = checkedRuleIds.includes(rule.id);
+                      return (
+                        <label
+                          key={rule.id}
+                          className={`flex items-start gap-2 p-2 rounded-xl border text-xs cursor-pointer transition ${
+                            isChecked
+                              ? 'bg-slate-900/90 border-blue-500/40 text-slate-100'
+                              : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              if (isChecked) {
+                                setCheckedRuleIds(prev => prev.filter(id => id !== rule.id));
+                              } else {
+                                setCheckedRuleIds(prev => [...prev, rule.id]);
+                              }
+                            }}
+                            className="mt-0.5 h-4 w-4 rounded bg-slate-950 border-slate-700 text-blue-600 focus:ring-blue-500"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <span className="font-medium block leading-snug">{rule.text}</span>
+                            <span className="text-[9px] font-mono text-slate-500 uppercase">{rule.category || 'RULE'} • {rule.required ? 'REQUIRED' : 'OPTIONAL'}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="py-3 text-center border border-dashed border-slate-800/80 rounded-xl bg-slate-900/30">
+                  <p className="text-xs text-slate-400 italic">No rules configured for this playbook.</p>
+                </div>
+              )}
+
+              {/* Mistake Recording if compliance < 100% and totalRulesCount > 0 */}
+              {totalRulesCount > 0 && compliancePct < 100 && (
+                <div className="p-3 rounded-xl bg-rose-950/30 border border-rose-500/30 space-y-2 text-xs">
+                  <div className="flex items-center gap-1.5 text-rose-300 font-bold">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Rule Violation Recorded ({100 - compliancePct}% missing)</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-slate-400 block">Mistake Category</label>
+                      <select
+                        value={mistakeCategory}
+                        onChange={e => setMistakeCategory(e.target.value)}
+                        className="w-full rounded-lg bg-slate-900 border border-slate-800 px-2.5 py-1 text-xs text-slate-200"
+                      >
+                        <option value="Entry Discipline">Entry Discipline</option>
+                        <option value="Risk Management">Risk Management</option>
+                        <option value="Patience / Confirmation">Patience / Confirmation</option>
+                        <option value="FOMO / Chasing">FOMO / Chasing</option>
+                        <option value="Exit & Trade Management">Exit & Trade Management</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-400 block">Severity</label>
+                      <select
+                        value={mistakeSeverity}
+                        onChange={e => setMistakeSeverity(e.target.value as any)}
+                        className="w-full rounded-lg bg-slate-900 border border-slate-800 px-2.5 py-1 text-xs text-slate-200"
+                      >
+                        <option value="Low">Low Severity</option>
+                        <option value="Medium">Medium Severity</option>
+                        <option value="High">High Severity</option>
+                      </select>
+                    </div>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Briefly describe what went wrong or why rule was skipped..."
+                    value={mistakeDescription}
+                    onChange={e => setMistakeDescription(e.target.value)}
+                    className="w-full rounded-lg bg-slate-900 border border-slate-800 px-2.5 py-1 text-xs text-slate-100 placeholder:text-slate-600"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Row 4: Emotional Baseline */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             <div>
               <label className="text-xs text-slate-400 mb-1 block">Emotional State at Execution</label>
               <select

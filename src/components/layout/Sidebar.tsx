@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   BookOpen,
@@ -10,6 +10,8 @@ import {
   Users2,
   Target,
   CalendarDays,
+  Globe,
+  Newspaper,
   Bot,
   Calculator,
   MessageSquare,
@@ -20,6 +22,7 @@ import {
   HelpCircle,
   Activity,
   Flame,
+  LogOut,
 } from 'lucide-react';
 import { useTrading, ActiveView } from '../../context/TradingContext';
 
@@ -29,8 +32,36 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
-  const { activeView, setActiveView, theme } = useTrading();
+  const { activeView, setActiveView, theme, userProfile, authUser, logout } = useTrading();
   const isLight = theme === 'light';
+  const [imageError, setImageError] = useState(false);
+
+  const avatarUrl =
+    userProfile?.avatarUrl ||
+    userProfile?.avatar ||
+    authUser?.user_metadata?.avatar_url ||
+    authUser?.user_metadata?.picture ||
+    '';
+
+  const accountName =
+    userProfile?.name?.trim() ||
+    authUser?.user_metadata?.full_name?.trim() ||
+    authUser?.user_metadata?.name?.trim() ||
+    (authUser as any)?.displayName?.trim() ||
+    (authUser?.email ? authUser.email.split('@')[0] : '') ||
+    'Trader';
+
+  const userInitials = accountName
+    .split(' ')
+    .filter(Boolean)
+    .map((w: string) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || 'TR';
+
+  useEffect(() => {
+    setImageError(false);
+  }, [avatarUrl]);
 
   const mainNavItems: Array<{
     id: ActiveView;
@@ -54,12 +85,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed })
     icon: React.ComponentType<{ className?: string }>;
     badge?: string;
   }> = [
+    { id: 'self-improvement', label: 'Self Improvement', icon: Flame, badge: 'NEW' },
     { id: 'goals', label: 'Progress Goals', icon: Target },
-    { id: 'calendar', label: 'Economic Calendar', icon: CalendarDays },
+    { id: 'news', label: 'Market Intelligence', icon: Globe },
     { id: 'mentor-mode', label: 'Mentor Hub', icon: Users2 },
     { id: 'ai-coach', label: 'AI Review Coach', icon: Bot, badge: 'AI' },
     { id: 'tools', label: 'Calculators & Sizing', icon: Calculator },
-    { id: 'lounge', label: 'Trader Lounge', icon: MessageSquare },
   ];
 
   const bottomNav: Array<{
@@ -266,29 +297,52 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed })
           <div className="flex items-center justify-between w-full px-1">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="relative">
-                <div className={`w-7 h-7 rounded-lg font-semibold text-xs flex items-center justify-center ${
-                  isLight ? 'bg-[rgba(37,99,255,0.10)] text-[#1D4ED8] border border-[rgba(37,99,255,0.20)]' : 'bg-[rgba(37,99,255,0.12)] text-[#4C7DFF] border border-[rgba(37,99,255,0.25)]'
-                }`}>
-                  AR
-                </div>
+                {avatarUrl && !imageError ? (
+                  <img
+                    src={avatarUrl}
+                    alt={accountName}
+                    referrerPolicy="no-referrer"
+                    onError={() => setImageError(true)}
+                    className="w-7 h-7 rounded-lg object-cover ring-1 ring-[#2563FF]/30 shadow-sm"
+                  />
+                ) : (
+                  <div className={`w-7 h-7 rounded-lg font-semibold text-xs flex items-center justify-center ${
+                    isLight ? 'bg-[rgba(37,99,255,0.10)] text-[#1D4ED8] border border-[rgba(37,99,255,0.20)]' : 'bg-[rgba(37,99,255,0.12)] text-[#4C7DFF] border border-[rgba(37,99,255,0.25)]'
+                  }`}>
+                    {userInitials}
+                  </div>
+                )}
                 <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#00D6A3] ring-2 ring-[#0E0E11]" />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className={`text-xs font-semibold truncate ${isLight ? 'text-[#111827]' : 'text-[#F4F4F5]'}`}>
-                  Alex River
+                <span className={`text-xs font-semibold truncate ${isLight ? 'text-[#111827]' : 'text-[#F4F4F5]'}`} title={accountName}>
+                  {accountName}
                 </span>
                 <span className={`text-[10px] font-mono truncate ${isLight ? 'text-[#6B7280]' : 'text-[#A1A1AA]'}`}>
-                  Funded Master
+                  {authUser?.email || userProfile?.email || userProfile?.accountCode || 'Active Session'}
                 </span>
               </div>
             </div>
-            <button
-              onClick={() => setIsCollapsed(true)}
-              className={`p-1.5 rounded-lg transition-colors ${isLight ? 'text-[#6B7280] hover:text-[#111827] hover:bg-[#E5E7EB]' : 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[rgba(255,255,255,0.05)]'}`}
-              title="Collapse Sidebar"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => logout()}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  isLight
+                    ? 'text-[#6B7280] hover:text-[#DC2626] hover:bg-[#FEE2E2]'
+                    : 'text-[#A1A1AA] hover:text-[#FF3D6E] hover:bg-[rgba(255,61,110,0.1)]'
+                }`}
+                title="Sign Out / Switch Account"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setIsCollapsed(true)}
+                className={`p-1.5 rounded-lg transition-colors ${isLight ? 'text-[#6B7280] hover:text-[#111827] hover:bg-[#E5E7EB]' : 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[rgba(255,255,255,0.05)]'}`}
+                title="Collapse Sidebar"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         ) : (
           <button

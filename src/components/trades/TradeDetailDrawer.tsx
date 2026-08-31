@@ -191,23 +191,88 @@ export const TradeDetailDrawer: React.FC<TradeDetailDrawerProps> = ({ trade, onC
 
           {/* Setup & Discipline Status */}
           <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400 font-medium">Assigned Playbook Setup</span>
-              <span className="font-bold text-blue-400">{trade.setupType}</span>
+            <div className="flex items-center justify-between text-xs border-b border-slate-800/80 pb-2.5">
+              <span className="text-slate-400 font-medium">Assigned Playbook & Setup</span>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-blue-400">{trade.setupType}</span>
+                {trade.setupGrade && (
+                  <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-black ${
+                    trade.setupGrade === 'A+' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                    trade.setupGrade === 'A' ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/20' :
+                    trade.setupGrade === 'B' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                    trade.setupGrade === 'C' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                    'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                  }`}>
+                    Grade {trade.setupGrade}
+                  </span>
+                )}
+              </div>
             </div>
+
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400 font-medium">Rule Compliance</span>
-              <span
-                className={`font-semibold px-2 py-0.5 rounded text-[11px] ${
-                  trade.rulesFollowed
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                }`}
-              >
-                {trade.rulesFollowed ? 'Rules strictly followed (100%)' : 'Rule violation detected'}
-              </span>
+              <span className="text-slate-400 font-medium">Rule Adherence Compliance</span>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[11px] font-bold text-slate-300">
+                  {trade.ruleCompliancePercent !== undefined ? `${trade.ruleCompliancePercent}%` : trade.rulesFollowed ? '100%' : '< 100%'}
+                </span>
+                <span
+                  className={`font-semibold px-2 py-0.5 rounded text-[11px] ${
+                    trade.rulesFollowed || trade.ruleCompliancePercent === 100
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                  }`}
+                >
+                  {trade.rulesFollowed || trade.ruleCompliancePercent === 100 ? '100% Rules Followed' : 'Rule Violation Detected'}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center justify-between text-xs">
+
+            {/* Display rule breakdown if matchedPlaybook exists */}
+            {matchedPlaybook && matchedPlaybook.rules && matchedPlaybook.rules.length > 0 && (
+              <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
+                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">Rule Execution Verification:</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {matchedPlaybook.rules.map((rule) => {
+                    const isChecked = trade.checkedRuleIds ? trade.checkedRuleIds.includes(rule.id) : trade.rulesFollowed;
+                    return (
+                      <div
+                        key={rule.id}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-[11px] ${
+                          isChecked
+                            ? 'bg-emerald-950/20 border-emerald-500/20 text-emerald-200'
+                            : 'bg-rose-950/20 border-rose-500/20 text-rose-300 line-through opacity-80'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isChecked ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                        <span className="truncate">{rule.text}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Mistake Detail Card */}
+            {(trade.mistakeCategory || trade.mistakeDescription || (trade.mistakes && trade.mistakes.length > 0)) && (
+              <div className="p-3 rounded-xl bg-rose-950/20 border border-rose-500/30 space-y-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-rose-400 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Mistake: {trade.mistakeCategory || 'Execution Fault'}</span>
+                  </span>
+                  {trade.mistakeSeverity && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                      {trade.mistakeSeverity} Severity
+                    </span>
+                  )}
+                </div>
+                <p className="text-slate-300 text-[11px]">
+                  {trade.mistakeDescription || (trade.mistakes && trade.mistakes.join(', '))}
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800/80">
               <span className="text-slate-400 font-medium">Emotional Baseline</span>
               <span className="text-slate-200 font-medium">{trade.emotionalState || 'Disciplined & Calm'}</span>
             </div>

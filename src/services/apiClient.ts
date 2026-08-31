@@ -1,4 +1,4 @@
-import { auth } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import {
   Trade,
   TradingAccount,
@@ -22,12 +22,16 @@ export function setApiAuthToken(token: string | null) {
 
 async function getAuthHeaders(headers: Record<string, string> = {}): Promise<Record<string, string>> {
   const merged: Record<string, string> = { ...headers };
-  if (auth.currentUser) {
-    try {
-      currentIdToken = await auth.currentUser.getIdToken();
-    } catch (e) {
-      console.warn('Failed to refresh Firebase ID token:', e);
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (data?.session?.access_token) {
+      currentIdToken = data.session.access_token;
+      if (data.session.user?.id) {
+        merged['x-user-id'] = data.session.user.id;
+      }
     }
+  } catch (e) {
+    console.warn('Failed to retrieve Supabase session:', e);
   }
   if (currentIdToken) {
     merged['Authorization'] = `Bearer ${currentIdToken}`;
@@ -35,15 +39,18 @@ async function getAuthHeaders(headers: Record<string, string> = {}): Promise<Rec
   return merged;
 }
 
-async function authenticatedFetch(url: string, init: RequestInit = {}): Promise<Response> {
+export async function authenticatedFetch(url: string, init: RequestInit = {}): Promise<Response> {
   const headers = await getAuthHeaders((init.headers as Record<string, string>) || {});
   let response = await fetch(url, { ...init, headers });
 
-  if (response.status === 401 && auth.currentUser) {
+  if (response.status === 401) {
     try {
-      currentIdToken = await auth.currentUser.getIdToken(true);
-      const retryHeaders = await getAuthHeaders((init.headers as Record<string, string>) || {});
-      response = await fetch(url, { ...init, headers: retryHeaders });
+      const { data } = await supabase.auth.getSession();
+      if (data?.session?.access_token) {
+        currentIdToken = data.session.access_token;
+        const retryHeaders = await getAuthHeaders((init.headers as Record<string, string>) || {});
+        response = await fetch(url, { ...init, headers: retryHeaders });
+      }
     } catch (e) {
       console.error('Auto token refresh on 401 failed:', e);
     }
@@ -65,81 +72,18 @@ export async function fetchInitialState(retries = 3, delay = 500) {
         throw new Error(data.error || 'Failed to fetch state');
       }
 
-      // Check for unmigrated legacy localStorage data
-      const userMigrationKey = currentIdToken
-        ? `${MIGRATION_KEY}_${data.userId || 'user'}`
-        : MIGRATION_KEY;
-
-      const hasMigrated = localStorage.getItem(userMigrationKey);
-      if (!hasMigrated) {
-        try {
-          const localTradesStr = localStorage.getItem('duskflow_trades');
-          const localAccountsStr = localStorage.getItem('duskflow_accounts');
-          const localNotesStr = localStorage.getItem('duskflow_notes');
-          const localFoldersStr = localStorage.getItem('duskflow_folders');
-          const localPlaybooksStr = localStorage.getItem('duskflow_playbooks');
-          const localStrategiesStr = localStorage.getItem('duskflow_strategies');
-          const localRiskGoalsStr = localStorage.getItem('duskflow_risk_goals');
-          const localBacktestSessionsStr = localStorage.getItem('duskflow_backtesting_sessions');
-
-          const localTrades = localTradesStr ? JSON.parse(localTradesStr) : null;
-          const localAccounts = localAccountsStr ? JSON.parse(localAccountsStr) : null;
-          const localNotes = localNotesStr ? JSON.parse(localNotesStr) : null;
-          const localFolders = localFoldersStr ? JSON.parse(localFoldersStr) : null;
-          const localPlaybooks = localPlaybooksStr ? JSON.parse(localPlaybooksStr) : null;
-          const localStrategies = localStrategiesStr ? JSON.parse(localStrategiesStr) : null;
-          const localRiskGoals = localRiskGoalsStr ? JSON.parse(localRiskGoalsStr) : null;
-          const localBacktestSessions = localBacktestSessionsStr ? JSON.parse(localBacktestSessionsStr) : null;
-
-          if (
-            localTrades ||
-            localAccounts ||
-            localNotes ||
-            localFolders ||
-            localPlaybooks ||
-            localStrategies ||
-            localRiskGoals ||
-            localBacktestSessions
-          ) {
-            console.log('Migrating local user data to Cloud SQL database for current user...');
-            const syncRes = await authenticatedFetch('/api/sync-migration', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                trades: localTrades,
-                accounts: localAccounts,
-                notes: localNotes,
-                folders: localFolders,
-                playbooks: localPlaybooks,
-                strategies: localStrategies,
-                riskGoals: localRiskGoals,
-                backtestSessions: localBacktestSessions,
-              }),
-            });
-            if (syncRes.ok) {
-              localStorage.setItem(userMigrationKey, 'true');
-              // Clear un-prefixed legacy items to prevent cross-user leakage on shared browser
-              localStorage.removeItem('duskflow_trades');
-              localStorage.removeItem('duskflow_accounts');
-              localStorage.removeItem('duskflow_notes');
-              localStorage.removeItem('duskflow_folders');
-              localStorage.removeItem('duskflow_playbooks');
-              localStorage.removeItem('duskflow_strategies');
-              localStorage.removeItem('duskflow_risk_goals');
-              localStorage.removeItem('duskflow_backtesting_sessions');
-
-              // Refetch fresh state after migration
-              const refetched = await authenticatedFetch('/api/state');
-              if (refetched.ok) {
-                return await refetched.json();
-              }
-            }
-          } else {
-            localStorage.setItem(userMigrationKey, 'true');
-          }
-        } catch (err) {
-          console.warn('LocalStorage migration warning:', err);
-        }
+      // Clean up any stale legacy localStorage items so they never leak between users
+      try {
+        localStorage.removeItem('duskflow_trades');
+        localStorage.removeItem('duskflow_accounts');
+        localStorage.removeItem('duskflow_notes');
+        localStorage.removeItem('duskflow_folders');
+        localStorage.removeItem('duskflow_playbooks');
+        localStorage.removeItem('duskflow_strategies');
+        localStorage.removeItem('duskflow_risk_goals');
+        localStorage.removeItem('duskflow_backtesting_sessions');
+      } catch {
+        // ignore
       }
 
       return data;
@@ -313,12 +257,26 @@ export async function deleteFolderApi(id: string) {
   }
 }
 
-export async function saveRiskGoalsApi(goals: RiskGoalSettings) {
+export async function fetchRiskGoalsApi(accountId?: string): Promise<RiskGoalSettings | null> {
   try {
+    const url = accountId && accountId !== 'all' ? `/api/risk-goals?accountId=${encodeURIComponent(accountId)}` : '/api/risk-goals';
+    const res = await authenticatedFetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.riskGoals || null;
+  } catch (error) {
+    console.error('fetchRiskGoalsApi error:', error);
+    return null;
+  }
+}
+
+export async function saveRiskGoalsApi(goals: RiskGoalSettings, accountId?: string) {
+  try {
+    const payload = accountId && accountId !== 'all' ? { ...goals, tradingAccountId: accountId } : goals;
     await authenticatedFetch('/api/risk-goals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(goals),
+      body: JSON.stringify(payload),
     });
   } catch (error) {
     console.error('saveRiskGoalsApi error:', error);
@@ -832,6 +790,132 @@ export async function deleteMentorFeedback(id: string) {
   }
 }
 
+export async function fetchStudentMentorsApi() {
+  try {
+    const res = await authenticatedFetch('/api/student/mentors');
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to fetch mentors');
+    }
+    const data = await res.json();
+    return data.mentors || [];
+  } catch (error) {
+    console.error('fetchStudentMentorsApi error:', error);
+    return [];
+  }
+}
+
+export async function fetchMentorStudentsFullApi() {
+  try {
+    const res = await authenticatedFetch('/api/mentor/students-full');
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to fetch students');
+    }
+    const data = await res.json();
+    return data.students || [];
+  } catch (error) {
+    console.error('fetchMentorStudentsFullApi error:', error);
+    return [];
+  }
+}
+
+export async function fetchStudentDetailsForMentorApi(studentId: string) {
+  try {
+    const res = await authenticatedFetch(`/api/mentor/students/${encodeURIComponent(studentId)}/details`);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to fetch student details');
+    }
+    const data = await res.json();
+    return data.details || null;
+  } catch (error) {
+    console.error('fetchStudentDetailsForMentorApi error:', error);
+    throw error;
+  }
+}
+
+export async function searchMentorAccountsApi(query: string) {
+  try {
+    const res = await authenticatedFetch(`/api/mentor/search?q=${encodeURIComponent(query)}`);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to search mentor accounts');
+    }
+    const data = await res.json();
+    return data.results || [];
+  } catch (error) {
+    console.error('searchMentorAccountsApi error:', error);
+    throw error;
+  }
+}
+
+export async function searchStudentByCodeApi(code: string) {
+  try {
+    const res = await authenticatedFetch(`/api/mentor/search-student?code=${encodeURIComponent(code)}`);
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Student not found. Check the Unique Mentor Code.');
+    }
+    return data.student;
+  } catch (error) {
+    console.error('searchStudentByCodeApi error:', error);
+    throw error;
+  }
+}
+
+export async function connectMentorByCodeApi(mentorCode: string, role?: 'mentor' | 'student') {
+  try {
+    const res = await authenticatedFetch('/api/mentor/connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mentorCode, role }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Failed to connect');
+    }
+    return data;
+  } catch (error) {
+    console.error('connectMentorByCodeApi error:', error);
+    throw error;
+  }
+}
+
+export async function updateStudentSharingPermissionsApi(mentorUserId: string, permissions: any) {
+  try {
+    const res = await authenticatedFetch('/api/student/permissions', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mentorUserId, permissions }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Failed to update permissions');
+    }
+    return data.permissions;
+  } catch (error) {
+    console.error('updateStudentSharingPermissionsApi error:', error);
+    throw error;
+  }
+}
+
+export async function disconnectMentorRelationshipApi(targetUserId: string) {
+  try {
+    const res = await authenticatedFetch(`/api/mentor/relationship/${encodeURIComponent(targetUserId)}`, {
+      method: 'DELETE',
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Failed to disconnect relationship');
+    }
+    return true;
+  } catch (error) {
+    console.error('disconnectMentorRelationshipApi error:', error);
+    throw error;
+  }
+}
+
 // Leaderboard & Admin API calls
 export async function fetchLeaderboardApi(retries = 3, delay = 500) {
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -982,6 +1066,206 @@ export async function deleteChartTemplateApi(templateId: string) {
     return await res.json();
   } catch (error) {
     console.error('deleteChartTemplateApi error:', error);
+    throw error;
+  }
+}
+
+export async function fetchUserProfileApi() {
+  try {
+    const res = await authenticatedFetch('/api/user/profile');
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.profile || null;
+  } catch (error) {
+    console.error('fetchUserProfileApi error:', error);
+    return null;
+  }
+}
+
+export async function updateUserProfileApi(profileData: {
+  fullName?: string;
+  name?: string;
+  email?: string;
+  accountCode?: string;
+  experienceLevel?: string;
+  avatarUrl?: string;
+}) {
+  try {
+    const res = await authenticatedFetch('/api/user/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profileData),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to update profile');
+    }
+    return await res.json();
+  } catch (error) {
+    console.error('updateUserProfileApi error:', error);
+    throw error;
+  }
+}
+
+// ============================================================================
+// Auto-Sync Trading Account Connections API Helpers
+// ============================================================================
+
+export async function fetchPlatformsApi() {
+  try {
+    const res = await authenticatedFetch('/api/connections/platforms');
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to fetch supported platforms');
+    }
+    const data = await res.json();
+    return data.platforms || [];
+  } catch (error) {
+    console.error('fetchPlatformsApi error:', error);
+    throw error;
+  }
+}
+
+export async function testConnectionApi(platform: string, credentials: Record<string, any>) {
+  try {
+    const res = await authenticatedFetch('/api/connections/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ platform, credentials }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || data.message || 'Connection test failed');
+    }
+    return data;
+  } catch (error) {
+    console.error('testConnectionApi error:', error);
+    throw error;
+  }
+}
+
+export async function fetchConnectionsApi() {
+  try {
+    const res = await authenticatedFetch('/api/connections');
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to fetch connections');
+    }
+    const data = await res.json();
+    return data.connections || [];
+  } catch (error) {
+    console.error('fetchConnectionsApi error:', error);
+    throw error;
+  }
+}
+
+export async function createConnectionApi(connectionData: {
+  platform: string;
+  broker: string;
+  server?: string;
+  accountNumber: string;
+  accountName?: string;
+  currency?: string;
+  accountType?: string;
+  credentials: Record<string, any>;
+  syncEnabled?: boolean;
+  autoSyncIntervalMins?: number;
+  importScope?: string;
+  importStartDate?: string;
+  linkToExistingAccountId?: string;
+}) {
+  try {
+    const res = await authenticatedFetch('/api/connections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(connectionData),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to create connection');
+    }
+    return data;
+  } catch (error) {
+    console.error('createConnectionApi error:', error);
+    throw error;
+  }
+}
+
+export async function updateConnectionApi(
+  id: string,
+  updateData: {
+    accountName?: string;
+    syncEnabled?: boolean;
+    autoSyncIntervalMins?: number;
+    importScope?: string;
+    importStartDate?: string;
+    credentials?: Record<string, any>;
+  }
+) {
+  try {
+    const res = await authenticatedFetch(`/api/connections/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updateData),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to update connection');
+    }
+    return data;
+  } catch (error) {
+    console.error('updateConnectionApi error:', error);
+    throw error;
+  }
+}
+
+export async function deleteConnectionApi(id: string) {
+  try {
+    const res = await authenticatedFetch(`/api/connections/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to delete connection');
+    }
+    return data;
+  } catch (error) {
+    console.error('deleteConnectionApi error:', error);
+    throw error;
+  }
+}
+
+export async function syncConnectionApi(
+  id: string,
+  options?: { importScope?: string; startDate?: string }
+) {
+  try {
+    const res = await authenticatedFetch(`/api/connections/${encodeURIComponent(id)}/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(options || {}),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Sync request failed');
+    }
+    return data;
+  } catch (error) {
+    console.error('syncConnectionApi error:', error);
+    throw error;
+  }
+}
+
+export async function fetchConnectionLogsApi(id: string) {
+  try {
+    const res = await authenticatedFetch(`/api/connections/${encodeURIComponent(id)}/logs`);
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to fetch logs');
+    }
+    return data.logs || [];
+  } catch (error) {
+    console.error('fetchConnectionLogsApi error:', error);
     throw error;
   }
 }

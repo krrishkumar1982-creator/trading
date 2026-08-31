@@ -50,6 +50,7 @@ import {
   fetchIntegrationHealthApi,
   retryIntegrationEventApi,
 } from '../../services/apiClient';
+import { AutoSyncConnectionsManager } from './AutoSyncConnectionsManager';
 
 interface SettingsSyncViewProps {
   onOpenImport: () => void;
@@ -106,6 +107,8 @@ export const SettingsSyncView: React.FC<SettingsSyncViewProps> = ({ onOpenImport
   const [activeTab, setActiveTab] = useState<SettingsTab>(
     activeView === 'integrations' ? 'integrations' : 'commissions'
   );
+
+  const isLight = theme === 'light';
 
   // Broker Auto-Sync Integrations State
   const [integrations, setIntegrations] = useState<any[]>([]);
@@ -479,9 +482,16 @@ export const SettingsSyncView: React.FC<SettingsSyncViewProps> = ({ onOpenImport
         </div>
 
         {/* Right Side Workspace Area */}
-        <div className="flex-1 rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-xl">
+        <div className={`flex-1 rounded-2xl border p-6 shadow-xl ${
+          isLight ? 'bg-white border-[#E5E7EB]' : 'border-slate-800 bg-slate-900/80'
+        }`}>
           {/* TAB 0: Broker & Platform Auto-Sync */}
           {activeTab === 'integrations' && (
+            <AutoSyncConnectionsManager onOpenImport={onOpenImport} />
+          )}
+
+          {/* Legacy Webhook Integrations Modal / Settings below */}
+          {false && activeTab === 'integrations' && (
             <div className="space-y-6">
               {/* Header & Subtitle */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
@@ -1224,14 +1234,6 @@ export const SettingsSyncView: React.FC<SettingsSyncViewProps> = ({ onOpenImport
                       <Copy className="w-4 h-4" />
                     </button>
                   </div>
-                  <button
-                    onClick={() => regenerateAccountCode()}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg transition"
-                    title="Generate New Code"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Regenerate</span>
-                  </button>
                 </div>
               </div>
 

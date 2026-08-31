@@ -557,7 +557,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* 1. Net Daily P&L */}
         {widgets.dailyBarChart && (
-          <div className={`rounded-xl border p-4 flex flex-col justify-between transition ${
+          <div className={`rounded-xl border p-4 flex flex-col justify-between transition min-w-0 overflow-hidden ${
             isLight
               ? 'border-[#E5E7EB] bg-white shadow-xs'
               : 'border-[#20283A] bg-[#0D111B]'
@@ -577,7 +577,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
 
         {/* 2. Recent Trades / Open Positions Tabs */}
         {widgets.positionsTable && (
-          <div className={`rounded-xl border p-4 flex flex-col justify-between transition ${
+          <div className={`rounded-xl border p-4 flex flex-col justify-between transition min-w-0 overflow-hidden ${
             isLight
               ? 'border-[#E5E7EB] bg-white shadow-xs'
               : 'border-[#20283A] bg-[#0D111B]'
@@ -703,7 +703,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTrade, onO
 
         {/* 3. Account Balance / Equity Curve */}
         {widgets.accountBalance && (
-          <div className={`rounded-xl border p-4 flex flex-col justify-between transition ${
+          <div className={`rounded-xl border p-4 flex flex-col justify-between transition min-w-0 overflow-hidden ${
             isLight
               ? 'border-[#E5E7EB] bg-white shadow-xs'
               : 'border-[#20283A] bg-[#0D111B]'

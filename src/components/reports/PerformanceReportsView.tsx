@@ -1112,21 +1112,29 @@ export const PerformanceReportsView: React.FC = () => {
               ))}
               {Array.from({ length: 31 }).map((_, idx) => {
                 const dayNum = idx + 1;
-                const mockPnl = dayNum % 5 === 0 ? -350 : dayNum % 3 === 0 ? 820 : dayNum % 2 === 0 ? 1240 : 0;
+                const dailyPnl = closedTrades.reduce((sum, t) => {
+                  if (t.entryDate) {
+                    const d = new Date(t.entryDate);
+                    if (!isNaN(d.getTime()) && d.getDate() === dayNum) {
+                      return sum + (t.netPnl || 0);
+                    }
+                  }
+                  return sum;
+                }, 0);
                 return (
                   <div
                     key={dayNum}
                     className={`p-3 rounded-xl border flex flex-col justify-between h-20 ${
-                      mockPnl > 0
+                      dailyPnl > 0
                         ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-                        : mockPnl < 0
+                        : dailyPnl < 0
                           ? 'bg-rose-500/15 border-rose-500/30 text-rose-400'
                           : 'bg-slate-950 border-slate-800 text-slate-500'
                     }`}
                   >
                     <span className="text-[10px] font-bold text-slate-400 text-left">{dayNum}</span>
                     <span className="font-mono text-xs font-black">
-                      {mockPnl !== 0 ? formatCurrency(mockPnl) : '-'}
+                      {dailyPnl !== 0 ? formatCurrency(dailyPnl) : '-'}
                     </span>
                   </div>
                 );

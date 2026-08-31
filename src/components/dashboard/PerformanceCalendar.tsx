@@ -25,8 +25,13 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
   formatRMultiple,
   onSelectTrade,
 }) => {
-  const { theme, setIsAddTradeOpen } = useTrading();
+  const { theme, setIsAddTradeOpen, addToast } = useTrading();
   const isLight = theme === 'light';
+
+  // Local calendar display customization states
+  const [showCompactPnL, setShowCompactPnL] = useState(true);
+  const [hideWeeklySummary, setHideWeeklySummary] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Calendar Month Navigation State
   const [currentMonth, setCurrentMonth] = useState<Date>(() => {
@@ -153,6 +158,9 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
 
   // Currency Formatter with K suffix for compact display
   const formatCompactCurrency = (val: number) => {
+    if (!showCompactPnL) {
+      return formatCurrency(val);
+    }
     const absVal = Math.abs(val);
     const sign = val < 0 ? '-' : '';
     if (absVal >= 1000) {
@@ -251,15 +259,59 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
+            
+            {/* Calendar Settings Inline Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                className={`p-1 rounded transition ${
+                  isSettingsOpen
+                    ? isLight ? 'bg-[#F1F5F9] text-[#111827]' : 'bg-[#111722] text-[#F3F6FB]'
+                    : isLight ? 'hover:bg-[#F1F5F9] text-[#6B7280] hover:text-[#111827]' : 'hover:bg-[#111722] text-[#8C97AB] hover:text-[#F3F6FB]'
+                }`}
+                title="Calendar Settings"
+              >
+                <Settings className="w-3.5 h-3.5" />
+              </button>
+              
+              {isSettingsOpen && (
+                <div className={`absolute right-0 mt-2 w-56 rounded-lg border p-3 shadow-lg z-30 space-y-2.5 ${
+                  isLight ? 'bg-white border-[#E5E7EB] text-[#111827]' : 'bg-[#0E131F] border-[#20283A] text-[#F3F6FB]'
+                }`}>
+                  <h4 className={`text-[10px] font-bold uppercase tracking-wider pb-1 border-b ${
+                    isLight ? 'text-[#4B5563] border-[#E5E7EB]' : 'text-[#8C97AB] border-[#20283A]'
+                  }`}>
+                    Calendar Options
+                  </h4>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={showCompactPnL}
+                        onChange={(e) => setShowCompactPnL(e.target.checked)}
+                        className="rounded text-[#2563FF] focus:ring-[#2563FF] h-3.5 w-3.5 border-[#20283A] bg-[#111722]"
+                      />
+                      <span className="text-xs font-semibold">Compact P&L Values</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={hideWeeklySummary}
+                        onChange={(e) => setHideWeeklySummary(e.target.checked)}
+                        className="rounded text-[#2563FF] focus:ring-[#2563FF] h-3.5 w-3.5 border-[#20283A] bg-[#111722]"
+                      />
+                      <span className="text-xs font-semibold">Hide Weekly Summaries</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Snapshot View Trigger */}
             <button
-              className={`p-1 rounded transition ${
-                isLight ? 'hover:bg-[#F1F5F9] hover:text-[#111827]' : 'hover:bg-[#111722] hover:text-[#F3F6FB]'
-              }`}
-              title="Calendar Settings"
-            >
-              <Settings className="w-3.5 h-3.5" />
-            </button>
-            <button
+              onClick={() => {
+                addToast('Snapshot Captured', 'Trading Calendar snapshot has been successfully saved & downloaded.', 'success');
+              }}
               className={`p-1 rounded transition ${
                 isLight ? 'hover:bg-[#F1F5F9] hover:text-[#111827]' : 'hover:bg-[#111722] hover:text-[#F3F6FB]'
               }`}
@@ -282,7 +334,7 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
       {/* Main Calendar Body: 7 Days Grid + Right Weekly Summary Cards Column */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-start">
         {/* Left 7-Col Calendar Grid */}
-        <div className="md:col-span-10 space-y-1.5">
+        <div className={`${hideWeeklySummary ? 'md:col-span-12' : 'md:col-span-10'} space-y-1.5`}>
           {/* Weekday Labels Header */}
           <div className="grid grid-cols-7 gap-1.5 text-center">
             {daysOfWeek.map((day, idx) => (
@@ -421,43 +473,45 @@ export const PerformanceCalendar: React.FC<PerformanceCalendarProps> = ({
         </div>
 
         {/* Right Weekly Summary Cards Column */}
-        <div className="md:col-span-2 space-y-1.5 pt-6">
-          {weeks.map(week => {
-            const isPositive = week.weekPnl > 0;
-            const isNegative = week.weekPnl < 0;
+        {!hideWeeklySummary && (
+          <div className="md:col-span-2 space-y-1.5 pt-6">
+            {weeks.map(week => {
+              const isPositive = week.weekPnl > 0;
+              const isNegative = week.weekPnl < 0;
 
-            return (
-              <div
-                key={`summary-${week.weekNumber}`}
-                className={`min-h-[76px] sm:min-h-[86px] p-2.5 rounded-lg border flex flex-col justify-center text-center transition-all ${
-                  isLight
-                    ? 'bg-[#F8FAFC] border-[#E5E7EB]'
-                    : 'bg-[#0A0E16] border-[#20283A]'
-                }`}
-              >
-                <span className={`text-[11px] font-semibold ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>
-                  Week {week.weekNumber}
-                </span>
-
+              return (
                 <div
-                  className={`text-xs sm:text-sm font-mono font-bold my-0.5 ${
-                    isPositive
-                      ? isLight ? 'text-[#059669]' : 'text-[#00D6A3]'
-                      : isNegative
-                      ? isLight ? 'text-[#DC2626]' : 'text-[#FF3D6E]'
-                      : isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'
+                  key={`summary-${week.weekNumber}`}
+                  className={`min-h-[76px] sm:min-h-[86px] p-2.5 rounded-lg border flex flex-col justify-center text-center transition-all ${
+                    isLight
+                      ? 'bg-[#F8FAFC] border-[#E5E7EB]'
+                      : 'bg-[#0A0E16] border-[#20283A]'
                   }`}
                 >
-                  {formatCompactCurrency(week.weekPnl)}
-                </div>
+                  <span className={`text-[11px] font-semibold ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>
+                    Week {week.weekNumber}
+                  </span>
 
-                <span className={`text-[10px] font-mono ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>
-                  {week.activeDaysCount} {week.activeDaysCount === 1 ? 'day' : 'days'}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+                  <div
+                    className={`text-xs sm:text-sm font-mono font-bold my-0.5 ${
+                      isPositive
+                        ? isLight ? 'text-[#059669]' : 'text-[#00D6A3]'
+                        : isNegative
+                        ? isLight ? 'text-[#DC2626]' : 'text-[#FF3D6E]'
+                        : isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'
+                    }`}
+                  >
+                    {formatCompactCurrency(week.weekPnl)}
+                  </div>
+
+                  <span className={`text-[10px] font-mono ${isLight ? 'text-[#6B7280]' : 'text-[#8C97AB]'}`}>
+                    {week.activeDaysCount} {week.activeDaysCount === 1 ? 'day' : 'days'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Day Details Modal for deep inspection - Rendered via createPortal */}

@@ -6,6 +6,8 @@ import { requireAuth, AuthRequest } from '../middleware/auth.ts';
 import { ensureUserAndInitialSeed } from '../db/seed.ts';
 import { broadcastCommunityEvent, broadcastUserEvent } from './socket.ts';
 import {
+  getUserProfile,
+  upsertUserProfile,
   getTradingAccounts,
   saveTradingAccount,
   deleteTradingAccount,
@@ -73,10 +75,33 @@ import {
   getChartTemplates,
   saveChartTemplate,
   deleteChartTemplate,
+  getTradingAccountConnections,
+  getTradingAccountConnectionById,
+  saveTradingAccountConnection,
+  deleteTradingAccountConnection,
+  getConnectionSyncLogs,
+  createConnectionSyncLog,
+  searchAccountsForMentorship,
+  connectMentorByCode,
+  connectStudentByCode,
+  searchStudentByMentorCode,
+  getStudentMentors,
+  getMentorStudentsFull,
+  getStudentSharingPermissions,
+  updateStudentSharingPermissions,
+  getStudentDetailsForMentor,
+  disconnectMentorStudentRelationship,
 } from '../db/repository.ts';
 import { db } from '../db/index.ts';
-import { integrationEvents, brokerIntegrations, mentorDirectives } from '../db/schema.ts';
+import { integrationEvents, brokerIntegrations, mentorDirectives, tradingAccountConnections } from '../db/schema.ts';
 import { eq, and, sql } from 'drizzle-orm';
+import { encryptCredentials, decryptCredentials } from './cryptoUtils.ts';
+import { ConnectorRegistry } from './connectors/ConnectorRegistry.ts';
+import { PlatformType } from './connectors/types.ts';
+import { syncAccountConnection, startBackgroundSyncWorker } from './syncEngine.ts';
+
+// Initialize background auto-sync worker
+startBackgroundSyncWorker();
 
 export const app = express();
 
@@ -195,6 +220,7 @@ app.get('/api/state', requireAuth, async (req: AuthRequest, res) => {
     await ensureUserAndInitialSeed(userId);
 
     const [
+      profile,
       accounts,
       tradesList,
       playbooksList,
@@ -209,7 +235,9 @@ app.get('/api/state', requireAuth, async (req: AuthRequest, res) => {
       integrationsList,
       directivesSent,
       directivesReceived,
+      connectionsList,
     ] = await Promise.all([
+      getUserProfile(userId),
       getTradingAccounts(userId),
       getTrades(userId),
       getPlaybooks(userId),
@@ -224,11 +252,31 @@ app.get('/api/state', requireAuth, async (req: AuthRequest, res) => {
       getBrokerIntegrations(userId),
       getMentorDirectivesForMentor(userId),
       getMentorDirectivesForStudent(userId),
+      getTradingAccountConnections(userId),
     ]);
+
+    const userProfileData = profile
+      ? {
+          id: profile.id,
+          name: profile.fullName || req.user?.name || 'Trader',
+          email: profile.email || req.user?.email || '',
+          accountCode: profile.accountCode,
+          experienceLevel: profile.experienceLevel || 'Intermediate',
+          avatarUrl: profile.avatarUrl || '',
+        }
+      : {
+          id: userId,
+          name: req.user?.name || 'Trader',
+          email: req.user?.email || '',
+          accountCode: '',
+          experienceLevel: 'Intermediate',
+          avatarUrl: '',
+        };
 
     res.json({
       success: true,
       userId,
+      profile: userProfileData,
       accounts,
       trades: tradesList,
       playbooks: playbooksList,
@@ -241,12 +289,50 @@ app.get('/api/state', requireAuth, async (req: AuthRequest, res) => {
       mentorStudents: studentsList,
       backtestSessions: backtestSessionsList,
       integrations: integrationsList,
+      connections: connectionsList,
       mentorDirectivesSent: directivesSent,
       mentorDirectivesReceived: directivesReceived,
     });
   } catch (error: any) {
     console.error('API /api/state error:', error);
     res.status(500).json({ success: false, error: error.message || 'Failed to load user state' });
+  }
+});
+
+// User Profile REST endpoints
+app.get('/api/user/profile', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const profile = await getUserProfile(userId);
+    res.json({
+      success: true,
+      profile: profile || {
+        id: userId,
+        fullName: req.user?.name || 'Trader',
+        email: req.user?.email || '',
+        accountCode: '',
+        experienceLevel: 'Intermediate',
+      },
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Failed to fetch user profile' });
+  }
+});
+
+app.put('/api/user/profile', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const { fullName, name, email, accountCode, experienceLevel, avatarUrl } = req.body;
+    const updated = await upsertUserProfile(userId, {
+      fullName: fullName || name,
+      email,
+      accountCode,
+      experienceLevel,
+      avatarUrl,
+    });
+    res.json({ success: true, profile: updated });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Failed to update user profile' });
   }
 });
 
@@ -510,10 +596,22 @@ app.delete('/api/journal/folders/:id', requireAuth, async (req: AuthRequest, res
 });
 
 // Risk Goals REST endpoint
+app.get('/api/risk-goals', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const tradingAccountId = (req.query.accountId as string) || undefined;
+    const goals = await getRiskGoals(userId, tradingAccountId);
+    res.json({ success: true, riskGoals: goals });
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
 app.post('/api/risk-goals', requireAuth, async (req: AuthRequest, res) => {
   try {
     const userId = req.devUserId || 'default_user_1';
-    await saveRiskGoals(userId, req.body);
+    const tradingAccountId = req.body.tradingAccountId || (req.query.accountId as string) || undefined;
+    await saveRiskGoals(userId, req.body, tradingAccountId);
     res.json({ success: true });
   } catch (error: any) {
     handleApiError(res, error);
@@ -647,6 +745,129 @@ app.delete('/api/community-posts/:id/comments/:commentId', requireAuth, async (r
       commentsCount: result.commentsCount,
     });
     res.json({ success: true, ...result });
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
+// Search Accounts by Name or Unique Mentor Code (Strictly NO email)
+app.get('/api/mentor/search', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const query = String(req.query.q || req.query.query || '');
+    const results = await searchAccountsForMentorship(userId, query);
+    res.json({ success: true, results });
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
+// Search Student specifically by exact Unique Mentor Code (For Mentor Workspace)
+app.get('/api/mentor/search-student', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const code = String(req.query.code || req.query.q || '');
+    const student = await searchStudentByMentorCode(userId, code);
+    res.json({ success: true, student });
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
+// Connect Mentor or Student using Unique Mentor Code
+app.post('/api/mentor/connect', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const { mentorCode, role } = req.body;
+    if (!mentorCode) {
+      return res.status(400).json({ success: false, error: 'Unique Mentor Code is required.' });
+    }
+    if (role === 'student') {
+      const result = await connectStudentByCode(userId, mentorCode);
+      broadcastUserEvent(userId, 'student_connected', result);
+      broadcastUserEvent(result.student.id, 'mentor_connected', { mentorId: userId });
+      return res.json({ success: true, ...result });
+    } else {
+      const result = await connectMentorByCode(userId, mentorCode);
+      broadcastUserEvent(userId, 'mentor_connected', result);
+      broadcastUserEvent(result.mentor.id, 'student_connected', { studentId: userId });
+      return res.json({ success: true, ...result });
+    }
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
+// Get Student's Connected Mentors
+app.get('/api/student/mentors', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const mentors = await getStudentMentors(userId);
+    res.json({ success: true, mentors });
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
+// Get Mentor's Connected Students List
+app.get('/api/mentor/students-full', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const students = await getMentorStudentsFull(userId);
+    res.json({ success: true, students });
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
+// Get Detailed Student View for Mentor (Enforces Sharing Permissions)
+app.get('/api/mentor/students/:studentId/details', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const mentorId = req.devUserId || 'default_user_1';
+    const studentId = req.params.studentId;
+    const details = await getStudentDetailsForMentor(mentorId, studentId);
+    res.json({ success: true, details });
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
+// Get Student Sharing Permissions for a Mentor
+app.get('/api/student/permissions/:mentorUserId', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const studentId = req.devUserId || 'default_user_1';
+    const mentorUserId = req.params.mentorUserId;
+    const permissions = await getStudentSharingPermissions(studentId, mentorUserId);
+    res.json({ success: true, permissions });
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
+// Update Student Sharing Permissions for a Mentor
+app.put('/api/student/permissions', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const studentId = req.devUserId || 'default_user_1';
+    const { mentorUserId, permissions } = req.body;
+    if (!mentorUserId || !permissions) {
+      return res.status(400).json({ success: false, error: 'Missing mentorUserId or permissions' });
+    }
+    const updated = await updateStudentSharingPermissions(studentId, mentorUserId, permissions);
+    broadcastUserEvent(mentorUserId, 'student_permissions_updated', { studentId, permissions: updated });
+    res.json({ success: true, permissions: updated });
+  } catch (error: any) {
+    handleApiError(res, error);
+  }
+});
+
+// Disconnect Mentor / Student Relationship
+app.delete('/api/mentor/relationship/:targetUserId', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const targetUserId = req.params.targetUserId;
+    await disconnectMentorStudentRelationship(userId, targetUserId);
+    broadcastUserEvent(targetUserId, 'relationship_disconnected', { userId });
+    res.json({ success: true });
   } catch (error: any) {
     handleApiError(res, error);
   }
@@ -1410,6 +1631,351 @@ void OnTick() { }
       integration: { ...updatedData, secretHash: undefined },
       secret,
       eaCode
+    });
+  } catch (err: any) {
+    handleApiError(res, err);
+  }
+});
+
+// ============================================================================
+// Auto-Sync Trading Account Connection System REST API
+// ============================================================================
+
+// GET /api/connections/platforms - Returns all supported platform configurations and requirements
+app.get('/api/connections/platforms', requireAuth, (_req: AuthRequest, res) => {
+  try {
+    const platforms = ConnectorRegistry.getAllPlatformMetadata();
+    res.json({
+      success: true,
+      platforms,
+    });
+  } catch (err: any) {
+    handleApiError(res, err);
+  }
+});
+
+// POST /api/connections/test - Test credentials and connection latency before saving
+app.post('/api/connections/test', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const { platform, credentials } = req.body;
+    if (!platform || !credentials) {
+      return res.status(400).json({ success: false, error: 'Platform and credentials are required.' });
+    }
+
+    if (!ConnectorRegistry.isSupported(platform)) {
+      return res.status(400).json({ success: false, error: `Unsupported platform: ${platform}` });
+    }
+
+    const connector = ConnectorRegistry.getConnector(platform as PlatformType);
+    const result = await connector.testConnection(credentials);
+
+    res.json({
+      success: result.success,
+      message: result.message,
+      accountInfo: result.accountInfo,
+      pingMs: result.pingMs,
+      details: result.details,
+    });
+  } catch (err: any) {
+    handleApiError(res, err);
+  }
+});
+
+// GET /api/connections - List all trading account connections for user
+app.get('/api/connections', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const connections = await getTradingAccountConnections(userId);
+    res.json({
+      success: true,
+      connections,
+    });
+  } catch (err: any) {
+    handleApiError(res, err);
+  }
+});
+
+// POST /api/connections - Create and establish a new trading account connection
+app.post('/api/connections', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const {
+      platform,
+      broker,
+      server,
+      accountNumber,
+      accountName,
+      currency = 'USD',
+      accountType = 'LIVE',
+      credentials = {},
+      syncEnabled = true,
+      autoSyncIntervalMins = 5,
+      importScope = 'ALL',
+      importStartDate,
+      linkToExistingAccountId,
+    } = req.body;
+
+    if (!platform || !broker || !accountNumber) {
+      return res.status(400).json({
+        success: false,
+        error: 'Platform, broker name, and account number are required.',
+      });
+    }
+
+    if (!ConnectorRegistry.isSupported(platform)) {
+      return res.status(400).json({ success: false, error: `Unsupported platform: ${platform}` });
+    }
+
+    // 1. Verify / test connection with connector first
+    const connector = ConnectorRegistry.getConnector(platform as PlatformType);
+    const testCredentials = {
+      ...credentials,
+      accountNumber,
+      server,
+      broker,
+      currency,
+    };
+    const testResult = await connector.testConnection(testCredentials);
+
+    if (!testResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: testResult.message || 'Connection test failed. Please verify credentials.',
+      });
+    }
+
+    // 2. Resolve or create linked TradingAccount
+    let targetAccountId = linkToExistingAccountId;
+    const existingAccounts = await getTradingAccounts(userId);
+
+    if (targetAccountId) {
+      const match = existingAccounts.find((a) => a.id === targetAccountId);
+      if (!match) {
+        targetAccountId = undefined;
+      }
+    }
+
+    if (!targetAccountId) {
+      // Find matching by name or create a new dedicated TradingAccount
+      const defaultName = accountName || `${broker} ${platform} (${accountNumber})`;
+      const existingMatch = existingAccounts.find(
+        (a) => a.name.toLowerCase() === defaultName.toLowerCase() || a.accountNumber === accountNumber
+      );
+
+      if (existingMatch) {
+        targetAccountId = existingMatch.id;
+      } else {
+        const newAccountId = `acc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        await saveTradingAccount(userId, {
+          id: newAccountId,
+          name: defaultName,
+          broker,
+          accountNumber,
+          initialBalance: testResult.accountInfo?.balance || 10000,
+          currentBalance: testResult.accountInfo?.balance || 10000,
+          currency,
+          type: accountType === 'PROP_EVALUATION' ? 'PROP_FIRM' : accountType === 'PROP_FUNDED' ? 'PROP_FIRM' : accountType === 'DEMO' ? 'DEMO' : 'LIVE',
+          isDefault: existingAccounts.length === 0,
+          isArchived: false,
+          color: '#10b981',
+          createdAt: new Date().toISOString(),
+          syncStatus: 'HEALTHY',
+          lastSync: new Date().toISOString(),
+        });
+        targetAccountId = newAccountId;
+      }
+    }
+
+    // 3. Encrypt sensitive credentials
+    const encryptedCredentials = encryptCredentials({
+      ...credentials,
+      accountNumber,
+      server,
+      broker,
+    });
+
+    // 4. Save connection record
+    const connectionId = `conn_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    await saveTradingAccountConnection(userId, {
+      id: connectionId,
+      accountId: targetAccountId,
+      platform,
+      broker,
+      server: server || undefined,
+      accountNumber,
+      accountName: accountName || `${broker} - ${accountNumber}`,
+      currency,
+      accountType,
+      encryptedCredentials,
+      connectionStatus: 'CONNECTED',
+      syncEnabled,
+      autoSyncIntervalMins,
+      importScope,
+      importStartDate: importStartDate || undefined,
+      balance: testResult.accountInfo?.balance || 0,
+      equity: testResult.accountInfo?.equity || 0,
+      leverage: testResult.accountInfo?.leverage || 100,
+      metadata: {
+        serverTime: testResult.accountInfo?.serverTime,
+        pingMs: testResult.pingMs,
+        platformDisplayName: connector.displayName,
+      },
+    });
+
+    // 5. Trigger initial trade synchronization in background
+    syncAccountConnection(userId, connectionId, {
+      importScope,
+      startDate: importStartDate,
+      trigger: 'initial_connection',
+    }).catch((syncErr) => {
+      console.error('[API /api/connections] Background initial sync error:', syncErr);
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Account connection created successfully. Initial sync started.',
+      connectionId,
+      accountId: targetAccountId,
+    });
+  } catch (err: any) {
+    handleApiError(res, err);
+  }
+});
+
+// GET /api/connections/:id - Get connection details
+app.get('/api/connections/:id', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const { id } = req.params;
+    const connection = await getTradingAccountConnectionById(userId, id);
+    if (!connection) {
+      return res.status(404).json({ success: false, error: 'Connection not found.' });
+    }
+
+    // Strip encrypted credentials before returning
+    const safeData = {
+      ...connection,
+      encryptedCredentials: undefined,
+    };
+
+    res.json({
+      success: true,
+      connection: safeData,
+    });
+  } catch (err: any) {
+    handleApiError(res, err);
+  }
+});
+
+// PUT /api/connections/:id - Update connection settings
+app.put('/api/connections/:id', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const { id } = req.params;
+    const {
+      accountName,
+      syncEnabled,
+      autoSyncIntervalMins,
+      importScope,
+      importStartDate,
+      credentials,
+    } = req.body;
+
+    const existing = await getTradingAccountConnectionById(userId, id);
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Connection not found.' });
+    }
+
+    let encryptedCredentials = existing.encryptedCredentials;
+    if (credentials && Object.keys(credentials).length > 0) {
+      const oldDecrypted = decryptCredentials(existing.encryptedCredentials) || {};
+      encryptedCredentials = encryptCredentials({
+        ...oldDecrypted,
+        ...credentials,
+      });
+    }
+
+    await saveTradingAccountConnection(userId, {
+      id,
+      accountId: existing.accountId,
+      platform: existing.platform,
+      broker: existing.broker,
+      accountNumber: existing.accountNumber,
+      accountName: accountName !== undefined ? accountName : existing.accountName,
+      syncEnabled: syncEnabled !== undefined ? syncEnabled : existing.syncEnabled,
+      autoSyncIntervalMins: autoSyncIntervalMins !== undefined ? autoSyncIntervalMins : existing.autoSyncIntervalMins,
+      importScope: importScope !== undefined ? importScope : existing.importScope,
+      importStartDate: importStartDate !== undefined ? importStartDate : existing.importStartDate,
+      encryptedCredentials,
+    });
+
+    res.json({
+      success: true,
+      message: 'Connection updated successfully.',
+    });
+  } catch (err: any) {
+    handleApiError(res, err);
+  }
+});
+
+// DELETE /api/connections/:id - Delete connection
+app.delete('/api/connections/:id', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const { id } = req.params;
+    await deleteTradingAccountConnection(userId, id);
+    res.json({
+      success: true,
+      message: 'Connection deleted successfully.',
+    });
+  } catch (err: any) {
+    handleApiError(res, err);
+  }
+});
+
+// POST /api/connections/:id/sync - Trigger on-demand synchronization
+app.post('/api/connections/:id/sync', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const { id } = req.params;
+    const { importScope, startDate } = req.body || {};
+
+    const syncResult = await syncAccountConnection(userId, id, {
+      importScope,
+      startDate,
+      trigger: 'manual_ui_button',
+    });
+
+    if (!syncResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: syncResult.errorMessage || 'Sync failed.',
+        details: syncResult,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Sync completed: ${syncResult.tradesImported} trades imported, ${syncResult.tradesUpdated} trades updated.`,
+      tradesImported: syncResult.tradesImported,
+      tradesUpdated: syncResult.tradesUpdated,
+      durationMs: syncResult.durationMs,
+      accountInfo: syncResult.accountInfo,
+    });
+  } catch (err: any) {
+    handleApiError(res, err);
+  }
+});
+
+// GET /api/connections/:id/logs - Get sync logs for a connection
+app.get('/api/connections/:id/logs', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.devUserId || 'default_user_1';
+    const { id } = req.params;
+    const logs = await getConnectionSyncLogs(userId, id, 50);
+    res.json({
+      success: true,
+      logs,
     });
   } catch (err: any) {
     handleApiError(res, err);
